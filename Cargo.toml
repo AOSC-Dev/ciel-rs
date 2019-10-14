@@ -1,0 +1,20 @@
+[package]
+name = "ciel-rs"
+version = "0.1.0"
+authors = ["liushuyu <liushuyu011@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+console = "0.9.0"
+dbus = "0.7.1"
+dialoguer = "0.4.0"
+failure = "0.1.6"
+indicatif = "0.12.0"
+nix = "0.15.0"
+
+[dependencies.clap]
+version = "2.33.0"
+default-features = false
+features = [ "suggestions", "color" ]
