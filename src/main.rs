@@ -1,16 +1,16 @@
 use clap::{App, Arg, SubCommand};
-use dialoguer::Confirmation;
+use dialoguer::Confirm;
 use failure::Error;
 use nix;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 
-const VERSION: &str = "0.1.0";
+const VERSION: &str = "3.0.0-alpha1";
 
 fn farewell<P: AsRef<Path>>(path: P) -> Result<(), Error> {
-    let delete = Confirmation::new()
-        .with_text("DELETE ALL CIEL THINGS?")
+    let delete = Confirm::new()
+        .with_prompt("DELETE ALL CIEL THINGS?")
         .interact()?;
     if delete {
         fs::remove_dir_all(path)?;
