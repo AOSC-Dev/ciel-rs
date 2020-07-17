@@ -1,5 +1,8 @@
 mod common;
 mod config;
+mod machined;
+mod network;
+mod dbus_machine1;
 
 use clap::{App, Arg, SubCommand};
 use common::create_spinner;

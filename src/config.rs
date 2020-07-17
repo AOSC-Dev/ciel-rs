@@ -1,7 +1,17 @@
+//! This module contains configuration files related APIs
+
 use crate::common::CURRENT_CIEL_VERSION;
-use dialoguer::{Confirm, Input};
+use dialoguer::{Confirm, Editor, Input};
 use failure::Error;
 use serde_derive::{Deserialize, Serialize};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+
+const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
+const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
+const DEFAULT_AB3_CONFIG_LOCATION: &str = "etc/autobuild/ab3cfg.sh";
+const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
+const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CielConfig {
@@ -56,6 +66,7 @@ fn validate_maintainer(maintainer: &str) -> Result<(), String> {
     let mut at = false; // "@"
     let mut name = false;
     let mut nbsp = false; // space
+                          // A simple FSM to match the states
     for c in maintainer.as_bytes() {
         match *c {
             b'<' => {
@@ -109,12 +120,59 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig, Error> {
         .with_prompt("Enable DNSSEC")
         .default(config.dnssec)
         .interact()?;
+    let edit_source = Confirm::new()
+        .with_prompt("Edit sources.list")
+        .default(false)
+        .interact()?;
+    if edit_source {
+        config.apt_sources = Editor::new()
+            .edit(&config.apt_sources)?
+            .unwrap_or(DEFAULT_APT_SOURCE.to_owned());
+    }
     config.local_repo = Confirm::new()
         .with_prompt("Enable local packages repository")
         .default(config.local_repo)
         .interact()?;
 
     Ok(config)
+}
+
+pub fn read_config() -> Result<CielConfig, Error> {
+    let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
+    let mut data: Vec<u8> = Vec::new();
+    f.read_to_end(&mut data)?;
+
+    Ok(CielConfig::load_config(data.as_slice())?)
+}
+
+pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), Error> {
+    // write maintainer information
+    let mut rootfs = PathBuf::new();
+    rootfs.push(root);
+    let mut config_path = rootfs.clone();
+    config_path.push(DEFAULT_AB3_CONFIG_LOCATION);
+    let mut f = std::fs::File::create(config_path)?;
+    f.write_all(
+        format!(
+            "#!/bin/bash\nABMPM=dpkg\nABAPMS=\nABINSTALL=dpkg\nMTER=\"{}\"",
+            config.maintainer
+        )
+        .as_bytes(),
+    )?;
+    // write sources.list
+    let mut apt_list_path = rootfs.clone();
+    apt_list_path.push(DEFAULT_APT_LIST_LOCATION);
+    let mut f = std::fs::File::create(apt_list_path)?;
+    f.write_all(config.apt_sources.as_bytes())?;
+    // write DNSSEC configuration
+    if config.dnssec {
+        let mut resolv_path = rootfs.clone();
+        resolv_path.push(DEFAULT_RESOLV_LOCATION);
+        let mut f = std::fs::File::create(resolv_path)?;
+        f.write_all("[Resolve]\nDNSSEC=no\n".as_bytes())?;
+    }
+
+    Ok(())
 }
 
 #[test]

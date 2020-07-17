@@ -8,11 +8,10 @@ use std::{
 
 pub const CURRENT_CIEL_VERSION: usize = 3;
 const CURRENT_CIEL_VERSION_STR: &str = "3";
-const SKELETON_DIRS: &[&str] = &[
-    ".ciel/container/dist",
-    ".ciel/container/instances",
-    ".ciel/data",
-];
+pub const CIEL_DIST_DIR: &str = ".ciel/container/dist";
+pub const CIEL_INST_DIR: &str = ".ciel/container/instances";
+pub const CIEL_DATA_DIR: &str = ".ciel/data";
+const SKELETON_DIRS: &[&str] = &[CIEL_DIST_DIR, CIEL_INST_DIR, CIEL_DATA_DIR];
 
 lazy_static! {
     static ref SPINNER_STYLE: indicatif::ProgressStyle =
