@@ -1,4 +1,8 @@
+mod common;
+mod config;
+
 use clap::{App, Arg, SubCommand};
+use common::create_spinner;
 use dialoguer::Confirm;
 use failure::Error;
 use nix;
@@ -19,6 +23,7 @@ fn farewell<P: AsRef<Path>>(path: P) -> Result<(), Error> {
     Ok(())
 }
 
+#[inline]
 fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
 }
@@ -139,5 +144,13 @@ fn main() {
     if let Some(_args) = args.subcommand_matches("farewell") {
         let directory = args.value_of("C").unwrap_or(".");
         farewell(directory).unwrap();
+        process::exit(0);
+    }
+    if let Some(_args) = args.subcommand_matches("init") {
+        let directory = args.value_of("C").unwrap_or(".");
+        std::env::set_current_dir(directory).unwrap();
+        common::ciel_init().unwrap();
+        println!("Initialized working directory at {}", directory);
+        process::exit(0);
     }
 }

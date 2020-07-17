@@ -13,6 +13,10 @@ dialoguer = "0.6"
 failure = "0.1"
 indicatif = "0.15"
 nix = "0.17"
+lazy_static = "1.4"
+toml = "0.5"
+serde = "1.0"
+serde_derive = "1.0"
 
 [dependencies.clap]
 version = "2.33"
