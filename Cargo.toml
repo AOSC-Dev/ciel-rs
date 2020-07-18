@@ -19,6 +19,10 @@ serde = "1.0"
 serde_derive = "1.0"
 reqwest = { version = "0.10", features = ["blocking"] }
 git2 = "0.13"
+tar = "0.4"
+xz2 = "0.1"
+progress-streams = "1.1"
+libmount = { git = "https://github.com/liushuyu/libmount" }
 
 [dependencies.clap]
 version = "2.33"

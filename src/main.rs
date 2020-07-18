@@ -1,8 +1,10 @@
 mod common;
 mod config;
+mod dbus_machine1;
+mod dbus_machine1_machine;
 mod machined;
 mod network;
-mod dbus_machine1;
+mod overlayfs;
 
 use clap::{App, Arg, SubCommand};
 use common::create_spinner;
@@ -154,6 +156,20 @@ fn main() {
         std::env::set_current_dir(directory).unwrap();
         common::ciel_init().unwrap();
         println!("Initialized working directory at {}", directory);
+        process::exit(0);
+    }
+    if let Some(_args) = args.subcommand_matches("load-tree") {
+        let directory = args.value_of("C").unwrap_or(".");
+        std::env::set_current_dir(directory).unwrap();
+        network::download_git(network::GIT_TREE_URL, Path::new("TREE")).unwrap();
+        process::exit(0);
+    }
+    if let Some(args) = args.subcommand_matches("load-os") {
+        let directory = args.value_of("C").unwrap_or(".");
+        std::env::set_current_dir(directory).unwrap();
+        let url = args.value_of("url").unwrap();
+        let total = network::download_file_progress(url, "test").unwrap();
+        common::extract_system_tarball(&PathBuf::from("test"), total).unwrap();
         process::exit(0);
     }
 }

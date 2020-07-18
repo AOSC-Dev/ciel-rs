@@ -1,7 +1,10 @@
 use failure::Error;
 use lazy_static::lazy_static;
+use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 
 lazy_static! {
     static ref GIT_PROGRESS: indicatif::ProgressStyle = indicatif::ProgressStyle::default_bar()
@@ -15,8 +18,29 @@ pub fn download_file(url: &str) -> Result<Response, Error> {
     Ok(client)
 }
 
+pub fn download_file_progress(url: &str, file: &str) -> Result<u64, Error> {
+    let mut output = std::fs::File::create(file)?;
+    let mut resp = download_file(url)?;
+    let mut total: u64 = 0;
+    if let Some(length) = resp.headers().get("content-length") {
+        total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
+    }
+    let progress_bar = indicatif::ProgressBar::new(total);
+    progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
+        "{spinner} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, eta {eta})",
+    ));
+    progress_bar.enable_steady_tick(500);
+    let mut reader = ProgressReader::new(&mut resp, |progress: usize| {
+        progress_bar.inc(progress as u64);
+    });
+    std::io::copy(&mut reader, &mut output)?;
+    progress_bar.finish_and_clear();
+
+    Ok(total)
+}
+
 /// Clone the Git repository to `root`
-pub fn download_git(uri: &str, root: PathBuf) -> Result<(), Error> {
+pub fn download_git(uri: &str, root: &Path) -> Result<(), Error> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let mut co_callback = git2::build::CheckoutBuilder::new();
     let progress_dl = indicatif::ProgressBar::new(1);
@@ -55,7 +79,7 @@ pub fn download_git(uri: &str, root: PathBuf) -> Result<(), Error> {
     git2::build::RepoBuilder::new()
         .fetch_options(options)
         .with_checkout(co_callback)
-        .clone(uri, &root)?;
+        .clone(uri, root)?;
 
     Ok(())
 }
