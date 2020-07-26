@@ -7,19 +7,19 @@ use std::fs;
 
 pub trait LayerManager {
     /// Return the name of the layer manager, e.g. "overlayfs"
-    fn name() -> String;
+    fn name() -> String where Self: Sized;
     /// Create a new layer manager from the given distribution directory
-    fn from_inst_dir<P: AsRef<Path>>(path: P) -> Result<(), Error>;
+    fn from_inst_dir<P: AsRef<Path>>(path: P) -> Result<Box<dyn LayerManager>, Error> where Self: Sized;
     /// Mount the filesystem to the given path
-    fn mount(to: &Path) -> Result<(), Error>;
+    fn mount(&mut self, to: &Path) -> Result<(), Error>;
     /// Return if the filesystem is mounted
     fn is_mounted(&self) -> Result<bool, Error>;
     /// Rollback the filesystem to the distribution state
-    fn rollback(&self) -> Result<(), Error>;
+    fn rollback(&mut self) -> Result<(), Error>;
     /// Commit the current state of the instance filesystem to the distribution state
-    fn commit(&self) -> Result<(), Error>;
+    fn commit(&mut self) -> Result<(), Error>;
     /// Un-mount the filesystem
-    fn unmount(&self) -> Result<(), Error>;
+    fn unmount(&mut self) -> Result<(), Error>;
 }
 
 /// is_mounted: check if a path is a mountpoint with corresponding fs_type
