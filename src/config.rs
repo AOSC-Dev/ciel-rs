@@ -12,6 +12,7 @@ const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
 const DEFAULT_AB3_CONFIG_LOCATION: &str = "etc/autobuild/ab3cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
+const DEFAULT_ACBS_SOURCE: &str = "var/cache/acbs/tarballs/";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CielConfig {
@@ -20,6 +21,7 @@ pub struct CielConfig {
     dnssec: bool,
     apt_sources: String,
     local_repo: bool,
+    local_sources: bool,
 }
 
 impl CielConfig {
@@ -29,6 +31,7 @@ impl CielConfig {
         dnssec: bool,
         apt_sources: String,
         local_repo: bool,
+        local_sources: bool,
     ) -> Self {
         CielConfig {
             version,
@@ -36,6 +39,7 @@ impl CielConfig {
             dnssec,
             apt_sources,
             local_repo,
+            local_sources,
         }
     }
 
@@ -56,6 +60,7 @@ impl Default for CielConfig {
             dnssec: false,
             apt_sources: String::new(),
             local_repo: false,
+            local_sources: false,
         }
     }
 }
@@ -129,6 +134,10 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig, Error> {
             .edit(&config.apt_sources)?
             .unwrap_or(DEFAULT_APT_SOURCE.to_owned());
     }
+    config.local_sources = Confirm::new()
+        .with_prompt("Enable local sources caching")
+        .default(config.local_sources)
+        .interact()?;
     config.local_repo = Confirm::new()
         .with_prompt("Enable local packages repository")
         .default(config.local_repo)

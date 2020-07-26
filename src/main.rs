@@ -2,6 +2,7 @@ mod common;
 mod config;
 mod dbus_machine1;
 mod dbus_machine1_machine;
+mod logging;
 mod machined;
 mod network;
 mod overlayfs;
@@ -10,6 +11,7 @@ use clap::{App, Arg, SubCommand};
 use common::create_spinner;
 use dialoguer::Confirm;
 use failure::Error;
+use log::{error, info, warn};
 use nix;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -33,7 +35,8 @@ fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
+    logging::setup_logger()?;
     let args = App::new("CIEL!")
         .version(VERSION)
         .about("CIEL! is a nspawn container manager")
@@ -146,30 +149,43 @@ fn main() {
         println!("Please run me as root!");
         process::exit(1);
     }
-    if let Some(_args) = args.subcommand_matches("farewell") {
-        let directory = args.value_of("C").unwrap_or(".");
-        farewell(directory).unwrap();
-        process::exit(0);
+    let directory = args.value_of("C").unwrap_or(".");
+    // Switch to the target directory
+    std::env::set_current_dir(directory).unwrap();
+    // Switch table
+    match args.subcommand() {
+        ("farewell", _) => {
+            farewell(directory).unwrap();
+        }
+        ("init", _) => {
+            if let Err(e) = common::ciel_init() {
+                error!("{}", e);
+                process::exit(1);
+            }
+            info!("Initialized working directory at {}", directory);
+        }
+        ("load-tree", Some(args)) => {
+            info!("Cloning abbs tree...");
+            network::download_git(
+                args.value_of("url").unwrap_or(network::GIT_TREE_URL),
+                Path::new("TREE"),
+            )?;
+        }
+        ("load-os", Some(args)) => {
+            let url = args.value_of("url").unwrap();
+            info!("Downloading base OS tarball...");
+            let path = Path::new(url).file_name().unwrap().to_str().unwrap();
+            let total = network::download_file_progress(url, path).unwrap();
+            common::extract_system_tarball(&PathBuf::from(path), total).unwrap();
+        }
+        ("", _) => {
+            println!("Nothing");
+        }
+        // catch all other conditions
+        _ => {
+            error!("Unknown command.");
+        }
     }
-    if let Some(_args) = args.subcommand_matches("init") {
-        let directory = args.value_of("C").unwrap_or(".");
-        std::env::set_current_dir(directory).unwrap();
-        common::ciel_init().unwrap();
-        println!("Initialized working directory at {}", directory);
-        process::exit(0);
-    }
-    if let Some(_args) = args.subcommand_matches("load-tree") {
-        let directory = args.value_of("C").unwrap_or(".");
-        std::env::set_current_dir(directory).unwrap();
-        network::download_git(network::GIT_TREE_URL, Path::new("TREE")).unwrap();
-        process::exit(0);
-    }
-    if let Some(args) = args.subcommand_matches("load-os") {
-        let directory = args.value_of("C").unwrap_or(".");
-        std::env::set_current_dir(directory).unwrap();
-        let url = args.value_of("url").unwrap();
-        let total = network::download_file_progress(url, "test").unwrap();
-        common::extract_system_tarball(&PathBuf::from("test"), total).unwrap();
-        process::exit(0);
-    }
+
+    Ok(())
 }
