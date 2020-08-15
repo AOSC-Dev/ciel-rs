@@ -156,9 +156,8 @@ pub fn read_config() -> Result<CielConfig, Error> {
 
 pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), Error> {
     // write maintainer information
-    let mut rootfs = PathBuf::new();
-    rootfs.push(root);
-    let mut config_path = rootfs.clone();
+    let rootfs = root.as_ref();
+    let mut config_path = rootfs.to_owned();
     config_path.push(DEFAULT_AB3_CONFIG_LOCATION);
     let mut f = std::fs::File::create(config_path)?;
     f.write_all(
@@ -169,13 +168,13 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), 
         .as_bytes(),
     )?;
     // write sources.list
-    let mut apt_list_path = rootfs.clone();
+    let mut apt_list_path = rootfs.to_owned();
     apt_list_path.push(DEFAULT_APT_LIST_LOCATION);
     let mut f = std::fs::File::create(apt_list_path)?;
     f.write_all(config.apt_sources.as_bytes())?;
     // write DNSSEC configuration
     if config.dnssec {
-        let mut resolv_path = rootfs.clone();
+        let mut resolv_path = rootfs.to_owned();
         resolv_path.push(DEFAULT_RESOLV_LOCATION);
         let mut f = std::fs::File::create(resolv_path)?;
         f.write_all("[Resolve]\nDNSSEC=no\n".as_bytes())?;

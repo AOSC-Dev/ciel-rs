@@ -1,20 +1,34 @@
-use fern;
-use fern::colors::{Color, ColoredLevelConfig};
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)+) => {
+        eprint!("{} ", style("info:").cyan().bold());
+        eprintln!($($arg)+);
+    };
+}
 
-pub fn setup_logger() -> Result<(), fern::InitError> {
-    let colors = ColoredLevelConfig::new()
-        .info(Color::BrightCyan)
-        .debug(Color::Green)
-        .warn(Color::Yellow)
-        .error(Color::BrightRed);
+#[macro_export]
+macro_rules! warn {
+    ($($arg:tt)+) => {
+        eprint!("{} ", style("warning:").yellow().bold());
+        eprintln!($($arg)+);
+    };
+}
 
-    fern::Dispatch::new()
-        .format(move |out, msg, record| {
-            out.finish(format_args!("{}: \x1b[1m{}\x1b[0m", colors.color(record.level()), msg))
-        })
-        .level(log::LevelFilter::Info)
-        .chain(std::io::stdout())
-        .apply()?;
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)+) => {
+        eprint!("{} ", style("error:").red().bold());
+        eprintln!($($arg)+);
+    };
+}
 
-    Ok(())
+#[macro_export]
+macro_rules! color_bool {
+    ($x:expr) => {
+        if $x {
+            style("Yes").green().bold()
+        } else {
+            style("No").cyan()
+        }
+    }
 }

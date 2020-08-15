@@ -3,7 +3,7 @@ mod config;
 mod dbus_machine1;
 mod dbus_machine1_machine;
 mod logging;
-mod machined;
+mod machine;
 mod network;
 mod overlayfs;
 
@@ -11,11 +11,11 @@ use clap::{App, Arg, SubCommand};
 use common::create_spinner;
 use dialoguer::Confirm;
 use failure::Error;
-use log::{error, info, warn};
 use nix;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
+use console::style;
 
 const VERSION: &str = "3.0.0-alpha1";
 
@@ -36,7 +36,6 @@ fn is_root() -> bool {
 }
 
 fn main() -> Result<(), Error> {
-    logging::setup_logger()?;
     let args = App::new("CIEL!")
         .version(VERSION)
         .about("CIEL! is a nspawn container manager")
@@ -178,8 +177,22 @@ fn main() -> Result<(), Error> {
             let total = network::download_file_progress(url, path).unwrap();
             common::extract_system_tarball(&PathBuf::from(path), total).unwrap();
         }
+        ("config", Some(args)) => {
+            let config;
+            if let Ok(c) = config::read_config() {
+                config = config::ask_for_config(Some(c));
+            } else {
+                config = config::ask_for_config(None);
+            }
+            if let Ok(c) = config {
+                config::apply_config(".", &c)?;
+            } else {
+                error!("Could not recognize the configuration.");
+                process::exit(1);
+            }
+        }
         ("", _) => {
-            println!("Nothing");
+            machine::print_instances().unwrap();
         }
         // catch all other conditions
         _ => {

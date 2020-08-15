@@ -1,17 +1,19 @@
 //! This module contains systemd machined related APIs
 
-use crate::common::CIEL_INST_DIR;
+use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
 use crate::dbus_machine1::OrgFreedesktopMachine1Manager;
 use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
+use crate::overlayfs::is_mounted;
+use crate::{color_bool, overlayfs::LayerManager};
 use adler32::adler32;
+use console::style;
 use dbus::blocking::{Connection, Proxy};
 use failure::{format_err, Error};
 use libc::ftok;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
-use crate::overlayfs::is_mounted;
+use std::{fs, time::Duration};
 
 const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
 const MACHINE1_DEST: &str = "org.freedesktop.machine1";
@@ -28,13 +30,14 @@ pub struct CielInstance {
 
 fn legacy_container_name(path: &Path) -> Result<String, Error> {
     let key_id;
+    let current_dir = std::env::current_dir()?;
     let name = path
         .file_name()
         .ok_or(format_err!("Invalid container path: {:?}", path))?;
-    let mut path = path.as_os_str().as_bytes().to_owned();
+    let mut path = current_dir.as_os_str().as_bytes().to_owned();
     path.push(0); // add trailing null terminator
-                  // unsafe because of the `ftok` invokation
     unsafe {
+        // unsafe because of the `ftok` invokation
         key_id = ftok(path.as_ptr() as *const i8, 0);
     }
     if key_id < 0 {
@@ -63,12 +66,28 @@ fn new_container_name(path: &Path) -> Result<String, Error> {
     ))
 }
 
-pub fn get_container_ns_name(path: &Path, legacy: bool) -> Result<String, Error> {
+pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<String, Error> {
+    let current_dir = std::env::current_dir()?;
+    let path = current_dir.join(path);
     if legacy {
-        return legacy_container_name(path);
+        return legacy_container_name(&path);
     }
 
-    new_container_name(path)
+    new_container_name(&path)
+}
+
+fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<(), Error> {
+    let poweroff = nc::types::SIGRTMIN + 4; // only works with systemd
+    proxy.kill("leader", poweroff)?;
+
+    Ok(())
+}
+
+fn kill_container(proxy: &Proxy<&Connection>) -> Result<(), Error> {
+    proxy.kill("all", nc::types::SIGKILL)?;
+    proxy.terminate()?;
+
+    Ok(())
 }
 
 fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool, Error> {
@@ -81,16 +100,15 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool, Error> {
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();
     if let Some(exe_name) = exe_name {
-        if exe_name == "systemd" || exe_name == "init" {
-            return Ok(true);
-        }
+        return Ok(exe_name == "systemd" || exe_name == "init");
     }
 
     Ok(false)
 }
 
 pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error> {
-    let mounted = is_mounted(PathBuf::from(name), &OsStr::new("overlay"))?;
+    let full_path = std::env::current_dir()?.join(name);
+    let mounted = is_mounted(&full_path, &OsStr::new("overlay"))?;
     let conn = Connection::new_system()?;
     let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
     let path = proxy.get_machine(ns_name);
@@ -122,9 +140,44 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error
     })
 }
 
-// pub fn list_instances() -> Result<Vec<CielInstance>, Error> {
+pub fn list_instances() -> Result<Vec<CielInstance>, Error> {
+    let legacy = is_legacy_workspace()?;
+    let mut instances: Vec<CielInstance> = Vec::new();
+    for entry in fs::read_dir(CIEL_INST_DIR)? {
+        if let Ok(entry) = entry {
+            if entry.file_type().map(|e| e.is_dir())? {
+                instances.push(inspect_instance(
+                    &entry.file_name().to_string_lossy(),
+                    &get_container_ns_name(&entry.file_name(), legacy)?,
+                )?);
+            }
+        }
+    }
 
-// }
+    Ok(instances)
+}
+
+pub fn print_instances() -> Result<(), Error> {
+    let instances = list_instances()?;
+    eprintln!("NAME\t\tMOUNTED\t\tRUNNING\t\tBOOTED");
+    for instance in instances {
+        let mounted = color_bool!(instance.mounted);
+        let running = color_bool!(instance.running);
+        let booted = {
+            if let Some(booted) = instance.booted {
+                color_bool!(booted)
+            } else {
+                style("-").dim()
+            }
+        };
+        eprintln!(
+            "{}\t\t{}\t\t{}\t\t{}",
+            instance.name, mounted, running, booted
+        );
+    }
+
+    Ok(())
+}
 
 #[test]
 fn test_inspect_instance() {

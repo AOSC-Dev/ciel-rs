@@ -66,3 +66,12 @@ pub fn ciel_init() -> Result<(), Error> {
 
     Ok(())
 }
+
+pub fn is_legacy_workspace() -> Result<bool, Error> {
+    let mut f = fs::File::open(".ciel/version")?;
+    // TODO: use a more robust check
+    let mut buf = [0u8; 1];
+    f.read_exact(&mut buf)?;
+
+    Ok(buf[0] < CURRENT_CIEL_VERSION_STR.as_bytes()[0])
+}
