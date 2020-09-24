@@ -106,6 +106,17 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool, Error> {
     Ok(false)
 }
 
+/// Mount the filesystem layers using the specified layer manager and the instance name
+pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<(), Error> {
+    let target = std::env::current_dir()?.join(name);
+    if !manager.is_mounted(&target)? {
+        fs::create_dir_all(&target)?;
+        manager.mount(&target)?;
+    }
+
+    Ok(())
+}
+
 pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error> {
     let full_path = std::env::current_dir()?.join(name);
     let mounted = is_mounted(&full_path, &OsStr::new("overlay"))?;

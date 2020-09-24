@@ -1,3 +1,4 @@
+use crate::common;
 use failure::{format_err, Error};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
@@ -23,13 +24,13 @@ pub trait LayerManager {
     /// Mount the filesystem to the given path
     fn mount(&mut self, to: &Path) -> Result<(), Error>;
     /// Return if the filesystem is mounted
-    fn is_mounted(&self) -> Result<bool, Error>;
+    fn is_mounted(&self, target: &Path) -> Result<bool, Error>;
     /// Rollback the filesystem to the distribution state
     fn rollback(&mut self) -> Result<(), Error>;
     /// Commit the current state of the instance filesystem to the distribution state
     fn commit(&mut self) -> Result<(), Error>;
     /// Un-mount the filesystem
-    fn unmount(&mut self) -> Result<(), Error>;
+    fn unmount(&mut self, target: &Path) -> Result<(), Error>;
 }
 
 struct OverlayFS {
@@ -37,7 +38,6 @@ struct OverlayFS {
     lower: PathBuf,
     upper: PathBuf,
     work: PathBuf,
-    target: Option<PathBuf>,
 }
 
 impl LayerManager for OverlayFS {
@@ -61,23 +61,27 @@ impl LayerManager for OverlayFS {
         Self: Sized,
     {
         let dist = dist_path.as_ref();
-        let inst = inst_path.as_ref();
+        let inst = inst_path.as_ref().join(inst_name.as_ref());
         Ok(Box::new(OverlayFS {
             base: dist.to_owned(),
-            lower: inst.join(inst_name.as_ref()).join("local"),
-            upper: inst.join(inst_name.as_ref()).join("diff"),
-            work: inst.join(inst_name.as_ref()).join("diff.tmp"),
-            target: None,
+            lower: inst.join("layers/local"),
+            upper: inst.join("layers/diff"),
+            work: inst.join("layers/diff.tmp"),
         }))
     }
     fn mount(&mut self, to: &Path) -> Result<(), Error> {
         let base_dirs = [self.lower.clone(), self.base.clone()];
         let overlay = Overlay::writable(
+            // base_dirs variable contains the base and lower directories
             base_dirs.iter().map(|x| x.as_ref()),
             self.upper.clone(),
             self.work.clone(),
             to,
         );
+        // create the directories if they don't exist (work directory may be missing)
+        fs::create_dir_all(&self.work)?;
+        fs::create_dir_all(&self.upper)?;
+        // let's mount them
         overlay
             .mount()
             .or_else(|e| Err(format_err!("{}", e.to_string())))?;
@@ -85,15 +89,12 @@ impl LayerManager for OverlayFS {
         Ok(())
     }
     /// is_mounted: check if a path is a mountpoint with corresponding fs_type
-    fn is_mounted(&self) -> Result<bool, Error> {
-        if let Some(mountpoint) = &self.target {
-            return is_mounted(mountpoint, &OsStr::new("overlay"));
-        }
-
-        Ok(false)
+    fn is_mounted(&self, target: &Path) -> Result<bool, Error> {
+        return is_mounted(target, &OsStr::new("overlay"));
     }
     fn rollback(&mut self) -> Result<(), Error> {
         fs::remove_dir_all(&self.upper)?;
+        fs::remove_dir_all(&self.work)?;
         fs::create_dir(&self.upper)?;
 
         Ok(())
@@ -101,19 +102,15 @@ impl LayerManager for OverlayFS {
     fn commit(&mut self) -> Result<(), Error> {
         todo!()
     }
-    fn unmount(&mut self) -> Result<(), Error> {
-        if let Some(target) = &self.target {
-            umount2(target, MntFlags::MNT_DETACH)?;
-            self.target = None;
-            return Ok(());
-        }
+    fn unmount(&mut self, target: &Path) -> Result<(), Error> {
+        umount2(target, MntFlags::MNT_DETACH)?;
 
         Ok(())
     }
 }
 
 /// is_mounted: check if a path is a mountpoint with corresponding fs_type
-pub(crate) fn is_mounted(mountpoint: &PathBuf, fs_type: &OsStr) -> Result<bool, Error> {
+pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool, Error> {
     let mountinfo_content: Vec<u8> = fs::read("/proc/self/mountinfo")?;
     let parser = Parser::new(&mountinfo_content);
 
@@ -125,4 +122,11 @@ pub(crate) fn is_mounted(mountpoint: &PathBuf, fs_type: &OsStr) -> Result<bool, 
     }
 
     Ok(false)
+}
+
+/// A convenience function for getting a overlayfs type LayerManager
+pub(crate) fn get_overlayfs_manager(
+    inst_name: &str,
+) -> Result<Box<dyn LayerManager>, Error> {
+    OverlayFS::from_inst_dir(common::CIEL_DIST_DIR, common::CIEL_INST_DIR, inst_name)
 }

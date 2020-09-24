@@ -191,6 +191,12 @@ fn main() -> Result<(), Error> {
                 process::exit(1);
             }
         }
+        ("mount", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+            machine::mount_layers(man, instance)?;
+            info!("{}: filesystem mounted.", instance);
+        }
         ("", _) => {
             machine::print_instances().unwrap();
         }
