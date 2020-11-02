@@ -30,5 +30,5 @@ macro_rules! color_bool {
         } else {
             style("No").cyan()
         }
-    }
+    };
 }

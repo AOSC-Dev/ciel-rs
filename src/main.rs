@@ -9,22 +9,22 @@ mod overlayfs;
 
 use clap::{App, Arg, SubCommand};
 use common::create_spinner;
+use console::style;
 use dialoguer::Confirm;
 use failure::Error;
 use nix;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
-use console::style;
 
 const VERSION: &str = "3.0.0-alpha1";
 
-fn farewell<P: AsRef<Path>>(path: P) -> Result<(), Error> {
+fn farewell(path: &Path) -> Result<(), Error> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
         .interact()?;
     if delete {
-        fs::remove_dir_all(path)?;
+        fs::remove_dir_all(path.join(".ciel"))?;
     }
 
     Ok(())
@@ -104,8 +104,8 @@ fn main() -> Result<(), Error> {
         )
         .subcommand(
             SubCommand::with_name("rollback")
-                .arg(Arg::with_name("INSTANCE").required(true))
-                .about("rollback the specified instance"),
+                .arg(Arg::with_name("INSTANCE"))
+                .about("rollback all or specified instance"),
         )
         .subcommand(
             SubCommand::with_name("down")
@@ -154,7 +154,7 @@ fn main() -> Result<(), Error> {
     // Switch table
     match args.subcommand() {
         ("farewell", _) => {
-            farewell(directory).unwrap();
+            farewell(Path::new(directory)).unwrap();
         }
         ("init", _) => {
             if let Err(e) = common::ciel_init() {
@@ -178,14 +178,21 @@ fn main() -> Result<(), Error> {
             common::extract_system_tarball(&PathBuf::from(path), total).unwrap();
         }
         ("config", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
             let config;
             if let Ok(c) = config::read_config() {
                 config = config::ask_for_config(Some(c));
             } else {
                 config = config::ask_for_config(None);
             }
+            let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
             if let Ok(c) = config {
-                config::apply_config(".", &c)?;
+                config::apply_config(man.get_config_layer()?, &c)?;
+                fs::write(
+                    Path::new(common::CIEL_DATA_DIR).join("config.toml"),
+                    c.save_config()?,
+                )?;
+                info!("Configuration applied.");
             } else {
                 error!("Could not recognize the configuration.");
                 process::exit(1);

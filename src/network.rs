@@ -2,7 +2,10 @@ use failure::Error;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
-use std::{thread, path::{Path, PathBuf}};
+use std::{
+    path::{Path, PathBuf},
+    thread,
+};
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 

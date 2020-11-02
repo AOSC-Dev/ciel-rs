@@ -31,6 +31,11 @@ pub trait LayerManager {
     fn commit(&mut self) -> Result<(), Error>;
     /// Un-mount the filesystem
     fn unmount(&mut self, target: &Path) -> Result<(), Error>;
+    /// Return the directory where the configuration layer is located
+    /// You may temporary mount this directory if your backend does not expose this directory directly
+    fn get_config_layer(&mut self) -> Result<PathBuf, Error>;
+    /// Return the directory where the base layer is located
+    fn get_base_layer(&mut self) -> Result<PathBuf, Error>;
 }
 
 struct OverlayFS {
@@ -107,6 +112,14 @@ impl LayerManager for OverlayFS {
 
         Ok(())
     }
+
+    fn get_config_layer(&mut self) -> Result<PathBuf, Error> {
+        Ok(self.lower.clone())
+    }
+
+    fn get_base_layer(&mut self) -> Result<PathBuf, Error> {
+        Ok(self.base.clone())
+    }
 }
 
 /// is_mounted: check if a path is a mountpoint with corresponding fs_type
@@ -125,8 +138,6 @@ pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool, Err
 }
 
 /// A convenience function for getting a overlayfs type LayerManager
-pub(crate) fn get_overlayfs_manager(
-    inst_name: &str,
-) -> Result<Box<dyn LayerManager>, Error> {
+pub(crate) fn get_overlayfs_manager(inst_name: &str) -> Result<Box<dyn LayerManager>, Error> {
     OverlayFS::from_inst_dir(common::CIEL_DIST_DIR, common::CIEL_INST_DIR, inst_name)
 }

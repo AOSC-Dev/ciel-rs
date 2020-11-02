@@ -3,7 +3,7 @@
 use crate::common::CURRENT_CIEL_VERSION;
 use dialoguer::{Confirm, Editor, Input};
 use failure::Error;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
@@ -65,7 +65,7 @@ impl Default for CielConfig {
     }
 }
 
-fn validate_maintainer(maintainer: &str) -> Result<(), String> {
+fn validate_maintainer(maintainer: &String) -> Result<(), String> {
     let mut lt = false; // "<"
     let mut gt = false; // ">"
     let mut at = false; // "@"
@@ -185,9 +185,9 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), 
 
 #[test]
 fn test_validate_maintainer() {
-    assert_eq!(validate_maintainer("test <aosc@aosc.io>"), Ok(()));
+    assert_eq!(validate_maintainer(&"test <aosc@aosc.io>".to_owned()), Ok(()));
     assert_eq!(
-        validate_maintainer("test <aosc@aosc.io;"),
+        validate_maintainer(&"test <aosc@aosc.io;".to_owned()),
         Err("Invalid format.".to_owned())
     );
 }
