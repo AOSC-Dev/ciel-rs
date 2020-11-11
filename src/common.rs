@@ -1,4 +1,4 @@
-use failure::Error;
+use anyhow::Result;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use std::fs::{self, File};
@@ -31,7 +31,7 @@ pub fn create_spinner(msg: &str, tick_rate: u64) -> indicatif::ProgressBar {
 }
 
 /// Extract the given .tar.xz stream and preserve all the file attributes
-pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<(), Error> {
+pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<()> {
     let decompress = xz2::read::XzDecoder::new(reader);
     let mut tar_processor = tar::Archive::new(decompress);
     tar_processor.set_unpack_xattrs(true);
@@ -41,7 +41,7 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<(), Error> {
+pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<()> {
     let mut f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
@@ -57,7 +57,7 @@ pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn ciel_init() -> Result<(), Error> {
+pub fn ciel_init() -> Result<()> {
     for dir in SKELETON_DIRS {
         fs::create_dir_all(dir)?;
     }
@@ -67,7 +67,7 @@ pub fn ciel_init() -> Result<(), Error> {
     Ok(())
 }
 
-pub fn is_legacy_workspace() -> Result<bool, Error> {
+pub fn is_legacy_workspace() -> Result<bool> {
     let mut f = fs::File::open(".ciel/version")?;
     // TODO: use a more robust check
     let mut buf = [0u8; 1];

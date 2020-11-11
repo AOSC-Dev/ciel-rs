@@ -1,3 +1,4 @@
+mod actions;
 mod common;
 mod config;
 mod dbus_machine1;
@@ -7,11 +8,11 @@ mod machine;
 mod network;
 mod overlayfs;
 
+use anyhow::Result;
 use clap::{App, Arg, SubCommand};
 use common::create_spinner;
 use console::style;
 use dialoguer::Confirm;
-use failure::Error;
 use nix;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,7 +20,7 @@ use std::process;
 
 const VERSION: &str = "3.0.0-alpha1";
 
-fn farewell(path: &Path) -> Result<(), Error> {
+fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
         .interact()?;
@@ -35,7 +36,7 @@ fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     let args = App::new("CIEL!")
         .version(VERSION)
         .about("CIEL! is a nspawn container manager")
@@ -50,6 +51,9 @@ fn main() -> Result<(), Error> {
             SubCommand::with_name("load-tree")
                 .arg(Arg::with_name("url").help("URL to the git repository"))
                 .about("clone package tree from the link provided or AOSC OS ABBS main repository"),
+        )
+        .subcommand(
+            SubCommand::with_name("new").about("Create a new CIEL workspace")
         )
         .subcommand(
             SubCommand::with_name("list")

@@ -6,17 +6,18 @@ use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
 use crate::overlayfs::is_mounted;
 use crate::{color_bool, overlayfs::LayerManager};
 use adler32::adler32;
+use anyhow::{anyhow, Result};
 use console::style;
 use dbus::blocking::{Connection, Proxy};
-use failure::{format_err, Error};
 use libc::ftok;
-use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::{ffi::OsStr, process::Command};
 use std::{fs, time::Duration};
 
 const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
 const MACHINE1_DEST: &str = "org.freedesktop.machine1";
+const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[""];
 
 #[derive(Debug)]
 pub struct CielInstance {
@@ -28,12 +29,12 @@ pub struct CielInstance {
     booted: Option<bool>,
 }
 
-fn legacy_container_name(path: &Path) -> Result<String, Error> {
+fn legacy_container_name(path: &Path) -> Result<String> {
     let key_id;
     let current_dir = std::env::current_dir()?;
     let name = path
         .file_name()
-        .ok_or(format_err!("Invalid container path: {:?}", path))?;
+        .ok_or(anyhow!("Invalid container path: {:?}", path))?;
     let mut path = current_dir.as_os_str().as_bytes().to_owned();
     path.push(0); // add trailing null terminator
     unsafe {
@@ -41,32 +42,32 @@ fn legacy_container_name(path: &Path) -> Result<String, Error> {
         key_id = ftok(path.as_ptr() as *const i8, 0);
     }
     if key_id < 0 {
-        return Err(format_err!("ftok() failed."));
+        return Err(anyhow!("ftok() failed."));
     }
 
     Ok(format!(
         "{}-{:x}",
         name.to_str()
-            .ok_or(format_err!("Container name is not valid unicode."))?,
+            .ok_or(anyhow!("Container name is not valid unicode."))?,
         key_id
     ))
 }
 
-fn new_container_name(path: &Path) -> Result<String, Error> {
+fn new_container_name(path: &Path) -> Result<String> {
     let hash = adler32(path.as_os_str().as_bytes())?;
     let name = path
         .file_name()
-        .ok_or(format_err!("Invalid container path: {:?}", path))?;
+        .ok_or(anyhow!("Invalid container path: {:?}", path))?;
 
     Ok(format!(
         "{}-{:x}",
         name.to_str()
-            .ok_or(format_err!("Container name is not valid unicode."))?,
+            .ok_or(anyhow!("Container name is not valid unicode."))?,
         hash
     ))
 }
 
-pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<String, Error> {
+pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<String> {
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
     if legacy {
@@ -76,27 +77,33 @@ pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<St
     new_container_name(&path)
 }
 
-fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<(), Error> {
+pub fn spawn_container<P: AsRef<Path>>(ns_name: &str, path: P, extra_options: &[String]) {
+    Command::new("systemd-nspawn")
+        .args(DEFAULT_NSPAWN_OPTIONS)
+        .args(extra_options);
+}
+
+fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
     let poweroff = nc::types::SIGRTMIN + 4; // only works with systemd
     proxy.kill("leader", poweroff)?;
 
     Ok(())
 }
 
-fn kill_container(proxy: &Proxy<&Connection>) -> Result<(), Error> {
+fn kill_container(proxy: &Proxy<&Connection>) -> Result<()> {
     proxy.kill("all", nc::types::SIGKILL)?;
     proxy.terminate()?;
 
     Ok(())
 }
 
-fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool, Error> {
+fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     let leader_pid = proxy.leader()?;
     let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
     let pos: usize = f
         .iter()
         .position(|c| *c == 0u8)
-        .ok_or(format_err!("Unable to parse cmdline"))?;
+        .ok_or(anyhow!("Unable to parse cmdline"))?;
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();
     if let Some(exe_name) = exe_name {
@@ -107,7 +114,7 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool, Error> {
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name
-pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<(), Error> {
+pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(name);
     if !manager.is_mounted(&target)? {
         fs::create_dir_all(&target)?;
@@ -117,14 +124,14 @@ pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<(), Er
     Ok(())
 }
 
-pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error> {
+pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     let full_path = std::env::current_dir()?.join(name);
     let mounted = is_mounted(&full_path, &OsStr::new("overlay"))?;
     let conn = Connection::new_system()?;
     let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
     let path = proxy.get_machine(ns_name);
     if let Err(e) = path {
-        let err_name = e.name().ok_or_else(|| format_err!("{}", e))?;
+        let err_name = e.name().ok_or_else(|| anyhow!("{}", e))?;
         if err_name == "org.freedesktop.machine1.NoSuchMachine" {
             return Ok(CielInstance {
                 name: name.to_owned(),
@@ -134,7 +141,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error
                 booted: None,
             });
         }
-        return Err(format_err!("{}", e));
+        return Err(anyhow!("{}", e));
     }
     let path = path?;
     let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
@@ -151,7 +158,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance, Error
     })
 }
 
-pub fn list_instances() -> Result<Vec<CielInstance>, Error> {
+pub fn list_instances() -> Result<Vec<CielInstance>> {
     let legacy = is_legacy_workspace()?;
     let mut instances: Vec<CielInstance> = Vec::new();
     for entry in fs::read_dir(CIEL_INST_DIR)? {
@@ -168,7 +175,7 @@ pub fn list_instances() -> Result<Vec<CielInstance>, Error> {
     Ok(instances)
 }
 
-pub fn print_instances() -> Result<(), Error> {
+pub fn print_instances() -> Result<()> {
     let instances = list_instances()?;
     eprintln!("NAME\t\tMOUNTED\t\tRUNNING\t\tBOOTED");
     for instance in instances {

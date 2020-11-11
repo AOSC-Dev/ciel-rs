@@ -1,4 +1,5 @@
 use crate::common;
+use anyhow::{anyhow, Result};
 use failure::{format_err, Error};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
@@ -18,24 +19,24 @@ pub trait LayerManager {
         dist_path: P,
         inst_path: P,
         inst_name: P,
-    ) -> Result<Box<dyn LayerManager>, Error>
+    ) -> Result<Box<dyn LayerManager>>
     where
         Self: Sized;
     /// Mount the filesystem to the given path
-    fn mount(&mut self, to: &Path) -> Result<(), Error>;
+    fn mount(&mut self, to: &Path) -> Result<()>;
     /// Return if the filesystem is mounted
-    fn is_mounted(&self, target: &Path) -> Result<bool, Error>;
+    fn is_mounted(&self, target: &Path) -> Result<bool>;
     /// Rollback the filesystem to the distribution state
-    fn rollback(&mut self) -> Result<(), Error>;
+    fn rollback(&mut self) -> Result<()>;
     /// Commit the current state of the instance filesystem to the distribution state
-    fn commit(&mut self) -> Result<(), Error>;
+    fn commit(&mut self) -> Result<()>;
     /// Un-mount the filesystem
-    fn unmount(&mut self, target: &Path) -> Result<(), Error>;
+    fn unmount(&mut self, target: &Path) -> Result<()>;
     /// Return the directory where the configuration layer is located
     /// You may temporary mount this directory if your backend does not expose this directory directly
-    fn get_config_layer(&mut self) -> Result<PathBuf, Error>;
+    fn get_config_layer(&mut self) -> Result<PathBuf>;
     /// Return the directory where the base layer is located
-    fn get_base_layer(&mut self) -> Result<PathBuf, Error>;
+    fn get_base_layer(&mut self) -> Result<PathBuf>;
 }
 
 struct OverlayFS {
@@ -61,7 +62,7 @@ impl LayerManager for OverlayFS {
         dist_path: P,
         inst_path: P,
         inst_name: P,
-    ) -> Result<Box<dyn LayerManager>, Error>
+    ) -> Result<Box<dyn LayerManager>>
     where
         Self: Sized,
     {
@@ -74,7 +75,7 @@ impl LayerManager for OverlayFS {
             work: inst.join("layers/diff.tmp"),
         }))
     }
-    fn mount(&mut self, to: &Path) -> Result<(), Error> {
+    fn mount(&mut self, to: &Path) -> Result<()> {
         let base_dirs = [self.lower.clone(), self.base.clone()];
         let overlay = Overlay::writable(
             // base_dirs variable contains the base and lower directories
@@ -89,41 +90,41 @@ impl LayerManager for OverlayFS {
         // let's mount them
         overlay
             .mount()
-            .or_else(|e| Err(format_err!("{}", e.to_string())))?;
+            .or_else(|e| Err(anyhow!("{}", e.to_string())))?;
 
         Ok(())
     }
     /// is_mounted: check if a path is a mountpoint with corresponding fs_type
-    fn is_mounted(&self, target: &Path) -> Result<bool, Error> {
+    fn is_mounted(&self, target: &Path) -> Result<bool> {
         return is_mounted(target, &OsStr::new("overlay"));
     }
-    fn rollback(&mut self) -> Result<(), Error> {
+    fn rollback(&mut self) -> Result<()> {
         fs::remove_dir_all(&self.upper)?;
         fs::remove_dir_all(&self.work)?;
         fs::create_dir(&self.upper)?;
 
         Ok(())
     }
-    fn commit(&mut self) -> Result<(), Error> {
+    fn commit(&mut self) -> Result<()> {
         todo!()
     }
-    fn unmount(&mut self, target: &Path) -> Result<(), Error> {
+    fn unmount(&mut self, target: &Path) -> Result<()> {
         umount2(target, MntFlags::MNT_DETACH)?;
 
         Ok(())
     }
 
-    fn get_config_layer(&mut self) -> Result<PathBuf, Error> {
+    fn get_config_layer(&mut self) -> Result<PathBuf> {
         Ok(self.lower.clone())
     }
 
-    fn get_base_layer(&mut self) -> Result<PathBuf, Error> {
+    fn get_base_layer(&mut self) -> Result<PathBuf> {
         Ok(self.base.clone())
     }
 }
 
 /// is_mounted: check if a path is a mountpoint with corresponding fs_type
-pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool, Error> {
+pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool> {
     let mountinfo_content: Vec<u8> = fs::read("/proc/self/mountinfo")?;
     let parser = Parser::new(&mountinfo_content);
 
@@ -138,6 +139,6 @@ pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool, Err
 }
 
 /// A convenience function for getting a overlayfs type LayerManager
-pub(crate) fn get_overlayfs_manager(inst_name: &str) -> Result<Box<dyn LayerManager>, Error> {
+pub(crate) fn get_overlayfs_manager(inst_name: &str) -> Result<Box<dyn LayerManager>> {
     OverlayFS::from_inst_dir(common::CIEL_DIST_DIR, common::CIEL_INST_DIR, inst_name)
 }

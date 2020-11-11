@@ -1,8 +1,8 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
+use anyhow::Result;
 use dialoguer::{Confirm, Editor, Input};
-use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -22,6 +22,8 @@ pub struct CielConfig {
     apt_sources: String,
     local_repo: bool,
     local_sources: bool,
+    #[serde(rename = "nspawn_extra_options")]
+    extra_options: Vec<String>,
 }
 
 impl CielConfig {
@@ -32,6 +34,7 @@ impl CielConfig {
         apt_sources: String,
         local_repo: bool,
         local_sources: bool,
+        extra_options: Vec<String>,
     ) -> Self {
         CielConfig {
             version,
@@ -40,14 +43,15 @@ impl CielConfig {
             apt_sources,
             local_repo,
             local_sources,
+            extra_options,
         }
     }
 
-    pub fn save_config(&self) -> Result<String, Error> {
+    pub fn save_config(&self) -> Result<String> {
         Ok(toml::to_string(self)?)
     }
 
-    pub fn load_config(data: &[u8]) -> Result<CielConfig, Error> {
+    pub fn load_config(data: &[u8]) -> Result<CielConfig> {
         Ok(toml::from_slice(data)?)
     }
 }
@@ -61,6 +65,7 @@ impl Default for CielConfig {
             apt_sources: String::new(),
             local_repo: false,
             local_sources: false,
+            extra_options: Vec::new(),
         }
     }
 }
@@ -114,7 +119,7 @@ fn validate_maintainer(maintainer: &String) -> Result<(), String> {
     Err("Invalid format.".to_owned())
 }
 
-pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig, Error> {
+pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
     config.maintainer = Input::<String>::new()
         .with_prompt("Maintainer Information")
@@ -146,7 +151,7 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig, Error> {
     Ok(config)
 }
 
-pub fn read_config() -> Result<CielConfig, Error> {
+pub fn read_config() -> Result<CielConfig> {
     let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
     let mut data: Vec<u8> = Vec::new();
     f.read_to_end(&mut data)?;
@@ -154,7 +159,7 @@ pub fn read_config() -> Result<CielConfig, Error> {
     Ok(CielConfig::load_config(data.as_slice())?)
 }
 
-pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), Error> {
+pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> {
     // write maintainer information
     let rootfs = root.as_ref();
     let mut config_path = rootfs.to_owned();
@@ -185,7 +190,10 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<(), 
 
 #[test]
 fn test_validate_maintainer() {
-    assert_eq!(validate_maintainer(&"test <aosc@aosc.io>".to_owned()), Ok(()));
+    assert_eq!(
+        validate_maintainer(&"test <aosc@aosc.io>".to_owned()),
+        Ok(())
+    );
     assert_eq!(
         validate_maintainer(&"test <aosc@aosc.io;".to_owned()),
         Err("Invalid format.".to_owned())

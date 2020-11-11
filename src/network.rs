@@ -1,4 +1,4 @@
-use failure::Error;
+use anyhow::Result;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
@@ -15,13 +15,13 @@ lazy_static! {
 }
 
 /// Download a file from the web
-pub fn download_file(url: &str) -> Result<Response, Error> {
+pub fn download_file(url: &str) -> Result<Response> {
     let client = Client::new().get(url).send()?;
 
     Ok(client)
 }
 
-pub fn download_file_progress(url: &str, file: &str) -> Result<u64, Error> {
+pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let mut output = std::fs::File::create(file)?;
     let mut resp = download_file(url)?;
     let mut total: u64 = 0;
@@ -43,7 +43,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64, Error> {
 }
 
 /// Clone the Git repository to `root`
-pub fn download_git(uri: &str, root: &Path) -> Result<(), Error> {
+pub fn download_git(uri: &str, root: &Path) -> Result<()> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let mut co_callback = git2::build::CheckoutBuilder::new();
     let progress_dl = indicatif::ProgressBar::new(1);
