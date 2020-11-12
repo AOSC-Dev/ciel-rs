@@ -4,7 +4,7 @@ use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
 use crate::dbus_machine1::OrgFreedesktopMachine1Manager;
 use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
 use crate::overlayfs::is_mounted;
-use crate::{color_bool, overlayfs::LayerManager};
+use crate::{color_bool, warn, overlayfs::LayerManager};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
@@ -77,10 +77,17 @@ pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<St
     new_container_name(&path)
 }
 
-pub fn spawn_container<P: AsRef<Path>>(ns_name: &str, path: P, extra_options: &[String]) {
+pub fn spawn_container<P: AsRef<Path>>(
+    ns_name: &str,
+    path: P,
+    extra_options: &[String],
+) -> Result<()> {
     Command::new("systemd-nspawn")
         .args(DEFAULT_NSPAWN_OPTIONS)
-        .args(extra_options);
+        .args(extra_options)
+        .spawn()?;
+
+    Ok(())
 }
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
@@ -111,6 +118,17 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     }
 
     Ok(false)
+}
+
+pub fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
+    if !is_booted(proxy)? {
+        proxy.terminate()?;
+        return Ok(());
+    }
+
+    // with booted container, we want to power it off gracefully ...
+    poweroff_container(proxy)?;
+    todo!()
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name

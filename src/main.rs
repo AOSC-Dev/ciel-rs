@@ -12,24 +12,11 @@ use anyhow::Result;
 use clap::{App, Arg, SubCommand};
 use common::create_spinner;
 use console::style;
-use dialoguer::Confirm;
 use nix;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 
 const VERSION: &str = "3.0.0-alpha1";
-
-fn farewell(path: &Path) -> Result<()> {
-    let delete = Confirm::new()
-        .with_prompt("DELETE ALL CIEL THINGS?")
-        .interact()?;
-    if delete {
-        fs::remove_dir_all(path.join(".ciel"))?;
-    }
-
-    Ok(())
-}
 
 #[inline]
 fn is_root() -> bool {
@@ -158,7 +145,7 @@ fn main() -> Result<()> {
     // Switch table
     match args.subcommand() {
         ("farewell", _) => {
-            farewell(Path::new(directory)).unwrap();
+            actions::farewell(Path::new(directory)).unwrap();
         }
         ("init", _) => {
             if let Err(e) = common::ciel_init() {
@@ -176,40 +163,33 @@ fn main() -> Result<()> {
         }
         ("load-os", Some(args)) => {
             let url = args.value_of("url").unwrap();
-            info!("Downloading base OS tarball...");
-            let path = Path::new(url).file_name().unwrap().to_str().unwrap();
-            let total = network::download_file_progress(url, path).unwrap();
-            common::extract_system_tarball(&PathBuf::from(path), total).unwrap();
+            if let Err(e) = actions::load_os(url) {
+                error!("{}", e);
+                process::exit(1);
+            }
         }
         ("config", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            let config;
-            if let Ok(c) = config::read_config() {
-                config = config::ask_for_config(Some(c));
-            } else {
-                config = config::ask_for_config(None);
-            }
-            let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
-            if let Ok(c) = config {
-                config::apply_config(man.get_config_layer()?, &c)?;
-                fs::write(
-                    Path::new(common::CIEL_DATA_DIR).join("config.toml"),
-                    c.save_config()?,
-                )?;
-                info!("Configuration applied.");
-            } else {
-                error!("Could not recognize the configuration.");
+            if let Err(e) = actions::config_os(instance) {
+                error!("{}", e);
                 process::exit(1);
             }
         }
         ("mount", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
-            machine::mount_layers(man, instance)?;
-            info!("{}: filesystem mounted.", instance);
+            if let Err(e) = actions::mount_fs(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
         }
-        ("", _) => {
-            machine::print_instances().unwrap();
+        ("new", _) => {
+            if let Err(e) = actions::onboarding() {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
+        ("", _) | ("ls", _) => {
+            machine::print_instances()?;
         }
         // catch all other conditions
         _ => {

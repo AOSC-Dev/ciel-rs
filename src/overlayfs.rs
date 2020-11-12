@@ -1,6 +1,5 @@
 use crate::common;
 use anyhow::{anyhow, Result};
-use failure::{format_err, Error};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::ffi::OsStr;
@@ -44,6 +43,12 @@ struct OverlayFS {
     lower: PathBuf,
     upper: PathBuf,
     work: PathBuf,
+}
+
+pub fn create_new_instance_fs<P: AsRef<Path>>(inst_path: P, inst_name: P) -> Result<()> {
+    let inst = inst_path.as_ref().join(inst_name.as_ref());
+    fs::create_dir_all(&inst)?;
+    Ok(())
 }
 
 impl LayerManager for OverlayFS {

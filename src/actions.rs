@@ -1,8 +1,17 @@
-use anyhow::Result;
-use dialoguer::Confirm;
-use std::{fs, path::Path};
+use anyhow::{anyhow, Result};
+use console::style;
+use dialoguer::{Confirm, Input};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
-fn farewell(path: &Path) -> Result<()> {
+use crate::{common::{self, CIEL_DATA_DIR, CIEL_DIST_DIR, CIEL_INST_DIR, extract_system_tarball}, network, overlayfs};
+use crate::{config, machine};
+use crate::{error, info};
+use crate::{network::download_file_progress, warn};
+
+pub fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
         .interact()?;
@@ -12,3 +21,135 @@ fn farewell(path: &Path) -> Result<()> {
 
     Ok(())
 }
+
+pub fn load_os(url: &str) -> Result<()> {
+    info!("Downloading base OS tarball...");
+    let path = Path::new(url)
+        .file_name()
+        .ok_or_else(|| anyhow!("Unable to convert path to string"))?
+        .to_str()
+        .ok_or_else(|| anyhow!("Unable to decode path string"))?;
+    let total = download_file_progress(url, path)?;
+    extract_system_tarball(&PathBuf::from(path), total)?;
+
+    Ok(())
+}
+
+pub fn config_os(instance: &str) -> Result<()> {
+    let config;
+    if let Ok(c) = config::read_config() {
+        config = config::ask_for_config(Some(c));
+    } else {
+        config = config::ask_for_config(None);
+    }
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    if let Ok(c) = config {
+        config::apply_config(man.get_config_layer()?, &c)?;
+        fs::write(
+            Path::new(CIEL_DATA_DIR).join("config.toml"),
+            c.save_config()?,
+        )?;
+        info!("Configuration applied.");
+    } else {
+        return Err(anyhow!("Could not recognize the configuration."));
+    }
+
+    Ok(())
+}
+
+pub fn mount_fs(instance: &str) -> Result<()> {
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    machine::mount_layers(man, instance)?;
+    info!("{}: filesystem mounted.", instance);
+
+    Ok(())
+}
+
+pub fn unmount_fs(instance: &str) -> Result<()> {
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    let target = std::env::current_dir()?.join(instance);
+    let mut retry = 0usize;
+    while man.is_mounted(&target)? {
+        retry += 1;
+        if retry > 10 {
+            return Err(anyhow!("Unable to unmount filesystem after 10 attempts."));
+        }
+        man.unmount(&target)?;
+    }
+    info!("{}: filesystem un-mounted.", instance);
+
+    Ok(())
+}
+
+pub fn remove_mount(instance: &str) -> Result<()> {
+    let target = std::env::current_dir()?.join(instance);
+    match fs::read_dir(&target) {
+        Ok(mut entry) => {
+            if entry.any(|_| true) {
+                warn!(
+                    "Mount point {:?} still contains files, so it will not be removed.",
+                    target
+                );
+                return Ok(());
+            }
+        }
+        Err(e) => {
+            error!("Error when querying {:?}: {}", target, e);
+        }
+    }
+    fs::remove_dir(target)?;
+    info!("{}: mount point removed.", instance);
+
+    Ok(())
+}
+
+pub fn onboarding() -> Result<()> {
+    info!("Welcome to ciel!");
+    if Path::new(".ciel").exists() {
+        error!("Seems like you're already created a ciel workspace here.");
+        info!("Please run `ciel farewell` if you want to re-create it.");
+        return Err(anyhow!("Unable to create ciel workspace."));
+    }
+    info!("Before continuing, I need to ask you a few questions:");
+    let config = config::ask_for_config(None)?;
+    let mut init_instance: Option<String> = None;
+    if Confirm::new()
+        .with_prompt("Do you want to add a new instance now?")
+        .interact()?
+    {
+        let name: String = Input::new()
+            .with_prompt("Name of the instance?")
+            .interact()?;
+        init_instance = Some(name.clone());
+        info!(
+            "Understood. {} will be created after initialization is finished.",
+            name
+        );
+    } else {
+        info!("Okay. You can still add a new instance later.");
+    }
+
+    info!("Initializing workspace...");
+    common::ciel_init()?;
+    info!("Initializing container OS...");
+    load_os("https://releases.aosc.io/os-amd64/buildkit/aosc-os_buildkit_latest_amd64.tar.xz")?;
+    info!("Initializing ABBS tree...");
+    network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
+    config::apply_config(CIEL_DIST_DIR, &config)?;
+    info!("Applying configurations...");
+    fs::write(
+        Path::new(CIEL_DATA_DIR).join("config.toml"),
+        config.save_config()?,
+    )?;
+    info!("Configuration applied.");
+    if let Some(init_instance) = init_instance {
+        overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
+        info!("Instance {} initialized.", init_instance);
+    }
+
+    Ok(())
+}
+
+// pub fn stop_container(instance: &str) -> Result<()> {
+
+// }
