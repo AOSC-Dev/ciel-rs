@@ -44,205 +44,205 @@
    <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
   </property>
   <method name="GetMachine">
-   <arg type="s" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="o" name="machine" direction="out"/>
   </method>
   <method name="GetImage">
-   <arg type="s" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="o" name="image" direction="out"/>
   </method>
   <method name="GetMachineByPID">
-   <arg type="u" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="u" name="pid" direction="in"/>
+   <arg type="o" name="machine" direction="out"/>
   </method>
   <method name="ListMachines">
-   <arg type="a(ssso)" direction="out"/>
+   <arg type="a(ssso)" name="machines" direction="out"/>
   </method>
   <method name="ListImages">
-   <arg type="a(ssbttto)" direction="out"/>
+   <arg type="a(ssbttto)" name="images" direction="out"/>
   </method>
   <method name="CreateMachine">
-   <arg type="s" direction="in"/>
-   <arg type="ay" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="a(sv)" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="ay" name="id" direction="in"/>
+   <arg type="s" name="service" direction="in"/>
+   <arg type="s" name="class" direction="in"/>
+   <arg type="u" name="leader" direction="in"/>
+   <arg type="s" name="root_directory" direction="in"/>
+   <arg type="a(sv)" name="scope_properties" direction="in"/>
+   <arg type="o" name="path" direction="out"/>
    <annotation name="org.freedesktop.systemd1.Privileged" value="true"/>
   </method>
   <method name="CreateMachineWithNetwork">
-   <arg type="s" direction="in"/>
-   <arg type="ay" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="ai" direction="in"/>
-   <arg type="a(sv)" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="ay" name="id" direction="in"/>
+   <arg type="s" name="service" direction="in"/>
+   <arg type="s" name="class" direction="in"/>
+   <arg type="u" name="leader" direction="in"/>
+   <arg type="s" name="root_directory" direction="in"/>
+   <arg type="ai" name="ifindices" direction="in"/>
+   <arg type="a(sv)" name="scope_properties" direction="in"/>
+   <arg type="o" name="path" direction="out"/>
    <annotation name="org.freedesktop.systemd1.Privileged" value="true"/>
   </method>
   <method name="RegisterMachine">
-   <arg type="s" direction="in"/>
-   <arg type="ay" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="ay" name="id" direction="in"/>
+   <arg type="s" name="service" direction="in"/>
+   <arg type="s" name="class" direction="in"/>
+   <arg type="u" name="leader" direction="in"/>
+   <arg type="s" name="root_directory" direction="in"/>
+   <arg type="o" name="path" direction="out"/>
    <annotation name="org.freedesktop.systemd1.Privileged" value="true"/>
   </method>
   <method name="RegisterMachineWithNetwork">
-   <arg type="s" direction="in"/>
-   <arg type="ay" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="ai" direction="in"/>
-   <arg type="o" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="ay" name="id" direction="in"/>
+   <arg type="s" name="service" direction="in"/>
+   <arg type="s" name="class" direction="in"/>
+   <arg type="u" name="leader" direction="in"/>
+   <arg type="s" name="root_directory" direction="in"/>
+   <arg type="ai" name="ifindices" direction="in"/>
+   <arg type="o" name="path" direction="out"/>
    <annotation name="org.freedesktop.systemd1.Privileged" value="true"/>
   </method>
   <method name="UnregisterMachine">
-   <arg type="s" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
   </method>
   <method name="TerminateMachine">
-   <arg type="s" direction="in"/>
+   <arg type="s" name="id" direction="in"/>
   </method>
   <method name="KillMachine">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="i" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="who" direction="in"/>
+   <arg type="i" name="signal" direction="in"/>
   </method>
   <method name="GetMachineAddresses">
-   <arg type="s" direction="in"/>
-   <arg type="a(iay)" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="a(iay)" name="addresses" direction="out"/>
   </method>
   <method name="GetMachineOSRelease">
-   <arg type="s" direction="in"/>
-   <arg type="a{ss}" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="a{ss}" name="fields" direction="out"/>
   </method>
   <method name="OpenMachinePTY">
-   <arg type="s" direction="in"/>
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
    <annotation name="org.freedesktop.systemd1.Privileged" value="true"/>
   </method>
   <method name="OpenMachineLogin">
-   <arg type="s" direction="in"/>
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
   </method>
   <method name="OpenMachineShell">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="as" direction="in"/>
-   <arg type="as" direction="in"/>
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="user" direction="in"/>
+   <arg type="s" name="path" direction="in"/>
+   <arg type="as" name="args" direction="in"/>
+   <arg type="as" name="environment" direction="in"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
   </method>
   <method name="BindMountMachine">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="b" direction="in"/>
-   <arg type="b" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
+   <arg type="b" name="read_only" direction="in"/>
+   <arg type="b" name="mkdir" direction="in"/>
   </method>
   <method name="CopyFromMachine">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
   </method>
   <method name="CopyToMachine">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
   </method>
   <method name="OpenMachineRootDirectory">
-   <arg type="s" direction="in"/>
-   <arg type="h" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="h" name="fd" direction="out"/>
   </method>
   <method name="GetMachineUIDShift">
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="u" name="shift" direction="out"/>
   </method>
   <method name="RemoveImage">
-   <arg type="s" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
   </method>
   <method name="RenameImage">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="new_name" direction="in"/>
   </method>
   <method name="CloneImage">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="b" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="new_name" direction="in"/>
+   <arg type="b" name="read_only" direction="in"/>
   </method>
   <method name="MarkImageReadOnly">
-   <arg type="s" direction="in"/>
-   <arg type="b" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="b" name="read_only" direction="in"/>
   </method>
   <method name="GetImageHostname">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="hostname" direction="out"/>
   </method>
   <method name="GetImageMachineID">
-   <arg type="s" direction="in"/>
-   <arg type="ay" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="ay" name="id" direction="out"/>
   </method>
   <method name="GetImageMachineInfo">
-   <arg type="s" direction="in"/>
-   <arg type="a{ss}" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="a{ss}" name="machine_info" direction="out"/>
   </method>
   <method name="GetImageOSRelease">
-   <arg type="s" direction="in"/>
-   <arg type="a{ss}" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="a{ss}" name="os_release" direction="out"/>
   </method>
   <method name="SetPoolLimit">
-   <arg type="t" direction="in"/>
+   <arg type="t" name="size" direction="in"/>
   </method>
   <method name="SetImageLimit">
-   <arg type="s" direction="in"/>
-   <arg type="t" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="t" name="size" direction="in"/>
   </method>
   <method name="CleanPool">
-   <arg type="s" direction="in"/>
-   <arg type="a(st)" direction="out"/>
+   <arg type="s" name="mode" direction="in"/>
+   <arg type="a(st)" name="images" direction="out"/>
   </method>
   <method name="MapFromMachineUser">
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="u" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="u" name="uid_inner" direction="in"/>
+   <arg type="u" name="uid_outer" direction="out"/>
   </method>
   <method name="MapToMachineUser">
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="out"/>
-   <arg type="o" direction="out"/>
-   <arg type="u" direction="out"/>
+   <arg type="u" name="uid_outer" direction="in"/>
+   <arg type="s" name="machine_name" direction="out"/>
+   <arg type="o" name="machine_path" direction="out"/>
+   <arg type="u" name="uid_inner" direction="out"/>
   </method>
   <method name="MapFromMachineGroup">
-   <arg type="s" direction="in"/>
-   <arg type="u" direction="in"/>
-   <arg type="u" direction="out"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="u" name="gid_inner" direction="in"/>
+   <arg type="u" name="gid_outer" direction="out"/>
   </method>
   <method name="MapToMachineGroup">
-   <arg type="u" direction="in"/>
-   <arg type="s" direction="out"/>
-   <arg type="o" direction="out"/>
-   <arg type="u" direction="out"/>
+   <arg type="u" name="gid_outer" direction="in"/>
+   <arg type="s" name="machine_name" direction="out"/>
+   <arg type="o" name="machine_path" direction="out"/>
+   <arg type="u" name="gid_inner" direction="out"/>
   </method>
   <signal name="MachineNew">
-   <arg type="s"/>
-   <arg type="o"/>
+   <arg type="s" name="machine"/>
+   <arg type="o" name="path"/>
   </signal>
   <signal name="MachineRemoved">
-   <arg type="s"/>
-   <arg type="o"/>
+   <arg type="s" name="machine"/>
+   <arg type="o" name="path"/>
   </signal>
  </interface>
- <node name="machine"/>
  <node name="image"/>
+ <node name="machine"/>
 </node>

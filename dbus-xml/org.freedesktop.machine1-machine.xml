@@ -70,50 +70,50 @@
   <method name="Terminate">
   </method>
   <method name="Kill">
-   <arg type="s" direction="in"/>
-   <arg type="i" direction="in"/>
+   <arg type="s" name="who" direction="in"/>
+   <arg type="i" name="signal" direction="in"/>
   </method>
   <method name="GetAddresses">
-   <arg type="a(iay)" direction="out"/>
+   <arg type="a(iay)" name="addresses" direction="out"/>
   </method>
   <method name="GetOSRelease">
-   <arg type="a{ss}" direction="out"/>
+   <arg type="a{ss}" name="fields" direction="out"/>
   </method>
   <method name="GetUIDShift">
-   <arg type="u" direction="out"/>
+   <arg type="u" name="shift" direction="out"/>
   </method>
   <method name="OpenPTY">
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
   </method>
   <method name="OpenLogin">
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
   </method>
   <method name="OpenShell">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="as" direction="in"/>
-   <arg type="as" direction="in"/>
-   <arg type="h" direction="out"/>
-   <arg type="s" direction="out"/>
+   <arg type="s" name="user" direction="in"/>
+   <arg type="s" name="path" direction="in"/>
+   <arg type="as" name="args" direction="in"/>
+   <arg type="as" name="environment" direction="in"/>
+   <arg type="h" name="pty" direction="out"/>
+   <arg type="s" name="pty_path" direction="out"/>
   </method>
   <method name="BindMount">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
-   <arg type="b" direction="in"/>
-   <arg type="b" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
+   <arg type="b" name="read_only" direction="in"/>
+   <arg type="b" name="mkdir" direction="in"/>
   </method>
   <method name="CopyFrom">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
   </method>
   <method name="CopyTo">
-   <arg type="s" direction="in"/>
-   <arg type="s" direction="in"/>
+   <arg type="s" name="source" direction="in"/>
+   <arg type="s" name="destination" direction="in"/>
   </method>
   <method name="OpenRootDirectory">
-   <arg type="h" direction="out"/>
+   <arg type="h" name="fd" direction="out"/>
   </method>
  </interface>
 </node>
