@@ -6,7 +6,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{common::{self, CIEL_DATA_DIR, CIEL_DIST_DIR, CIEL_INST_DIR, extract_system_tarball}, network, overlayfs};
+use crate::{
+    common::is_instance_exists,
+    common::{
+        self, extract_system_tarball, is_legacy_workspace, CIEL_DATA_DIR, CIEL_DIST_DIR,
+        CIEL_INST_DIR,
+    },
+    machine::spawn_container,
+    machine::{get_container_ns_name, inspect_instance},
+    network, overlayfs,
+};
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
@@ -106,8 +115,8 @@ pub fn remove_mount(instance: &str) -> Result<()> {
 pub fn onboarding() -> Result<()> {
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
-        error!("Seems like you're already created a ciel workspace here.");
-        info!("Please run `ciel farewell` if you want to re-create it.");
+        error!("Seems like you've already created a ciel workspace here.");
+        info!("Please run `ciel farewell` before running this command.");
         return Err(anyhow!("Unable to create ciel workspace."));
     }
     info!("Before continuing, I need to ask you a few questions:");
@@ -118,7 +127,7 @@ pub fn onboarding() -> Result<()> {
         .interact()?
     {
         let name: String = Input::new()
-            .with_prompt("Name of the instance?")
+            .with_prompt("Name of the instance")
             .interact()?;
         init_instance = Some(name.clone());
         info!(
@@ -148,6 +157,40 @@ pub fn onboarding() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_instance_ns_name(instance: &str) -> Result<String> {
+    if !is_instance_exists(instance) {
+        error!("Instance {} does not exist.", instance);
+        info!(
+            "You can add a new instance like this: `ciel add {}`",
+            instance
+        );
+        return Err(anyhow!("Unable to acquire container information."));
+    }
+    let legacy = is_legacy_workspace()?;
+    
+    Ok(get_container_ns_name(instance, legacy)?)
+}
+
+pub fn start_container(instance: &str) -> Result<String> {
+    let ns_name = get_instance_ns_name(instance)?;
+    let inst = inspect_instance(instance, &ns_name)?;
+    if !inst.mounted {
+        mount_fs(instance)?;
+    }
+    if !inst.started {
+        spawn_container(&ns_name, instance, &[])?;
+    }
+
+    Ok(ns_name)
+}
+
+pub fn run_in_container(instance: &str, args: &[&str]) -> Result<i32> {
+    let ns_name = start_container(instance)?;
+    let status = machine::execute_container_command(&ns_name, args)?;
+
+    Ok(status)
 }
 
 // pub fn stop_container(instance: &str) -> Result<()> {

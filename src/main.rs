@@ -124,10 +124,6 @@ fn main() -> Result<()> {
                     .short("C")
                     .value_name("DIR")
                     .help("set the CIEL! working directory"),
-                Arg::with_name("n")
-                    .short("n")
-                    .long("no-init")
-                    .help("do not boot the container (no init)"),
                 Arg::with_name("batch")
                     .short("b")
                     .long("batch")
@@ -187,6 +183,12 @@ fn main() -> Result<()> {
                 error!("{}", e);
                 process::exit(1);
             }
+        }
+        ("shell", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            // let _cmd = args.value_of("COMMANDS").unwrap();
+            let status = actions::run_in_container(instance, &["/bin/bash"])?;
+            process::exit(status);
         }
         ("", _) | ("ls", _) => {
             machine::print_instances()?;

@@ -67,6 +67,10 @@ pub fn ciel_init() -> Result<()> {
     Ok(())
 }
 
+pub fn is_instance_exists(instance: &str) -> bool {
+    Path::new(CIEL_INST_DIR).join(instance).is_dir()
+}
+
 pub fn is_legacy_workspace() -> Result<bool> {
     let mut f = fs::File::open(".ciel/version")?;
     // TODO: use a more robust check

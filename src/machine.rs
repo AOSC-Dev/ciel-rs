@@ -4,28 +4,45 @@ use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
 use crate::dbus_machine1::OrgFreedesktopMachine1Manager;
 use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
 use crate::overlayfs::is_mounted;
-use crate::{color_bool, warn, overlayfs::LayerManager};
+use crate::{color_bool, info, overlayfs::LayerManager};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
 use dbus::blocking::{Connection, Proxy};
 use libc::ftok;
-use std::os::unix::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
-use std::{ffi::OsStr, process::Command};
+use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
+use std::{
+    ffi::{CString, OsStr},
+    mem::MaybeUninit,
+    process::Command,
+};
 use std::{fs, time::Duration};
+use std::{os::unix::ffi::OsStrExt, process::Child};
+use std::{
+    path::{Path, PathBuf},
+    process::Stdio,
+    thread::sleep,
+};
 
 const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
 const MACHINE1_DEST: &str = "org.freedesktop.machine1";
-const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[""];
+const SYSTEMD1_PATH: &str = "/org/freedesktop/systemd1";
+const SYSTEMD1_DEST: &str = "org.freedesktop.systemd1";
+const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
+    "-q",
+    "-b",
+    "--capability=CAP_IPC_LOCK",
+    "--system-call-filter=swapcontext",
+];
 
 #[derive(Debug)]
 pub struct CielInstance {
     name: String,
     // namespace name (in the form of `$name-$id`)
     ns_name: String,
-    mounted: bool,
+    pub mounted: bool,
     running: bool,
+    pub started: bool,
     booted: Option<bool>,
 }
 
@@ -67,6 +84,35 @@ fn new_container_name(path: &Path) -> Result<String> {
     ))
 }
 
+fn try_open_container_bus(ns_name: &str) -> Result<()> {
+    let mut buf = MaybeUninit::uninit();
+    let ns_name = CString::new(ns_name)?;
+    unsafe {
+        if sd_bus_open_system_machine(buf.as_mut_ptr(), ns_name.as_ptr()) >= 0 {
+            sd_bus_flush_close_unref(buf.assume_init());
+            return Ok(());
+        }
+    }
+
+    Err(anyhow!("Could not open container bus"))
+}
+
+fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<()> {
+    for i in 0..retry {
+        let exited = child.try_wait()?;
+        if let Some(status) = exited {
+            return Err(anyhow!("nspawn exited too early! (Status: {})", status));
+        }
+        if try_open_container_bus(ns_name).is_ok() {
+            return Ok(());
+        }
+        // wait for a while
+        sleep(Duration::from_secs_f32(((i + 1) as f32).ln().ceil()));
+    }
+
+    Err(anyhow!("Timeout waiting for container {}", ns_name))
+}
+
 pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<String> {
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
@@ -82,12 +128,34 @@ pub fn spawn_container<P: AsRef<Path>>(
     path: P,
     extra_options: &[String],
 ) -> Result<()> {
-    Command::new("systemd-nspawn")
+    let path = path
+        .as_ref()
+        .to_str()
+        .ok_or_else(|| anyhow!("Path contains invalid Unicode characters."))?;
+    let mut child = Command::new("systemd-nspawn")
         .args(DEFAULT_NSPAWN_OPTIONS)
         .args(extra_options)
+        .args(&["-qD", path, "-M", ns_name])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()?;
 
+    info!("Waiting for container to start...");
+    wait_for_container(&mut child, ns_name, 10)?;
+
     Ok(())
+}
+
+pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
+    let exit_code = Command::new("systemd-run")
+        .args(&["-M", ns_name, "-t", "--"])
+        .args(args)
+        .spawn()?
+        .wait()?
+        .code()
+        .unwrap_or(127);
+
+    Ok(exit_code)
 }
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
@@ -154,6 +222,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
             return Ok(CielInstance {
                 name: name.to_owned(),
                 ns_name: ns_name.to_owned(),
+                started: false,
                 running: false,
                 mounted,
                 booted: None,
@@ -170,6 +239,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     Ok(CielInstance {
         name: name.to_owned(),
         ns_name: ns_name.to_owned(),
+        started: true,
         running,
         mounted,
         booted: Some(booted),
