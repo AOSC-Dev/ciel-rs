@@ -197,6 +197,13 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
         }
+        ("down", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::container_down(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
         ("", _) | ("ls", _) => {
             machine::print_instances()?;
         }

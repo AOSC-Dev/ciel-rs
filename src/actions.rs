@@ -119,6 +119,9 @@ pub fn unmount_fs(instance: &str) -> Result<()> {
 
 pub fn remove_mount(instance: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(instance);
+    if !target.is_dir() {
+        return Err(anyhow!("{} is not a directory.", instance));
+    }
     match fs::read_dir(&target) {
         Ok(mut entry) => {
             if entry.any(|_| true) {
@@ -231,6 +234,14 @@ pub fn stop_container(instance: &str) -> Result<()> {
     info!("Stopping instance `{}`...", instance);
     machine::terminate_container_by_name(&ns_name)?;
     info!("Instance `{}` is stopped.", instance);
+
+    Ok(())
+}
+
+pub fn container_down(instance: &str) -> Result<()> {
+    stop_container(instance)?;
+    unmount_fs(instance)?;
+    remove_mount(instance)?;
 
     Ok(())
 }
