@@ -10,10 +10,9 @@ mod overlayfs;
 
 use anyhow::Result;
 use clap::{App, Arg, SubCommand};
-use common::create_spinner;
 use console::style;
 use nix;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process;
 
 const VERSION: &str = "3.0.0-alpha1";
@@ -200,6 +199,27 @@ fn main() -> Result<()> {
         ("down", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
             if let Err(e) = actions::container_down(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
+        ("rollback", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::rollback_container(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
+        ("del", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::remove_instance(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
+        ("add", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::add_instance(instance) {
                 error!("{}", e);
                 process::exit(1);
             }

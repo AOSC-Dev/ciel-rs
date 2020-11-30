@@ -19,6 +19,7 @@ use crate::{
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
+use common::create_spinner;
 
 const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("OUTPUT/debs/", "/debs/"),
@@ -45,6 +46,17 @@ macro_rules! ensure_host_sanity {
 
         (extra_options, mounts)
     }};
+}
+
+fn rollback(instance: &str) -> Result<()> {
+    get_instance_ns_name(instance)?;
+    info!("Rolling back instance `{}`...", instance);
+    let spinner = create_spinner("Removing upper layer...", 200);
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    man.rollback()?;
+    spinner.finish_and_clear();
+
+    Ok(())
 }
 
 pub fn farewell(path: &Path) -> Result<()> {
@@ -242,6 +254,34 @@ pub fn container_down(instance: &str) -> Result<()> {
     stop_container(instance)?;
     unmount_fs(instance)?;
     remove_mount(instance)?;
+
+    Ok(())
+}
+
+pub fn rollback_container(instance: &str) -> Result<()> {
+    container_down(instance)?;
+    rollback(instance)?;
+    info!("Instance `{}` has been rolled back.", instance);
+
+    Ok(())
+}
+
+#[inline]
+pub fn add_instance(instance: &str) -> Result<()> {
+    overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance)?;
+    info!("Instance `{}` created.", instance);
+
+    Ok(())
+}
+
+pub fn remove_instance(instance: &str) -> Result<()> {
+    container_down(instance)?;
+    info!("Removing instance `{}`...", instance);
+    let spinner = create_spinner("Removing the instance...", 200);
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    man.destroy()?;
+    spinner.finish_and_clear();
+    info!("Instance `{}` removed.", instance);
 
     Ok(())
 }

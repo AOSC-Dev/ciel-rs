@@ -167,7 +167,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     let mut child = Command::new("systemd-nspawn")
         .args(DEFAULT_NSPAWN_OPTIONS)
         .args(extra_options)
-        .args(&["-qD", path, "-M", ns_name])
+        .args(&["-D", path, "-M", ns_name, "--"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()?;

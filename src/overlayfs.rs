@@ -36,9 +36,12 @@ pub trait LayerManager {
     fn get_config_layer(&mut self) -> Result<PathBuf>;
     /// Return the directory where the base layer is located
     fn get_base_layer(&mut self) -> Result<PathBuf>;
+    /// Destroy the filesystem of the current instance
+    fn destroy(&mut self) -> Result<()>;
 }
 
 struct OverlayFS {
+    inst: PathBuf,
     base: PathBuf,
     lower: PathBuf,
     upper: PathBuf,
@@ -74,6 +77,7 @@ impl LayerManager for OverlayFS {
         let dist = dist_path.as_ref();
         let inst = inst_path.as_ref().join(inst_name.as_ref());
         Ok(Box::new(OverlayFS {
+            inst: inst.to_owned(),
             base: dist.to_owned(),
             lower: inst.join("layers/local"),
             upper: inst.join("layers/diff"),
@@ -92,6 +96,7 @@ impl LayerManager for OverlayFS {
         // create the directories if they don't exist (work directory may be missing)
         fs::create_dir_all(&self.work)?;
         fs::create_dir_all(&self.upper)?;
+        fs::create_dir_all(&self.lower)?;
         // let's mount them
         overlay
             .mount()
@@ -107,6 +112,7 @@ impl LayerManager for OverlayFS {
         fs::remove_dir_all(&self.upper)?;
         fs::remove_dir_all(&self.work)?;
         fs::create_dir(&self.upper)?;
+        fs::create_dir(&self.work)?;
 
         Ok(())
     }
@@ -125,6 +131,12 @@ impl LayerManager for OverlayFS {
 
     fn get_base_layer(&mut self) -> Result<PathBuf> {
         Ok(self.base.clone())
+    }
+
+    fn destroy(&mut self) -> Result<()> {
+        fs::remove_dir_all(&self.inst)?;
+
+        Ok(())
     }
 }
 
