@@ -167,7 +167,7 @@ fn main() -> Result<()> {
         ("config", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
             if let Err(e) = actions::config_os(instance) {
-                error!("{}", e);
+                error!("{:?}", e);
                 process::exit(1);
             }
         }

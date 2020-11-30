@@ -1,10 +1,10 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use dialoguer::{Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::{fs, io::{Read, Write}};
 use std::path::{Path, PathBuf};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
@@ -13,6 +13,7 @@ const DEFAULT_AB3_CONFIG_LOCATION: &str = "etc/autobuild/ab3cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_SOURCE: &str = "var/cache/acbs/tarballs/";
+const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CielConfig {
@@ -119,6 +120,14 @@ fn validate_maintainer(maintainer: &String) -> Result<(), String> {
     Err("Invalid format.".to_owned())
 }
 
+#[inline]
+fn create_parent_dir(path: &Path) -> Result<()> {
+    let path = path.parent().ok_or(anyhow!("Parent directory is root."))?;
+    fs::create_dir_all(path)?;
+
+    Ok(())
+}
+
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
     config.maintainer = Input::<String>::new()
@@ -164,6 +173,7 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
     let rootfs = root.as_ref();
     let mut config_path = rootfs.to_owned();
     config_path.push(DEFAULT_AB3_CONFIG_LOCATION);
+    create_parent_dir(&config_path)?;
     let mut f = std::fs::File::create(config_path)?;
     f.write_all(
         format!(
@@ -173,17 +183,27 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
         .as_bytes(),
     )?;
     // write sources.list
-    let mut apt_list_path = rootfs.to_owned();
-    apt_list_path.push(DEFAULT_APT_LIST_LOCATION);
-    let mut f = std::fs::File::create(apt_list_path)?;
-    f.write_all(config.apt_sources.as_bytes())?;
+    if !config.apt_sources.is_empty() {
+        let mut apt_list_path = rootfs.to_owned();
+        apt_list_path.push(DEFAULT_APT_LIST_LOCATION);
+        create_parent_dir(&apt_list_path)?;
+        let mut f = std::fs::File::create(apt_list_path)?;
+        f.write_all(config.apt_sources.as_bytes())?;
+    }
     // write DNSSEC configuration
-    if config.dnssec {
+    if !config.dnssec {
         let mut resolv_path = rootfs.to_owned();
         resolv_path.push(DEFAULT_RESOLV_LOCATION);
+        create_parent_dir(&resolv_path)?;
         let mut f = std::fs::File::create(resolv_path)?;
         f.write_all("[Resolve]\nDNSSEC=no\n".as_bytes())?;
     }
+    // write acbs configuration
+    let mut acbs_path = rootfs.to_owned();
+    acbs_path.push(DEFAULT_ACBS_CONFIG);
+    create_parent_dir(&acbs_path)?;
+    let mut f = std::fs::File::create(acbs_path)?;
+    f.write_all("[default]\nlocation = /tree/\n".as_bytes())?;
 
     Ok(())
 }

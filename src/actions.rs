@@ -26,6 +26,27 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("SRCS", "/var/cache/acbs/tarballs"),
 ];
 
+macro_rules! ensure_host_sanity {
+    () => {{
+        let mut extra_options = Vec::new();
+        let mut mounts = &DEFAULT_MOUNTS[..2];
+        if let Ok(c) = config::read_config() {
+            extra_options = c.extra_options;
+            if c.local_sources {
+                mounts = &DEFAULT_MOUNTS;
+            }
+        } else {
+            warn!("This workspace is not yet configured, default settings are used.");
+        }
+
+        for mount in mounts {
+            fs::create_dir_all(mount.0)?;
+        }
+
+        (extra_options, mounts)
+    }};
+}
+
 pub fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
@@ -182,20 +203,11 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
 pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
+    let (extra_options, mounts) = ensure_host_sanity!();
     if !inst.mounted {
         mount_fs(instance)?;
     }
     if !inst.started {
-        let mut extra_options = Vec::new();
-        let mut mounts = &DEFAULT_MOUNTS[..2];
-        if let Ok(c) = config::read_config() {
-            extra_options = c.extra_options;
-            if c.local_sources {
-                mounts = &DEFAULT_MOUNTS;
-            }
-        } else {
-            warn!("This workspace is not yet configured, default settings are used.");
-        }
         spawn_container(&ns_name, instance, &extra_options, mounts)?;
     }
 
