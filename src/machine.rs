@@ -4,7 +4,7 @@ use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
 use crate::dbus_machine1::OrgFreedesktopMachine1Manager;
 use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
 use crate::overlayfs::is_mounted;
-use crate::{color_bool, info, overlayfs::LayerManager};
+use crate::{color_bool, info, overlayfs::LayerManager, warn};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
@@ -29,8 +29,7 @@ const MACHINE1_DEST: &str = "org.freedesktop.machine1";
 const SYSTEMD1_PATH: &str = "/org/freedesktop/systemd1";
 const SYSTEMD1_DEST: &str = "org.freedesktop.systemd1";
 const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
-    "-q",
-    "-b",
+    "-qb",
     "--capability=CAP_IPC_LOCK",
     "--system-call-filter=swapcontext",
 ];
@@ -71,6 +70,8 @@ fn legacy_container_name(path: &Path) -> Result<String> {
 }
 
 fn new_container_name(path: &Path) -> Result<String> {
+    // New container name is calculated using the following formula:
+    // $name-adler32($PWD)
     let hash = adler32(path.as_os_str().as_bytes())?;
     let name = path
         .file_name()
@@ -85,10 +86,16 @@ fn new_container_name(path: &Path) -> Result<String> {
 }
 
 fn try_open_container_bus(ns_name: &str) -> Result<()> {
+    // There are bunch of trickeries happening here
+    // First we initialize an empty pointer
     let mut buf = MaybeUninit::uninit();
+    // Convert the ns_name to C-style `const char*` (NUL-terminated)
     let ns_name = CString::new(ns_name)?;
+    // unsafe: these functions are from libsystemd, which involving FFI calls
     unsafe {
+        // Try opening a connection to the container
         if sd_bus_open_system_machine(buf.as_mut_ptr(), ns_name.as_ptr()) >= 0 {
+            // If successful, just close the connection and drop the pointer
             sd_bus_flush_close_unref(buf.assume_init());
             return Ok(());
         }
@@ -103,16 +110,39 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
         if let Some(status) = exited {
             return Err(anyhow!("nspawn exited too early! (Status: {})", status));
         }
+        // why this is used: because PTY spawning can happen before the systemd in the container
+        // is fully initialized. To spawn a new process in the container, we need the systemd
+        // in the container to be fully initialized and listening for connections.
+        // One way to resolve this issue is to test the connection to the container's systemd.
         if try_open_container_bus(ns_name).is_ok() {
             return Ok(());
         }
-        // wait for a while
+        // wait for a while, sleep time follows a natural-logarithm distribution
         sleep(Duration::from_secs_f32(((i + 1) as f32).ln().ceil()));
     }
 
     Err(anyhow!("Timeout waiting for container {}", ns_name))
 }
 
+fn setup_bind_mounts(ns_name: &str, mounts: &[(&str, &str)]) -> Result<()> {
+    let conn = Connection::new_system()?;
+    let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
+    for mount in mounts {
+        fs::create_dir_all(mount.0)?;
+        let source_path = fs::canonicalize(mount.0)?;
+        proxy.bind_mount_machine(
+            ns_name,
+            &source_path.to_string_lossy(),
+            mount.1,
+            false,
+            true,
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Get the container name (ns_name) of the instance
 pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<String> {
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
@@ -123,10 +153,12 @@ pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<St
     new_container_name(&path)
 }
 
+/// Spawn a new container using nspawn
 pub fn spawn_container<P: AsRef<Path>>(
     ns_name: &str,
     path: P,
     extra_options: &[String],
+    mounts: &[(&str, &str)],
 ) -> Result<()> {
     let path = path
         .as_ref()
@@ -142,13 +174,19 @@ pub fn spawn_container<P: AsRef<Path>>(
 
     info!("Waiting for container to start...");
     wait_for_container(&mut child, ns_name, 10)?;
+    info!("Setting up mounts...");
+    if let Err(e) = setup_bind_mounts(ns_name, mounts) {
+        warn!("Failed to setup bind mounts: {:?}", e);
+    }
 
     Ok(())
 }
 
+/// Execute a command in the container
 pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
+    // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
-        .args(&["-M", ns_name, "-t", "--"])
+        .args(&["-M", ns_name, "-qt", "--"])
         .args(args)
         .spawn()?
         .wait()?
@@ -159,7 +197,8 @@ pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
 }
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
-    let poweroff = nc::types::SIGRTMIN + 4; // only works with systemd
+    // +2 (Linux uses 2 extra signals for threads) +4 for systemd poweroff signal
+    let poweroff = nc::types::SIGRTMIN + 2 + 4; // only works with systemd
     proxy.kill("leader", poweroff)?;
 
     Ok(())
@@ -174,13 +213,17 @@ fn kill_container(proxy: &Proxy<&Connection>) -> Result<()> {
 
 fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     let leader_pid = proxy.leader()?;
+    // let's inspect the cmdline of the PID 1 in the container
     let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
+    // take until the first null byte
     let pos: usize = f
         .iter()
         .position(|c| *c == 0u8)
         .ok_or(anyhow!("Unable to parse cmdline"))?;
+    // ... well, of course it's a path
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();
+    // if PID 1 is systemd or init (System V init) then it should be a "booted" container
     if let Some(exe_name) = exe_name {
         return Ok(exe_name == "systemd" || exe_name == "init");
     }
@@ -188,15 +231,45 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     Ok(false)
 }
 
-pub fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
+fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
     if !is_booted(proxy)? {
+        // with normal container, just kill it
         proxy.terminate()?;
         return Ok(());
     }
 
     // with booted container, we want to power it off gracefully ...
     poweroff_container(proxy)?;
-    todo!()
+    for _ in 0..10 {
+        if proxy.state().is_err() {
+            // machine object no longer exists
+            return Ok(());
+        }
+        sleep(Duration::from_secs(1));
+    }
+    // still did not poweroff?
+    warn!("Container did not respond to the poweroff command correctly...");
+    warn!("Killing container by sending SIGKILL...");
+    // okay then, as you wish, there goes the nuke
+    kill_container(proxy)?;
+    proxy.terminate().ok();
+    // status re-check, in the event of I/O problems, the container may still be running (stuck)
+    if proxy.state().is_err() {
+        // machine object no longer exists
+        return Ok(());
+    }
+
+    Err(anyhow!("Failed to kill container!"))
+}
+
+/// Terminate the container (Use graceful method if possible)
+pub fn terminate_container_by_name(ns_name: &str) -> Result<()> {
+    let conn = Connection::new_system()?;
+    let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
+    let path = proxy.get_machine(ns_name)?;
+    let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
+
+    terminate_container(&proxy)
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name
@@ -210,6 +283,7 @@ pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Get the information of the container specified
 pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     let full_path = std::env::current_dir()?.join(name);
     let mounted = is_mounted(&full_path, &OsStr::new("overlay"))?;
@@ -228,11 +302,13 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
                 booted: None,
             });
         }
+        // For all other errors, just return the original error object
         return Err(anyhow!("{}", e));
     }
     let path = path?;
     let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
     let state = proxy.state()?;
+    // Sometimes the system in the container is misconfigured, so we also accept "degraded" status as "running"
     let running = state == "running" || state == "degraded";
     let booted = is_booted(&proxy)?;
 
@@ -246,6 +322,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     })
 }
 
+/// List all the instances under the current directory
 pub fn list_instances() -> Result<Vec<CielInstance>> {
     let legacy = is_legacy_workspace()?;
     let mut instances: Vec<CielInstance> = Vec::new();
@@ -263,6 +340,7 @@ pub fn list_instances() -> Result<Vec<CielInstance>> {
     Ok(instances)
 }
 
+/// Print all the instances under the current directory
 pub fn print_instances() -> Result<()> {
     let instances = list_instances()?;
     eprintln!("NAME\t\tMOUNTED\t\tRUNNING\t\tBOOTED");

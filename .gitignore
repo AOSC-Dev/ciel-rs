@@ -2,3 +2,5 @@
 **/*.rs.bk
 /.ciel
 /test
+/OUTPUT
+/TREE

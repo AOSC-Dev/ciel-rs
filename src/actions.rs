@@ -20,6 +20,12 @@ use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
 
+const DEFAULT_MOUNTS: &[(&str, &str)] = &[
+    ("OUTPUT/debs/", "/debs/"),
+    ("TREE", "/tree"),
+    ("SRCS", "/var/cache/acbs/tarballs"),
+];
+
 pub fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
@@ -131,7 +137,7 @@ pub fn onboarding() -> Result<()> {
             .interact()?;
         init_instance = Some(name.clone());
         info!(
-            "Understood. {} will be created after initialization is finished.",
+            "Understood. `{}` will be created after initialization is finished.",
             name
         );
     } else {
@@ -153,7 +159,7 @@ pub fn onboarding() -> Result<()> {
     info!("Configuration applied.");
     if let Some(init_instance) = init_instance {
         overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
-        info!("Instance {} initialized.", init_instance);
+        info!("Instance `{}` initialized.", init_instance);
     }
 
     Ok(())
@@ -161,7 +167,7 @@ pub fn onboarding() -> Result<()> {
 
 fn get_instance_ns_name(instance: &str) -> Result<String> {
     if !is_instance_exists(instance) {
-        error!("Instance {} does not exist.", instance);
+        error!("Instance `{}` does not exist.", instance);
         info!(
             "You can add a new instance like this: `ciel add {}`",
             instance
@@ -169,7 +175,7 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
         return Err(anyhow!("Unable to acquire container information."));
     }
     let legacy = is_legacy_workspace()?;
-    
+
     Ok(get_container_ns_name(instance, legacy)?)
 }
 
@@ -180,7 +186,17 @@ pub fn start_container(instance: &str) -> Result<String> {
         mount_fs(instance)?;
     }
     if !inst.started {
-        spawn_container(&ns_name, instance, &[])?;
+        let mut extra_options = Vec::new();
+        let mut mounts = &DEFAULT_MOUNTS[..2];
+        if let Ok(c) = config::read_config() {
+            extra_options = c.extra_options;
+            if c.local_sources {
+                mounts = &DEFAULT_MOUNTS;
+            }
+        } else {
+            warn!("This workspace is not yet configured, default settings are used.");
+        }
+        spawn_container(&ns_name, instance, &extra_options, mounts)?;
     }
 
     Ok(ns_name)
@@ -193,6 +209,16 @@ pub fn run_in_container(instance: &str, args: &[&str]) -> Result<i32> {
     Ok(status)
 }
 
-// pub fn stop_container(instance: &str) -> Result<()> {
+pub fn stop_container(instance: &str) -> Result<()> {
+    let ns_name = get_instance_ns_name(instance)?;
+    let inst = inspect_instance(instance, &ns_name)?;
+    if !inst.started {
+        info!("Instance `{}` is not running!", instance);
+        return Ok(());
+    }
+    info!("Stopping instance `{}`...", instance);
+    machine::terminate_container_by_name(&ns_name)?;
+    info!("Instance `{}` is stopped.", instance);
 
-// }
+    Ok(())
+}

@@ -190,6 +190,13 @@ fn main() -> Result<()> {
             let status = actions::run_in_container(instance, &["/bin/bash"])?;
             process::exit(status);
         }
+        ("stop", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::stop_container(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        }
         ("", _) | ("ls", _) => {
             machine::print_instances()?;
         }

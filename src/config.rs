@@ -20,10 +20,10 @@ pub struct CielConfig {
     maintainer: String,
     dnssec: bool,
     apt_sources: String,
-    local_repo: bool,
-    local_sources: bool,
+    pub local_repo: bool,
+    pub local_sources: bool,
     #[serde(rename = "nspawn_extra_options")]
-    extra_options: Vec<String>,
+    pub extra_options: Vec<String>,
 }
 
 impl CielConfig {
