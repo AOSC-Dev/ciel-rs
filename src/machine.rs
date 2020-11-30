@@ -18,11 +18,7 @@ use std::{
 };
 use std::{fs, time::Duration};
 use std::{os::unix::ffi::OsStrExt, process::Child};
-use std::{
-    path::{Path, PathBuf},
-    process::Stdio,
-    thread::sleep,
-};
+use std::{path::Path, process::Stdio, thread::sleep};
 
 const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
 const MACHINE1_DEST: &str = "org.freedesktop.machine1";

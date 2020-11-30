@@ -1,11 +1,14 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use dialoguer::{Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
-use std::{fs, io::{Read, Write}};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::{
+    fs,
+    io::{Read, Write},
+};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
 const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";

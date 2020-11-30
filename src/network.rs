@@ -2,10 +2,7 @@ use anyhow::Result;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
-use std::{
-    path::{Path, PathBuf},
-    thread,
-};
+use std::path::Path;
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 
