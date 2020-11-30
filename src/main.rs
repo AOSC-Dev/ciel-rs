@@ -11,7 +11,6 @@ mod overlayfs;
 use anyhow::Result;
 use clap::{App, Arg, SubCommand};
 use console::style;
-use nix;
 use std::path::Path;
 use std::process;
 

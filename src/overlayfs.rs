@@ -106,7 +106,7 @@ impl LayerManager for OverlayFS {
     }
     /// is_mounted: check if a path is a mountpoint with corresponding fs_type
     fn is_mounted(&self, target: &Path) -> Result<bool> {
-        return is_mounted(target, &OsStr::new("overlay"));
+        is_mounted(target, &OsStr::new("overlay"))
     }
     fn rollback(&mut self) -> Result<()> {
         fs::remove_dir_all(&self.upper)?;
@@ -147,7 +147,7 @@ pub(crate) fn is_mounted(mountpoint: &Path, fs_type: &OsStr) -> Result<bool> {
 
     for mount in parser {
         let mount = mount?;
-        if &mount.mount_point == mountpoint && mount.fstype == fs_type {
+        if mount.mount_point == mountpoint && mount.fstype == fs_type {
             return Ok(true);
         }
     }

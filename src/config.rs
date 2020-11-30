@@ -199,14 +199,14 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
         resolv_path.push(DEFAULT_RESOLV_LOCATION);
         create_parent_dir(&resolv_path)?;
         let mut f = std::fs::File::create(resolv_path)?;
-        f.write_all("[Resolve]\nDNSSEC=no\n".as_bytes())?;
+        f.write_all(b"[Resolve]\nDNSSEC=no\n")?;
     }
     // write acbs configuration
     let mut acbs_path = rootfs.to_owned();
     acbs_path.push(DEFAULT_ACBS_CONFIG);
     create_parent_dir(&acbs_path)?;
     let mut f = std::fs::File::create(acbs_path)?;
-    f.write_all("[default]\nlocation = /tree/\n".as_bytes())?;
+    f.write_all(b"[default]\nlocation = /tree/\n")?;
 
     Ok(())
 }
