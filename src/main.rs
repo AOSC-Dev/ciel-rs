@@ -61,14 +61,14 @@ fn main() -> Result<()> {
             SubCommand::with_name("shell")
                 .alias("sh")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .arg(Arg::with_name("COMMANDS").required(false))
+                .arg(Arg::with_name("COMMANDS").required(false).min_values(1))
                 .about("start an interactive shell"),
         )
         .subcommand(
             SubCommand::with_name("run")
                 .alias("exec")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .arg(Arg::with_name("COMMANDS").required(true))
+                .arg(Arg::with_name("COMMANDS").required(true).min_values(1))
                 .about("lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
         )
         .subcommand(
@@ -89,7 +89,7 @@ fn main() -> Result<()> {
         .subcommand(
             SubCommand::with_name("build")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .arg(Arg::with_name("PACKAGES").required(true))
+                .arg(Arg::with_name("PACKAGES").required(true).min_values(1))
                 .about("build the packages using the specified instance"),
         )
         .subcommand(
@@ -183,9 +183,20 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
         }
+        ("run", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            let cmd = args.values_of("COMMANDS").unwrap();
+            let args: Vec<&str> = cmd.into_iter().collect();
+            let status = actions::run_in_container(instance, &args)?;
+            process::exit(status);
+        }
         ("shell", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            // let _cmd = args.value_of("COMMANDS").unwrap();
+            if let Some(cmd) = args.values_of("COMMANDS") {
+                let command = cmd.into_iter().collect::<Vec<&str>>().join(" ");
+                let status = actions::run_in_container(instance, &["/bin/bash", "-c", &command])?;
+                process::exit(status);
+            }
             let status = actions::run_in_container(instance, &["/bin/bash"])?;
             process::exit(status);
         }
@@ -223,6 +234,14 @@ fn main() -> Result<()> {
                 error!("{}", e);
                 process::exit(1);
             }
+        }
+        ("build", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            let packages = args.values_of("PACKAGES").unwrap();
+            let mut cmd = vec!["/bin/acbs-build", "--"];
+            cmd.extend(packages.into_iter());
+            let status = actions::run_in_container(instance, &cmd)?;
+            process::exit(status);
         }
         ("", _) | ("ls", _) => {
             machine::print_instances()?;
