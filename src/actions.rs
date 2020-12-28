@@ -48,6 +48,17 @@ macro_rules! ensure_host_sanity {
     }};
 }
 
+fn commit(instance: &str) -> Result<()> {
+    get_instance_ns_name(instance)?;
+    info!("Commiting instance `{}`...", instance);
+    let spinner = create_spinner("Commiting upper layer...", 200);
+    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    man.commit()?;
+    spinner.finish_and_clear();
+
+    Ok(())
+}
+
 fn rollback(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
     info!("Rolling back instance `{}`...", instance);
@@ -254,6 +265,14 @@ pub fn container_down(instance: &str) -> Result<()> {
     stop_container(instance)?;
     unmount_fs(instance)?;
     remove_mount(instance)?;
+
+    Ok(())
+}
+
+pub fn commit_container(instance: &str) -> Result<()> {
+    container_down(instance)?;
+    commit(instance)?;
+    info!("Instance `{}` has been commited.", instance);
 
     Ok(())
 }
