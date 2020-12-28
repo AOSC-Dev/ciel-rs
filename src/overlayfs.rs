@@ -70,18 +70,22 @@ impl OverlayFS {
     /// Generate a list of changes made in the upper layer
     fn diff(&self) -> Result<Vec<Diff>> {
         let mut mods: Vec<Diff> = Vec::new();
+        let mut processed_dirs: Vec<PathBuf> = Vec::new();
 
         for entry in walkdir::WalkDir::new(&self.upper).into_iter().skip(1) { // SKip the root
             let path: PathBuf = entry?.path().to_path_buf();
             let rel_path = path.strip_prefix(&self.upper)?.to_path_buf();
             let lower_path = self.lower.join(&rel_path).to_path_buf();
 
+            if has_prefix(&rel_path, &processed_dirs) {
+                continue // We already dealt with it
+            }
             let meta = fs::symlink_metadata(&path)?;
             let file_type = meta.file_type();
 
             if file_type.is_symlink() {
                 // Just move the symlink
-                mods.push(Diff::Symlink(path.clone()));
+                mods.push(Diff::Symlink(rel_path.clone()));
             } else if meta.is_dir() { // Deal with dirs 
                 let opaque = xattr::get(&path, "trusted.overlay.opaque")?;
                 let redirect = xattr::get(&path, "trusted.overlay.redirect")?;
@@ -90,6 +94,7 @@ impl OverlayFS {
                     let msg = String::from_utf8(text)?;
                     if msg == "y" { // Delete corresponding dir
                         mods.push(Diff::OverrideDir(rel_path.clone()));
+                        processed_dirs.push(rel_path.clone());
                     }
                 } else if let Some(from_utf8) = redirect { // Renamed
                     let from = String::from_utf8(from_utf8)?;
@@ -116,7 +121,7 @@ impl OverlayFS {
                 }
             }
         }
-       
+
         Ok(mods)
     }
 }
@@ -182,8 +187,10 @@ impl LayerManager for OverlayFS {
         for i in mods {
             match i {
                 Diff::Symlink(path) => {
+                    let upper_path = self.upper.join(&path).to_path_buf();
                     let lower_path = self.lower.join(&path).to_path_buf();
-                    fs::rename(&path, &lower_path)?;
+                    // Replace lower dir with upper
+                    fs::rename(&upper_path, &lower_path)?;
                 },
                 Diff::OverrideDir(path) => {
                     let upper_path = self.upper.join(&path).to_path_buf();
@@ -217,7 +224,7 @@ impl LayerManager for OverlayFS {
                     let lower_path = self.lower.join(&path).to_path_buf();
                     if lower_path.is_dir() {
                         fs::remove_dir_all(&lower_path)?;
-                    } else {
+                    } else if lower_path.is_file() {
                         fs::remove_file(&lower_path)?;
                     }
                 },
@@ -225,9 +232,7 @@ impl LayerManager for OverlayFS {
                     let upper_path = self.upper.join(&path).to_path_buf();
                     let lower_path = self.lower.join(&path).to_path_buf();
                     // Move upper file to overwrite the lower
-                    fs::rename(&upper_path, &lower_path)?;
-                    // Sync permission
-                    sync_permission(&upper_path, &lower_path)?;
+                    fs::rename(&upper_path, &lower_path).unwrap();
                 }
             }
         }
