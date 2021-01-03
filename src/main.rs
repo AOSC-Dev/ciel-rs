@@ -213,6 +213,13 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
         }
+        ("commit", Some(args)) => {
+            let instance = args.value_of("INSTANCE").unwrap();
+            if let Err(e) = actions::commit_container(instance) {
+                error!("{}", e);
+                process::exit(1);
+            }
+        },
         ("rollback", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
             if let Err(e) = actions::rollback_container(instance) {
