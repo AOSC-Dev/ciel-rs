@@ -22,8 +22,6 @@ use std::{path::Path, process::Stdio, thread::sleep};
 
 const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
 const MACHINE1_DEST: &str = "org.freedesktop.machine1";
-const SYSTEMD1_PATH: &str = "/org/freedesktop/systemd1";
-const SYSTEMD1_DEST: &str = "org.freedesktop.systemd1";
 const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
     "-qb",
     "--capability=CAP_IPC_LOCK",
@@ -329,6 +327,20 @@ pub fn list_instances() -> Result<Vec<CielInstance>> {
                     &entry.file_name().to_string_lossy(),
                     &get_container_ns_name(&entry.file_name(), legacy)?,
                 )?);
+            }
+        }
+    }
+
+    Ok(instances)
+}
+
+/// List all the instances under the current directory, returns only instance names
+pub fn list_instances_simple() -> Result<Vec<String>> {
+    let mut instances: Vec<String> = Vec::new();
+    for entry in fs::read_dir(CIEL_INST_DIR)? {
+        if let Ok(entry) = entry {
+            if entry.file_type().map(|e| e.is_dir())? {
+                instances.push(entry.file_name().to_string_lossy().to_string());
             }
         }
     }

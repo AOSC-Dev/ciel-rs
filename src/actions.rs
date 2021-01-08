@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Confirm, Input};
 use std::{
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -46,6 +47,26 @@ macro_rules! ensure_host_sanity {
 
         (extra_options, mounts)
     }};
+}
+
+pub fn list_helpers() -> Result<Vec<String>> {
+    let exe_dir = std::env::current_exe()?;
+    let exe_dir = exe_dir.parent().ok_or_else(|| anyhow!("Where am I?"))?;
+    let plugins_dir = exe_dir.join("../libexec/ciel-plugin/").read_dir()?;
+    let plugins = plugins_dir
+        .filter_map(|x| {
+            if let Ok(x) = x {
+                let path = x.path();
+                let filename = path.file_name().unwrap_or(OsStr::new("")).to_string_lossy();
+                if path.is_file() && filename.starts_with("ciel-") {
+                    return Some(filename.to_string());
+                }
+            }
+            None
+        })
+        .collect();
+
+    Ok(plugins)
 }
 
 fn commit(instance: &str) -> Result<()> {

@@ -125,6 +125,16 @@ fn main() -> Result<()> {
                 .alias("harakiri")
                 .about("remove everything related to CIEL!"),
         )
+        .subcommands({
+            let plugins = actions::list_helpers();
+            if let Ok(plugins) = plugins {
+                plugins.iter().map(|plugin| {
+                    SubCommand::with_name(plugin.strip_prefix("ciel-").unwrap_or("???")).about("Ciel plugin")
+                }).collect()
+            } else {
+                vec![]
+            }
+        })
         .args(
             &[
                 Arg::with_name("C")
