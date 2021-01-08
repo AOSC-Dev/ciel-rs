@@ -1,0 +1,498 @@
+#compdef ciel
+
+autoload -U is-at-least
+
+_ciel() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'-C+[set the CIEL! working directory]' \
+'-b[batch mode, no input required]' \
+'--batch[batch mode, no input required]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+":: :_ciel_commands" \
+"*::: :->CIEL!" \
+&& ret=0
+    case $state in
+    (CIEL!)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:ciel-command-$line[1]:"
+        case $line[1] in
+            (version)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(init)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(load-os)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::url -- URL to the tarball:_files' \
+&& ret=0
+;;
+(load-tree)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::url -- URL to the git repository:_files' \
+&& ret=0
+;;
+(new)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(ls)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(del)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(sh)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+'::COMMANDS:_files' \
+&& ret=0
+;;
+(shell)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+'::COMMANDS:_files' \
+&& ret=0
+;;
+(exec)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+':COMMANDS:_files' \
+&& ret=0
+;;
+(run)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+':COMMANDS:_files' \
+&& ret=0
+;;
+(config)
+_arguments "${_arguments_options[@]}" \
+'-g[]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(commit)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(build)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+':PACKAGES:_files' \
+&& ret=0
+;;
+(rollback)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::INSTANCE:_files' \
+&& ret=0
+;;
+(down)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::INSTANCE:_files' \
+&& ret=0
+;;
+(stop)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::INSTANCE:_files' \
+&& ret=0
+;;
+(mount)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'::INSTANCE:_files' \
+&& ret=0
+;;
+(harakiri)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(farewell)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_ciel_commands] )) ||
+_ciel_commands() {
+    local commands; commands=(
+        "version:display the version of CIEL!" \
+"init:initialize the work directory" \
+"load-os:unpack OS tarball or fetch the latest BuildKit from the repository" \
+"load-tree:clone package tree from the link provided or AOSC OS ABBS main repository" \
+"new:Create a new CIEL workspace" \
+"list:list all the instances under the specified working directory" \
+"add:add a new instance" \
+"del:remove an instance" \
+"shell:start an interactive shell" \
+"run:lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile" \
+"config:configure system and toolchain for building interactively" \
+"commit:commit changes onto the shared underlying OS" \
+"doctor:diagnose problems (hopefully)" \
+"build:build the packages using the specified instance" \
+"rollback:rollback all or specified instance" \
+"down:shutdown and unmount all or one instance" \
+"stop:shuts down an instance" \
+"mount:mount all or specified instance" \
+"farewell:remove everything related to CIEL!" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'ciel commands' commands "$@"
+}
+(( $+functions[_ciel__add_commands] )) ||
+_ciel__add_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel add commands' commands "$@"
+}
+(( $+functions[_ciel__build_commands] )) ||
+_ciel__build_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel build commands' commands "$@"
+}
+(( $+functions[_ciel__commit_commands] )) ||
+_ciel__commit_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel commit commands' commands "$@"
+}
+(( $+functions[_ciel__config_commands] )) ||
+_ciel__config_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel config commands' commands "$@"
+}
+(( $+functions[_ciel__del_commands] )) ||
+_ciel__del_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel del commands' commands "$@"
+}
+(( $+functions[_ciel__doctor_commands] )) ||
+_ciel__doctor_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel doctor commands' commands "$@"
+}
+(( $+functions[_ciel__down_commands] )) ||
+_ciel__down_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel down commands' commands "$@"
+}
+(( $+functions[_ciel__exec_commands] )) ||
+_ciel__exec_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel exec commands' commands "$@"
+}
+(( $+functions[_exec_commands] )) ||
+_exec_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'exec commands' commands "$@"
+}
+(( $+functions[_ciel__farewell_commands] )) ||
+_ciel__farewell_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel farewell commands' commands "$@"
+}
+(( $+functions[_ciel__harakiri_commands] )) ||
+_ciel__harakiri_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel harakiri commands' commands "$@"
+}
+(( $+functions[_harakiri_commands] )) ||
+_harakiri_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'harakiri commands' commands "$@"
+}
+(( $+functions[_ciel__help_commands] )) ||
+_ciel__help_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel help commands' commands "$@"
+}
+(( $+functions[_ciel__init_commands] )) ||
+_ciel__init_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel init commands' commands "$@"
+}
+(( $+functions[_ciel__list_commands] )) ||
+_ciel__list_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel list commands' commands "$@"
+}
+(( $+functions[_ciel__load-os_commands] )) ||
+_ciel__load-os_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel load-os commands' commands "$@"
+}
+(( $+functions[_ciel__load-tree_commands] )) ||
+_ciel__load-tree_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel load-tree commands' commands "$@"
+}
+(( $+functions[_ciel__ls_commands] )) ||
+_ciel__ls_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel ls commands' commands "$@"
+}
+(( $+functions[_ls_commands] )) ||
+_ls_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ls commands' commands "$@"
+}
+(( $+functions[_ciel__mount_commands] )) ||
+_ciel__mount_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel mount commands' commands "$@"
+}
+(( $+functions[_ciel__new_commands] )) ||
+_ciel__new_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel new commands' commands "$@"
+}
+(( $+functions[_ciel__rm_commands] )) ||
+_ciel__rm_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel rm commands' commands "$@"
+}
+(( $+functions[_rm_commands] )) ||
+_rm_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'rm commands' commands "$@"
+}
+(( $+functions[_ciel__rollback_commands] )) ||
+_ciel__rollback_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel rollback commands' commands "$@"
+}
+(( $+functions[_ciel__run_commands] )) ||
+_ciel__run_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel run commands' commands "$@"
+}
+(( $+functions[_ciel__sh_commands] )) ||
+_ciel__sh_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel sh commands' commands "$@"
+}
+(( $+functions[_sh_commands] )) ||
+_sh_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'sh commands' commands "$@"
+}
+(( $+functions[_ciel__shell_commands] )) ||
+_ciel__shell_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel shell commands' commands "$@"
+}
+(( $+functions[_ciel__stop_commands] )) ||
+_ciel__stop_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel stop commands' commands "$@"
+}
+(( $+functions[_ciel__version_commands] )) ||
+_ciel__version_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel version commands' commands "$@"
+}
+
+_ciel "$@"
