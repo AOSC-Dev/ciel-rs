@@ -35,6 +35,8 @@ xattr = "0.2"
 
 [build-dependencies]
 dbus-codegen = "0.9"
+clap = "2.33"
+anyhow = "1.0"
 
 [dependencies.clap]
 version = "2.33"
