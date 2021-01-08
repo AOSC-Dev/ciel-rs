@@ -5,7 +5,7 @@ use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::ffi::OsStr;
 use std::fs;
-use std::{os::unix::ffi::OsStrExt};
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
