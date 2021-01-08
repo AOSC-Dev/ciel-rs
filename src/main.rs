@@ -16,6 +16,15 @@ use std::process;
 
 const VERSION: &str = "3.0.0-alpha1";
 
+macro_rules! print_error {
+    ($input:block) => {
+        if let Err(e) = $input {
+            error!("{:?}", e);
+            process::exit(1);
+        }
+    };
+}
+
 #[inline]
 fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
@@ -142,10 +151,7 @@ fn main() -> Result<()> {
             actions::farewell(Path::new(directory)).unwrap();
         }
         ("init", _) => {
-            if let Err(e) = common::ciel_init() {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ common::ciel_init() });
             info!("Initialized working directory at {}", directory);
         }
         ("load-tree", Some(args)) => {
@@ -157,24 +163,15 @@ fn main() -> Result<()> {
         }
         ("load-os", Some(args)) => {
             let url = args.value_of("url").unwrap();
-            if let Err(e) = actions::load_os(url) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::load_os(url) });
         }
         ("config", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::config_os(instance) {
-                error!("{:?}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::config_os(instance) });
         }
         ("mount", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::mount_fs(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::mount_fs(instance) });
         }
         ("new", _) => {
             if let Err(e) = actions::onboarding() {
@@ -201,45 +198,27 @@ fn main() -> Result<()> {
         }
         ("stop", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::stop_container(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::stop_container(instance) });
         }
         ("down", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::container_down(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::container_down(instance) });
         }
         ("commit", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::commit_container(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
-        },
+            print_error!({ actions::commit_container(instance) });
+        }
         ("rollback", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::rollback_container(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::rollback_container(instance) });
         }
         ("del", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::remove_instance(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::remove_instance(instance) });
         }
         ("add", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
-            if let Err(e) = actions::add_instance(instance) {
-                error!("{}", e);
-                process::exit(1);
-            }
+            print_error!({ actions::add_instance(instance) });
         }
         ("build", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
@@ -249,8 +228,14 @@ fn main() -> Result<()> {
             let status = actions::run_in_container(instance, &cmd)?;
             process::exit(status);
         }
-        ("", _) | ("ls", _) => {
+        ("", _) => {
             machine::print_instances()?;
+        }
+        ("list", _) => {
+            machine::print_instances()?;
+        }
+        ("doctor", _) => {
+            todo!()
         }
         // catch all other conditions
         _ => {

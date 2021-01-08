@@ -5,7 +5,8 @@ use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::ffi::OsStr;
 use std::fs;
-use std::os::unix::fs::{ FileTypeExt, MetadataExt, PermissionsExt };
+use std::{os::unix::ffi::OsStrExt};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
 pub trait LayerManager {
@@ -61,9 +62,9 @@ enum Diff {
     OverrideDir(PathBuf),
     RenamedDir(PathBuf, PathBuf),
     NewDir(PathBuf),
-    ModifiedDir(PathBuf), // Modify permission only
+    ModifiedDir(PathBuf),  // Modify permission only
     WhiteoutFile(PathBuf), // Dir or File
-    File(PathBuf), // Simple modified or new file
+    File(PathBuf),         // Simple modified or new file
 }
 
 impl OverlayFS {
@@ -72,13 +73,14 @@ impl OverlayFS {
         let mut mods: Vec<Diff> = Vec::new();
         let mut processed_dirs: Vec<PathBuf> = Vec::new();
 
-        for entry in walkdir::WalkDir::new(&self.upper).into_iter().skip(1) { // SKip the root
+        for entry in walkdir::WalkDir::new(&self.upper).into_iter().skip(1) {
+            // SKip the root
             let path: PathBuf = entry?.path().to_path_buf();
             let rel_path = path.strip_prefix(&self.upper)?.to_path_buf();
             let lower_path = self.lower.join(&rel_path).to_path_buf();
 
             if has_prefix(&rel_path, &processed_dirs) {
-                continue // We already dealt with it
+                continue; // We already dealt with it
             }
             let meta = fs::symlink_metadata(&path)?;
             let file_type = meta.file_type();
@@ -86,35 +88,43 @@ impl OverlayFS {
             if file_type.is_symlink() {
                 // Just move the symlink
                 mods.push(Diff::Symlink(rel_path.clone()));
-            } else if meta.is_dir() { // Deal with dirs 
+            } else if meta.is_dir() {
+                // Deal with dirs
                 let opaque = xattr::get(&path, "trusted.overlay.opaque")?;
                 let redirect = xattr::get(&path, "trusted.overlay.redirect")?;
 
-                if let Some(text) = opaque { // the new dir (completely) replace the old one
-                    let msg = String::from_utf8(text)?;
-                    if msg == "y" { // Delete corresponding dir
+                if let Some(text) = opaque {
+                    // the new dir (completely) replace the old one
+                    if text == &b"y"[..] {
+                        // Delete corresponding dir
                         mods.push(Diff::OverrideDir(rel_path.clone()));
                         processed_dirs.push(rel_path.clone());
                     }
-                } else if let Some(from_utf8) = redirect { // Renamed
-                    let from = String::from_utf8(from_utf8)?;
-                    let mut from_rel_path = PathBuf::from(&from);
-                    if from_rel_path.is_absolute() { // abs path from root of OverlayFS
+                } else if let Some(from_utf8) = redirect {
+                    // Renamed
+                    let mut from_rel_path = PathBuf::from(OsStr::from_bytes(&from_utf8));
+                    if from_rel_path.is_absolute() {
+                        // abs path from root of OverlayFS
                         from_rel_path = from_rel_path.strip_prefix("/")?.to_path_buf();
-                    } else { // rel path, same parent dir as the origin
+                    } else {
+                        // rel path, same parent dir as the origin
                         let mut from_path = path.clone();
                         from_path.pop();
                         from_path.push(PathBuf::from(&from_rel_path));
                         from_rel_path = from_path.strip_prefix(&self.upper)?.to_path_buf();
                     }
                     mods.push(Diff::RenamedDir(from_rel_path, rel_path));
-                } else if !lower_path.is_dir() { // New dir
+                } else if !lower_path.is_dir() {
+                    // New dir
                     mods.push(Diff::NewDir(rel_path.clone()));
-                } else { // Modified
+                } else {
+                    // Modified
                     mods.push(Diff::ModifiedDir(rel_path.clone()));
                 }
-            } else { // Deal with files
-                if file_type.is_char_device() && meta.rdev() == 0 { // Whiteout file!
+            } else {
+                // Deal with files
+                if file_type.is_char_device() && meta.rdev() == 0 {
+                    // Whiteout file!
                     mods.push(Diff::WhiteoutFile(rel_path.clone()));
                 } else {
                     mods.push(Diff::File(rel_path.clone()));
@@ -191,13 +201,13 @@ impl LayerManager for OverlayFS {
                     let lower_path = self.lower.join(&path).to_path_buf();
                     // Replace lower dir with upper
                     fs::rename(&upper_path, &lower_path)?;
-                },
+                }
                 Diff::OverrideDir(path) => {
                     let upper_path = self.upper.join(&path).to_path_buf();
                     let lower_path = self.lower.join(&path).to_path_buf();
                     // Replace lower dir with upper
                     fs::rename(&upper_path, &lower_path)?;
-                },
+                }
                 Diff::RenamedDir(from, to) => {
                     // TODO: test me
                     // It is unknown if such dir will include any files, so this
@@ -206,20 +216,20 @@ impl LayerManager for OverlayFS {
                     let to_path = self.lower.join(&to).to_path_buf();
                     // Replace lower dir with upper
                     fs::rename(&from_path, &to_path)?;
-                },
+                }
                 Diff::NewDir(path) => {
                     let lower_path = self.lower.join(&path).to_path_buf();
                     // Construct lower path
                     // All preceeding path should be created by previous iteration
                     // So create_dir should be enough
                     fs::create_dir(&lower_path)?;
-                },
+                }
                 Diff::ModifiedDir(path) => {
                     // Do nothing, just sync permission
                     let upper_path = self.upper.join(&path).to_path_buf();
                     let lower_path = self.lower.join(&path).to_path_buf();
                     sync_permission(&upper_path, &lower_path)?;
-                },
+                }
                 Diff::WhiteoutFile(path) => {
                     let lower_path = self.lower.join(&path).to_path_buf();
                     if lower_path.is_dir() {
@@ -227,7 +237,7 @@ impl LayerManager for OverlayFS {
                     } else if lower_path.is_file() {
                         fs::remove_file(&lower_path)?;
                     }
-                },
+                }
                 Diff::File(path) => {
                     let upper_path = self.upper.join(&path).to_path_buf();
                     let lower_path = self.lower.join(&path).to_path_buf();
@@ -291,17 +301,15 @@ pub(crate) fn get_overlayfs_manager(inst_name: &str) -> Result<Box<dyn LayerMana
 }
 
 /// Check if path have all specified prefixes (with order)
-fn has_prefix(path: &Path, prefixs: &Vec<PathBuf>) -> bool {
-    for prefix in prefixs {
-        if path.strip_prefix(prefix).is_ok() {
-            return true;
-        }
-    }
-
-    false
+#[inline]
+fn has_prefix(path: &Path, prefixes: &Vec<PathBuf>) -> bool {
+    prefixes
+        .iter()
+        .any(|prefix| path.strip_prefix(prefix).is_ok())
 }
 
 /// Set permission of to according to from
+#[inline]
 fn sync_permission(from: &Path, to: &Path) -> Result<()> {
     let from_meta = fs::metadata(from)?;
     let to_meta = fs::metadata(to)?;
@@ -309,5 +317,6 @@ fn sync_permission(from: &Path, to: &Path) -> Result<()> {
     if from_meta.mode() != to_meta.mode() {
         to_meta.permissions().set_mode(to_meta.mode());
     }
+
     Ok(())
 }
