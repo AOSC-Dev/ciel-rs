@@ -8,6 +8,7 @@ mod logging;
 mod machine;
 mod network;
 mod overlayfs;
+mod repo;
 
 use anyhow::Result;
 use console::style;
@@ -127,6 +128,37 @@ fn main() -> Result<()> {
             machine::print_instances()?;
         }
         ("doctor", _) => {
+            todo!()
+        }
+        ("repo", Some(args)) => match args.subcommand() {
+            ("refresh", _) => {
+                info!("Refreshing repository...");
+                print_error!({
+                    repo::refresh_repo(&std::env::current_dir().unwrap().join("OUTPUT"))
+                });
+                info!("Repository has been refreshed.");
+            }
+            ("init", Some(args)) => {
+                info!("Initializing repository...");
+                let instance = args.value_of("INSTANCE").unwrap();
+                let cwd = std::env::current_dir().unwrap();
+                print_error!({ actions::mount_fs(instance) });
+                print_error!({ repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(instance)) });
+                info!("Repository has been initialized and refreshed.");
+            }
+            ("deinit", Some(args)) => {
+                info!("Disabling local repository...");
+                let instance = args.value_of("INSTANCE").unwrap();
+                let cwd = std::env::current_dir().unwrap();
+                print_error!({ actions::mount_fs(instance) });
+                print_error!({ repo::deinit_repo(&cwd.join(instance)) });
+                info!("Repository has been disabled.");
+            }
+            _ => {
+                println!("{}", args.usage());
+            }
+        },
+        ("version", _) => {
             todo!()
         }
         // catch all other conditions

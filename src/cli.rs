@@ -117,11 +117,17 @@ pub fn build_cli() -> App<'static, 'static> {
                 .alias("harakiri")
                 .about("remove everything related to CIEL!"),
         )
+        .subcommand(
+            SubCommand::with_name("repo")
+                .subcommands(vec![SubCommand::with_name("refresh").about("Refresh the repository"), SubCommand::with_name("init").arg(Arg::with_name("INSTANCE").required(true)).about("Initialize the repository"), SubCommand::with_name("deinit").about("Uninitialize the repository")])
+                .alias("localrepo")
+                .about("Local repository operations")
+        )
         .subcommands({
             let plugins = list_helpers();
             if let Ok(plugins) = plugins {
                 plugins.iter().map(|plugin| {
-                    SubCommand::with_name(plugin.strip_prefix("ciel-").unwrap_or("???")).about("Ciel plugin")
+                    SubCommand::with_name(plugin.strip_prefix("ciel-").unwrap_or("???")).about("")
                 }).collect()
             } else {
                 vec![]
