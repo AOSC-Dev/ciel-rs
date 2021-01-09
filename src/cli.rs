@@ -31,12 +31,12 @@ pub fn build_cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("load-os")
                 .arg(Arg::with_name("url").help("URL to the tarball"))
-                .about("unpack OS tarball or fetch the latest BuildKit from the repository"),
+                .about("Unpack OS tarball or fetch the latest BuildKit from the repository"),
         )
         .subcommand(
             SubCommand::with_name("load-tree")
                 .arg(Arg::with_name("url").help("URL to the git repository"))
-                .about("clone package tree from the link provided or AOSC OS ABBS main repository"),
+                .about("Clone package tree from the link provided or AOSC OS ABBS main repository"),
         )
         .subcommand(
             SubCommand::with_name("new").about("Create a new CIEL workspace")
@@ -44,78 +44,78 @@ pub fn build_cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("list")
                 .alias("ls")
-                .about("list all the instances under the specified working directory"),
+                .about("List all the instances under the specified working directory"),
         )
         .subcommand(
             SubCommand::with_name("add")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .about("add a new instance"),
+                .about("Add a new instance"),
         )
         .subcommand(
             SubCommand::with_name("del")
                 .alias("rm")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .about("remove an instance"),
+                .about("Remove an instance"),
         )
         .subcommand(
             SubCommand::with_name("shell")
                 .alias("sh")
                 .arg(Arg::with_name("INSTANCE").required(true))
                 .arg(Arg::with_name("COMMANDS").required(false).min_values(1))
-                .about("start an interactive shell"),
+                .about("Start an interactive shell"),
         )
         .subcommand(
             SubCommand::with_name("run")
                 .alias("exec")
                 .arg(Arg::with_name("INSTANCE").required(true))
                 .arg(Arg::with_name("COMMANDS").required(true).min_values(1))
-                .about("lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
+                .about("Lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
         )
         .subcommand(
             SubCommand::with_name("config")
                 .arg(Arg::with_name("INSTANCE").required(true))
                 .arg(Arg::with_name("g").short("g").required(false))
-                .about("configure system and toolchain for building interactively"),
+                .about("Configure system and toolchain for building interactively"),
         )
         .subcommand(
             SubCommand::with_name("commit")
                 .arg(Arg::with_name("INSTANCE").required(true))
-                .about("commit changes onto the shared underlying OS"),
+                .about("Commit changes onto the shared underlying OS"),
         )
         .subcommand(
             SubCommand::with_name("doctor")
-                .about("diagnose problems (hopefully)"),
+                .about("Diagnose problems (hopefully)"),
         )
         .subcommand(
             SubCommand::with_name("build")
                 .arg(Arg::with_name("INSTANCE").required(true))
                 .arg(Arg::with_name("PACKAGES").required(true).min_values(1))
-                .about("build the packages using the specified instance"),
+                .about("Build the packages using the specified instance"),
         )
         .subcommand(
             SubCommand::with_name("rollback")
                 .arg(Arg::with_name("INSTANCE"))
-                .about("rollback all or specified instance"),
+                .about("Rollback all or specified instance"),
         )
         .subcommand(
             SubCommand::with_name("down")
                 .arg(Arg::with_name("INSTANCE"))
-                .about("shutdown and unmount all or one instance"),
+                .about("Shutdown and unmount all or one instance"),
         )
         .subcommand(
             SubCommand::with_name("stop")
                 .arg(Arg::with_name("INSTANCE"))
-                .about("shuts down an instance"),
+                .about("Shuts down an instance"),
         )
         .subcommand(
             SubCommand::with_name("mount")
                 .arg(Arg::with_name("INSTANCE"))
-                .about("mount all or specified instance"),
+                .about("Mount all or specified instance"),
         )
         .subcommand(
             SubCommand::with_name("farewell")
                 .alias("harakiri")
-                .about("remove everything related to CIEL!"),
+                .about("Remove everything related to CIEL!"),
         )
         .subcommand(
             SubCommand::with_name("repo")
