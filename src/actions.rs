@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Confirm, Input};
 use std::{
-    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -51,8 +50,8 @@ macro_rules! ensure_host_sanity {
 
 fn commit(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
-    info!("Commiting instance `{}`...", instance);
-    let spinner = create_spinner("Commiting upper layer...", 200);
+    info!("Committing instance `{}`...", instance);
+    let spinner = create_spinner("Committing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.commit()?;
     spinner.finish_and_clear();
@@ -195,6 +194,7 @@ pub fn onboarding() -> Result<()> {
     info!("Initializing workspace...");
     common::ciel_init()?;
     info!("Initializing container OS...");
+    // TODO: use manifest
     load_os("https://releases.aosc.io/os-amd64/buildkit/aosc-os_buildkit_latest_amd64.tar.xz")?;
     info!("Initializing ABBS tree...");
     network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
@@ -273,7 +273,7 @@ pub fn container_down(instance: &str) -> Result<()> {
 pub fn commit_container(instance: &str) -> Result<()> {
     container_down(instance)?;
     commit(instance)?;
-    info!("Instance `{}` has been commited.", instance);
+    info!("Instance `{}` has been committed.", instance);
 
     Ok(())
 }

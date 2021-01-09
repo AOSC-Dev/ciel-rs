@@ -253,7 +253,7 @@ fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
         return Ok(());
     }
 
-    Err(anyhow!("Failed to kill container!"))
+    Err(anyhow!("Failed to kill the container!"))
 }
 
 /// Terminate the container (Use graceful method if possible)
