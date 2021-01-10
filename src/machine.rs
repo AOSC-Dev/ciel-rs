@@ -210,10 +210,9 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     // let's inspect the cmdline of the PID 1 in the container
     let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
     // take until the first null byte
-    let pos: usize = f
-        .iter()
-        .position(|c| *c == 0u8)
-        .ok_or(anyhow!("Unable to parse the process cmdline of PID 1 in the container"))?;
+    let pos: usize = f.iter().position(|c| *c == 0u8).ok_or(anyhow!(
+        "Unable to parse the process cmdline of PID 1 in the container"
+    ))?;
     // ... well, of course it's a path
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();

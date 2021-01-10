@@ -1,6 +1,5 @@
 use crate::common;
 use anyhow::{anyhow, Result};
-//use log::debug;
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::ffi::OsStr;

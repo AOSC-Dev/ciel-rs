@@ -1,16 +1,23 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Confirm, Input};
+use nix::unistd::sync;
+use rand::random;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
-use nix::unistd::sync;
 
-use crate::{common::is_instance_exists, common::{
+use crate::{
+    common::is_instance_exists,
+    common::{
         self, extract_system_tarball, is_legacy_workspace, CIEL_DATA_DIR, CIEL_DIST_DIR,
         CIEL_INST_DIR,
-    }, machine::spawn_container, machine::{get_container_ns_name, inspect_instance}, network, overlayfs, repo};
+    },
+    machine::spawn_container,
+    machine::{get_container_ns_name, inspect_instance},
+    network, overlayfs, repo,
+};
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
@@ -21,6 +28,7 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("TREE", "/tree"),
     ("SRCS", "/var/cache/acbs/tarballs"),
 ];
+const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get -y update && apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" full-upgrade"#;
 
 macro_rules! ensure_host_sanity {
     () => {{
@@ -366,6 +374,17 @@ pub fn remove_instance(instance: &str) -> Result<()> {
     man.destroy()?;
     spinner.finish_and_clear();
     info!("Instance `{}` removed.", instance);
+
+    Ok(())
+}
+
+pub fn update_os() -> Result<()> {
+    info!("Updating base OS...");
+    let instance = format!("update-{}", random::<u32>());
+    add_instance(&instance)?;
+    run_in_container(&instance, &["bash", "-ec", UPDATE_SCRIPT])?;
+    commit_container(&instance)?;
+    remove_instance(&instance)?;
 
     Ok(())
 }

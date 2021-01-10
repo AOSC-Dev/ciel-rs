@@ -58,6 +58,9 @@ fn main() -> Result<()> {
             let url = args.value_of("url").unwrap();
             print_error!({ actions::load_os(url) });
         }
+        ("update-os", _) => {
+            print_error!({ actions::update_os() });
+        }
         ("config", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
             print_error!({ actions::config_os(instance) });
