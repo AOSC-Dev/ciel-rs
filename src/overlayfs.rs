@@ -57,6 +57,7 @@ pub fn create_new_instance_fs<P: AsRef<Path>>(inst_path: P, inst_name: P) -> Res
     Ok(())
 }
 
+#[derive(Debug)]
 enum Diff {
     Symlink(PathBuf),
     OverrideDir(PathBuf),
@@ -92,6 +93,7 @@ impl OverlayFS {
                 // Deal with dirs
                 let opaque = xattr::get(&path, "trusted.overlay.opaque")?;
                 let redirect = xattr::get(&path, "trusted.overlay.redirect")?;
+                // let metacopy = xattr::get(&path, "trusted.overlay.metacopy")?;
 
                 if let Some(text) = opaque {
                     // the new dir (completely) replace the old one
@@ -195,57 +197,10 @@ impl LayerManager for OverlayFS {
     fn commit(&mut self) -> Result<()> {
         let mods = self.diff()?;
         for i in mods {
-            match i {
-                Diff::Symlink(path) => {
-                    let upper_path = self.upper.join(&path).to_path_buf();
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    // Replace lower dir with upper
-                    fs::rename(&upper_path, &lower_path)?;
-                }
-                Diff::OverrideDir(path) => {
-                    let upper_path = self.upper.join(&path).to_path_buf();
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    // Replace lower dir with upper
-                    fs::rename(&upper_path, &lower_path)?;
-                }
-                Diff::RenamedDir(from, to) => {
-                    // TODO: test me
-                    // It is unknown if such dir will include any files, so this
-                    // section need more testing
-                    let from_path = self.lower.join(&from).to_path_buf();
-                    let to_path = self.lower.join(&to).to_path_buf();
-                    // Replace lower dir with upper
-                    fs::rename(&from_path, &to_path)?;
-                }
-                Diff::NewDir(path) => {
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    // Construct lower path
-                    // All preceeding path should be created by previous iteration
-                    // So create_dir should be enough
-                    fs::create_dir(&lower_path)?;
-                }
-                Diff::ModifiedDir(path) => {
-                    // Do nothing, just sync permission
-                    let upper_path = self.upper.join(&path).to_path_buf();
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    sync_permission(&upper_path, &lower_path)?;
-                }
-                Diff::WhiteoutFile(path) => {
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    if lower_path.is_dir() {
-                        fs::remove_dir_all(&lower_path)?;
-                    } else if lower_path.is_file() {
-                        fs::remove_file(&lower_path)?;
-                    }
-                }
-                Diff::File(path) => {
-                    let upper_path = self.upper.join(&path).to_path_buf();
-                    let lower_path = self.lower.join(&path).to_path_buf();
-                    // Move upper file to overwrite the lower
-                    fs::rename(&upper_path, &lower_path).unwrap();
-                }
-            }
+            overlay_exec_action(i, self)?;
         }
+        // clear all the remnant items in the upper layer
+        self.rollback()?;
 
         Ok(())
     }
@@ -316,6 +271,65 @@ fn sync_permission(from: &Path, to: &Path) -> Result<()> {
 
     if from_meta.mode() != to_meta.mode() {
         to_meta.permissions().set_mode(to_meta.mode());
+    }
+
+    Ok(())
+}
+
+#[inline]
+fn overlay_exec_action(action: Diff, overlay: &OverlayFS) -> Result<()> {
+    match action {
+        Diff::Symlink(path) => {
+            let upper_path = overlay.upper.join(&path);
+            let lower_path = overlay.base.join(&path);
+            // Replace lower dir with upper
+            fs::rename(&upper_path, &lower_path)?;
+        }
+        Diff::OverrideDir(path) => {
+            let upper_path = overlay.upper.join(&path);
+            let lower_path = overlay.base.join(&path);
+            // Replace lower dir with upper
+            fs::rename(&upper_path, &lower_path)?;
+        }
+        Diff::RenamedDir(from, to) => {
+            // TODO: Implement copy down
+            // Such dir will include diff files, so this
+            // section need more testing
+            let from_path = overlay.base.join(&from);
+            let to_path = overlay.base.join(&to);
+            // TODO: Merge files from upper to lower
+            // Replace lower dir with upper
+            fs::rename(&from_path, &to_path)?;
+        }
+        Diff::NewDir(path) => {
+            let lower_path = overlay.base.join(&path);
+            // Construct lower path
+            // All preceeding path should be created by previous iteration
+            // So create_dir should be enough
+            fs::create_dir(&lower_path)?;
+        }
+        Diff::ModifiedDir(path) => {
+            // Do nothing, just sync permission
+            let upper_path = overlay.upper.join(&path);
+            let lower_path = overlay.base.join(&path);
+            sync_permission(&upper_path, &lower_path)?;
+        }
+        Diff::WhiteoutFile(path) => {
+            let lower_path = overlay.base.join(&path);
+            if lower_path.is_dir() {
+                fs::remove_dir_all(&lower_path)?;
+            } else if lower_path.is_file() {
+                fs::remove_file(&lower_path)?;
+            }
+            // remove the whiteout in the upper layer
+            fs::remove_file(overlay.upper.join(path))?;
+        }
+        Diff::File(path) => {
+            let upper_path = overlay.upper.join(&path);
+            let lower_path = overlay.base.join(&path);
+            // Move upper file to overwrite the lower
+            fs::rename(&upper_path, &lower_path)?;
+        }
     }
 
     Ok(())
