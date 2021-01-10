@@ -5,6 +5,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+use nix::unistd::sync;
 
 use crate::{common::is_instance_exists, common::{
         self, extract_system_tarball, is_legacy_workspace, CIEL_DATA_DIR, CIEL_DIST_DIR,
@@ -63,6 +64,7 @@ fn commit(instance: &str) -> Result<()> {
     let spinner = create_spinner("Committing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.commit()?;
+    sync();
     spinner.finish_and_clear();
 
     Ok(())
@@ -74,6 +76,7 @@ fn rollback(instance: &str) -> Result<()> {
     let spinner = create_spinner("Removing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.rollback()?;
+    sync();
     spinner.finish_and_clear();
 
     Ok(())

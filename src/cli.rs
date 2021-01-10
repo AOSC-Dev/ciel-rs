@@ -99,6 +99,7 @@ pub fn build_cli() -> App<'static, 'static> {
         )
         .subcommand(
             SubCommand::with_name("down")
+                .alias("umount")
                 .arg(Arg::with_name("INSTANCE"))
                 .about("Shutdown and unmount all or one instance"),
         )
