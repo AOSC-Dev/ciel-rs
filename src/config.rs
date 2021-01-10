@@ -15,7 +15,6 @@ const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
 const DEFAULT_AB3_CONFIG_LOCATION: &str = "etc/autobuild/ab3cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
-const DEFAULT_ACBS_SOURCE: &str = "var/cache/acbs/tarballs/";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 
 #[derive(Debug, Serialize, Deserialize)]

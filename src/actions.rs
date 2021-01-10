@@ -48,8 +48,23 @@ macro_rules! ensure_host_sanity {
     }};
 }
 
+/// A convenience function for iterating over all the instances while executing the actions
+#[inline]
+pub fn for_each_instance<F: Fn(&str) -> Result<()>>(func: &F) -> Result<()> {
+    let instances = machine::list_instances_simple()?;
+    for instance in instances {
+        eprintln!("{} {}", style(">>>").bold(), instance);
+        func(&instance)?;
+    }
+
+    Ok(())
+}
+
 fn commit(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
+    info!("Un-mounting all the instances...");
+    // Un-mount all the instances
+    for_each_instance(&unmount_fs)?;
     info!("Committing instance `{}`...", instance);
     let spinner = create_spinner("Committing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
@@ -70,17 +85,22 @@ fn rollback(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Remove everything in the current workspace
 pub fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
         .with_prompt("DELETE ALL CIEL THINGS?")
         .interact()?;
     if delete {
+        info!("Un-mounting all the instances...");
+        // Un-mount all the instances
+        for_each_instance(&unmount_fs)?;
         fs::remove_dir_all(path.join(".ciel"))?;
     }
 
     Ok(())
 }
 
+/// Download the OS tarball and then extract it for use as the base layer
 pub fn load_os(url: &str) -> Result<()> {
     info!("Downloading base OS tarball...");
     let path = Path::new(url)
@@ -94,6 +114,7 @@ pub fn load_os(url: &str) -> Result<()> {
     Ok(())
 }
 
+/// Ask user for the configuration and then apply it
 pub fn config_os(instance: &str) -> Result<()> {
     let config;
     if let Ok(c) = config::read_config() {
@@ -116,6 +137,7 @@ pub fn config_os(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     machine::mount_layers(man, instance)?;
@@ -124,6 +146,7 @@ pub fn mount_fs(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Un-mount the filesystem of the container
 pub fn unmount_fs(instance: &str) -> Result<()> {
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     let target = std::env::current_dir()?.join(instance);
@@ -140,6 +163,7 @@ pub fn unmount_fs(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Remove the mount point (usually a directory) of the container overlay filesystem
 pub fn remove_mount(instance: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(instance);
     if !target.is_dir() {
@@ -165,6 +189,7 @@ pub fn remove_mount(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Show interactive onboarding guide, triggered by issuing `ciel new`
 pub fn onboarding() -> Result<()> {
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
@@ -194,8 +219,23 @@ pub fn onboarding() -> Result<()> {
     info!("Initializing workspace...");
     common::ciel_init()?;
     info!("Initializing container OS...");
-    // TODO: use manifest
-    load_os("https://releases.aosc.io/os-amd64/buildkit/aosc-os_buildkit_latest_amd64.tar.xz")?;
+    let tarball_url;
+    info!("Searching for latest AOSC OS buildkit release ...");
+    if let Ok(tarball) = network::pick_latest_tarball() {
+        info!(
+            "Ciel has picked buildkit for {}, released on {}",
+            tarball.arch, tarball.date
+        );
+        tarball_url = format!("https://releases.aosc.io/{}", tarball.path);
+    } else {
+        warn!(
+            "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
+        );
+        tarball_url = Input::<String>::new()
+            .with_prompt("Tarball URL:")
+            .interact()?;
+    }
+    load_os(&tarball_url)?;
     info!("Initializing ABBS tree...");
     network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
     config::apply_config(CIEL_DIST_DIR, &config)?;
@@ -227,6 +267,7 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
     Ok(get_container_ns_name(instance, legacy)?)
 }
 
+/// Start the container/instance, also mounting the container filesystem prior to the action
 pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
@@ -241,6 +282,7 @@ pub fn start_container(instance: &str) -> Result<String> {
     Ok(ns_name)
 }
 
+/// Execute the specified command in the container
 pub fn run_in_container(instance: &str, args: &[&str]) -> Result<i32> {
     let ns_name = start_container(instance)?;
     let status = machine::execute_container_command(&ns_name, args)?;
@@ -248,6 +290,7 @@ pub fn run_in_container(instance: &str, args: &[&str]) -> Result<i32> {
     Ok(status)
 }
 
+/// Stop the container/instance (without un-mounting the filesystem)
 pub fn stop_container(instance: &str) -> Result<()> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
@@ -262,6 +305,7 @@ pub fn stop_container(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Stop and un-mount the container and its filesystem
 pub fn container_down(instance: &str) -> Result<()> {
     stop_container(instance)?;
     unmount_fs(instance)?;
@@ -270,6 +314,7 @@ pub fn container_down(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Commit the container/instance upper layer changes to the base layer of the filesystem
 pub fn commit_container(instance: &str) -> Result<()> {
     container_down(instance)?;
     commit(instance)?;
@@ -278,6 +323,7 @@ pub fn commit_container(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Clear the upper layer of the container/instance filesystem
 pub fn rollback_container(instance: &str) -> Result<()> {
     container_down(instance)?;
     rollback(instance)?;
@@ -286,6 +332,7 @@ pub fn rollback_container(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Create a new instance
 #[inline]
 pub fn add_instance(instance: &str) -> Result<()> {
     overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance)?;
@@ -294,6 +341,7 @@ pub fn add_instance(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Remove the container/instance and its filesystem from the host filesystem
 pub fn remove_instance(instance: &str) -> Result<()> {
     container_down(instance)?;
     info!("Removing instance `{}`...", instance);

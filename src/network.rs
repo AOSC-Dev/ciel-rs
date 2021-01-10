@@ -1,10 +1,32 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
-use std::path::Path;
+use serde::Deserialize;
+use std::{env::consts::ARCH, path::Path};
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
+const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Tarball {
+    pub arch: String,
+    pub date: String,
+    pub path: String,
+    pub sha256sum: String,
+}
+
+#[derive(Deserialize)]
+pub struct Variant {
+    name: String,
+    tarballs: Vec<Tarball>,
+}
+
+#[derive(Deserialize)]
+pub struct Recipe {
+    pub version: usize,
+    variants: Vec<Variant>,
+}
 
 lazy_static! {
     static ref GIT_PROGRESS: indicatif::ProgressStyle = indicatif::ProgressStyle::default_bar()
@@ -18,6 +40,7 @@ pub fn download_file(url: &str) -> Result<Response> {
     Ok(client)
 }
 
+/// Download a file with progress indicator
 pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let mut output = std::fs::File::create(file)?;
     let mut resp = download_file(url)?;
@@ -37,6 +60,41 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     progress_bar.finish_and_clear();
 
     Ok(total)
+}
+
+#[inline]
+fn get_arch_name() -> Option<&'static str> {
+    match ARCH {
+        "x86_64" => Some("amd64"),
+        "x86" => Some("i486"),
+        "powerpc" => Some("powerpc"),
+        "powerpc64" => Some("ppc64el"),
+        "mips64" => Some("loongson3"),
+        _ => None,
+    }
+}
+
+/// Pick the latest buildkit tarball according to the recipe
+pub fn pick_latest_tarball() -> Result<Tarball> {
+    let arch = get_arch_name().ok_or_else(|| anyhow!("Unsupported architecture"))?;
+    let resp = Client::new().get(MANIFEST_URL).send()?;
+    let recipe: Recipe = resp.json()?;
+    let buildkit = recipe
+        .variants
+        .into_iter()
+        .find(|v| v.name == "buildkit")
+        .ok_or_else(|| anyhow!("Unable to find buildkit variant"))?;
+    let mut tarballs: Vec<Tarball> = buildkit
+        .tarballs
+        .into_iter()
+        .filter(|tarball| tarball.arch == arch)
+        .collect();
+    if tarballs.is_empty() {
+        return Err(anyhow!("No suitable tarball was found"));
+    }
+    tarballs.sort_unstable_by_key(|x| x.date.clone());
+
+    Ok(tarballs.first().unwrap().to_owned())
 }
 
 /// Clone the Git repository to `root`
