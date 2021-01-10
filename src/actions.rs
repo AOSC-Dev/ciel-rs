@@ -378,6 +378,38 @@ pub fn remove_instance(instance: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn package_build<'a, K: IntoIterator<Item = &'a str>>(
+    instance: &str,
+    packages: K,
+) -> Result<i32> {
+    let conf = config::read_config();
+    if conf.is_err() {
+        return Err(anyhow!("Please configure this workspace first!"));
+    }
+    let conf = conf.unwrap();
+
+    if !conf.local_repo {
+        let mut cmd = vec!["/bin/acbs-build", "--"];
+        cmd.extend(packages.into_iter());
+        let status = run_in_container(instance, &cmd)?;
+        return Ok(status);
+    }
+
+    let root = std::env::current_dir()?.join("OUTPUT");
+    mount_fs(&instance)?;
+    repo::init_repo(&root, Path::new(instance))?;
+    for package in packages {
+        let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
+        if status != 0 {
+            return Ok(status);
+        }
+        repo::refresh_repo(&root)?;
+    }
+
+    Ok(0)
+}
+
+/// Update AOSC OS in the container/instance
 pub fn update_os() -> Result<()> {
     info!("Updating base OS...");
     let instance = format!("update-{}", random::<u32>());

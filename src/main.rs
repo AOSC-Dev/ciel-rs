@@ -119,9 +119,7 @@ fn main() -> Result<()> {
         ("build", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
             let packages = args.values_of("PACKAGES").unwrap();
-            let mut cmd = vec!["/bin/acbs-build", "--"];
-            cmd.extend(packages.into_iter());
-            let status = actions::run_in_container(instance, &cmd)?;
+            let status = actions::package_build(instance, packages)?;
             process::exit(status);
         }
         ("", _) => {
