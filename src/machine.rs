@@ -213,7 +213,7 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     let pos: usize = f
         .iter()
         .position(|c| *c == 0u8)
-        .ok_or(anyhow!("Unable to parse cmdline"))?;
+        .ok_or(anyhow!("Unable to parse the process cmdline of PID 1 in the container"))?;
     // ... well, of course it's a path
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();
@@ -243,7 +243,7 @@ fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
     }
     // still did not poweroff?
     warn!("Container did not respond to the poweroff command correctly...");
-    warn!("Killing container by sending SIGKILL...");
+    warn!("Killing the container by sending SIGKILL...");
     // okay then, as you wish, there goes the nuke
     kill_container(proxy)?;
     proxy.terminate().ok();
@@ -253,7 +253,7 @@ fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
         return Ok(());
     }
 
-    Err(anyhow!("Failed to kill the container!"))
+    Err(anyhow!("Failed to kill the container! This may indicate a problem with your I/O, see dmesg or journalctl for more details."))
 }
 
 /// Terminate the container (Use graceful method if possible)

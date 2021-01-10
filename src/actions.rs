@@ -82,14 +82,23 @@ fn rollback(instance: &str) -> Result<()> {
 /// Remove everything in the current workspace
 pub fn farewell(path: &Path) -> Result<()> {
     let delete = Confirm::new()
-        .with_prompt("DELETE ALL CIEL THINGS?")
+        .with_prompt("DELETE THIS CIEL WORKSPACE?")
         .interact()?;
-    if delete {
-        info!("Un-mounting all the instances...");
-        // Un-mount all the instances
-        for_each_instance(&unmount_fs)?;
-        fs::remove_dir_all(path.join(".ciel"))?;
+    if !delete {
+        info!("Not confirmed.");
+        return Ok(());
     }
+    info!("If you are absolutely sure, please type the following:\nDo as I say!");
+    if Input::<String>::new().with_prompt("Your turn").interact()? != "Do as I say!" {
+        info!("Prompt answered incorrectly. Not confirmed.");
+        return Ok(());
+    }
+
+    info!("... as you wish. Commencing destruction ...");
+    info!("Un-mounting all the instances...");
+    // Un-mount all the instances
+    for_each_instance(&unmount_fs)?;
+    fs::remove_dir_all(path.join(".ciel"))?;
 
     Ok(())
 }
@@ -188,8 +197,8 @@ pub fn onboarding() -> Result<()> {
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
         error!("Seems like you've already created a ciel workspace here.");
-        info!("Please run `ciel farewell` before running this command.");
-        return Err(anyhow!("Unable to create ciel workspace."));
+        info!("Please run `ciel farewell` to nuke it before running this command.");
+        return Err(anyhow!("Unable to create a ciel workspace."));
     }
     info!("Before continuing, I need to ask you a few questions:");
     let config = config::ask_for_config(None)?;
