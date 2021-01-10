@@ -6,16 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    common::is_instance_exists,
-    common::{
+use crate::{common::is_instance_exists, common::{
         self, extract_system_tarball, is_legacy_workspace, CIEL_DATA_DIR, CIEL_DIST_DIR,
         CIEL_INST_DIR,
-    },
-    machine::spawn_container,
-    machine::{get_container_ns_name, inspect_instance},
-    network, overlayfs,
-};
+    }, machine::spawn_container, machine::{get_container_ns_name, inspect_instance}, network, overlayfs, repo};
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
@@ -245,9 +239,19 @@ pub fn onboarding() -> Result<()> {
         config.save_config()?,
     )?;
     info!("Configuration applied.");
+    let cwd = std::env::current_dir()?;
+    if config.local_repo {
+        info!("Setting up local repository ...");
+        repo::refresh_repo(&cwd)?;
+        info!("Local repository ready.");
+    }
     if let Some(init_instance) = init_instance {
         overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
         info!("Instance `{}` initialized.", init_instance);
+        if config.local_repo {
+            repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(&init_instance))?;
+            info!("Local repository initialized in `{}`.", init_instance);
+        }
     }
 
     Ok(())
