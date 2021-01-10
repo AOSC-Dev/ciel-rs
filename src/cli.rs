@@ -33,6 +33,7 @@ pub fn build_cli() -> App<'static, 'static> {
                 .arg(Arg::with_name("url").help("URL to the tarball"))
                 .about("Unpack OS tarball or fetch the latest BuildKit from the repository"),
         )
+        .subcommand(SubCommand::with_name("update-os").about("Update the OS in the container"))
         .subcommand(
             SubCommand::with_name("load-tree")
                 .arg(Arg::with_name("url").help("URL to the git repository"))

@@ -94,7 +94,7 @@ pub fn pick_latest_tarball() -> Result<Tarball> {
     }
     tarballs.sort_unstable_by_key(|x| x.date.clone());
 
-    Ok(tarballs.first().unwrap().to_owned())
+    Ok(tarballs.last().unwrap().to_owned())
 }
 
 /// Clone the Git repository to `root`
