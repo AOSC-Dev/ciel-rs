@@ -66,7 +66,7 @@ impl Default for CielConfig {
             maintainer: "Bot <null@aosc.io>".to_string(),
             dnssec: false,
             apt_sources: String::new(),
-            local_repo: false,
+            local_repo: true,
             local_sources: false,
             extra_options: Vec::new(),
         }
