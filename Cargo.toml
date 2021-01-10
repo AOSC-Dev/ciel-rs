@@ -43,3 +43,6 @@ anyhow = "1.0"
 version = "2.33"
 default-features = false
 features = [ "suggestions", "color" ]
+
+[profile.release]
+lto = true

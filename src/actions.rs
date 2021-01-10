@@ -234,7 +234,7 @@ pub fn onboarding() -> Result<()> {
     common::ciel_init()?;
     info!("Initializing container OS...");
     let tarball_url;
-    info!("Searching for latest AOSC OS buildkit release ...");
+    info!("Searching for latest AOSC OS buildkit release...");
     if let Ok(tarball) = network::pick_latest_tarball() {
         info!(
             "Ciel has picked buildkit for {}, released on {}",
@@ -246,7 +246,7 @@ pub fn onboarding() -> Result<()> {
             "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
         );
         tarball_url = Input::<String>::new()
-            .with_prompt("Tarball URL:")
+            .with_prompt("Tarball URL")
             .interact()?;
     }
     load_os(&tarball_url)?;

@@ -82,7 +82,7 @@ pub fn pick_latest_tarball() -> Result<Tarball> {
     let buildkit = recipe
         .variants
         .into_iter()
-        .find(|v| v.name == "buildkit")
+        .find(|v| v.name == "BuildKit")
         .ok_or_else(|| anyhow!("Unable to find buildkit variant"))?;
     let mut tarballs: Vec<Tarball> = buildkit
         .tarballs
