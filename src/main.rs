@@ -12,8 +12,8 @@ mod repo;
 
 use anyhow::Result;
 use console::style;
-use std::path::Path;
 use std::process;
+use std::{path::Path, process::Command};
 
 macro_rules! print_error {
     ($input:block) => {
@@ -164,7 +164,18 @@ fn main() -> Result<()> {
         }
         // catch all other conditions
         _ => {
-            error!("Unknown command.");
+            let exe_dir = std::env::current_exe()?;
+            let exe_dir = exe_dir.parent().expect("Where am I?");
+            let cmd = args.subcommand().0;
+            let plugin = exe_dir
+                .join("../libexec/ciel-plugin/")
+                .join(format!("ciel-{}", cmd));
+            if !plugin.is_file() {
+                error!("Unknown command: `{}`.", cmd);
+                process::exit(1);
+            }
+            info!("Executing plugin ciel-{}", cmd);
+            process::exit(Command::new(plugin).status().unwrap().code().unwrap());
         }
     }
 
