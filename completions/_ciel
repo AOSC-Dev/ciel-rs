@@ -56,6 +56,14 @@ _arguments "${_arguments_options[@]}" \
 '::url -- URL to the tarball:_files' \
 && ret=0
 ;;
+(update-os)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
 (load-tree)
 _arguments "${_arguments_options[@]}" \
 '-h[Prints help information]' \
@@ -118,61 +126,61 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (sh)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 '::COMMANDS:_files' \
 && ret=0
 ;;
 (shell)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 '::COMMANDS:_files' \
 && ret=0
 ;;
 (exec)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 ':COMMANDS:_files' \
 && ret=0
 ;;
 (run)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 ':COMMANDS:_files' \
 && ret=0
 ;;
 (config)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-g[]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 && ret=0
 ;;
 (commit)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 && ret=0
 ;;
 (doctor)
@@ -185,48 +193,57 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (build)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':INSTANCE:_files' \
 ':PACKAGES:_files' \
 && ret=0
 ;;
 (rollback)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::INSTANCE:_files' \
+&& ret=0
+;;
+(umount)
+_arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
 && ret=0
 ;;
 (down)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::INSTANCE:_files' \
 && ret=0
 ;;
 (stop)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::INSTANCE:_files' \
 && ret=0
 ;;
 (mount)
 _arguments "${_arguments_options[@]}" \
+'-i+[Instance to be used]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::INSTANCE:_files' \
 && ret=0
 ;;
 (harakiri)
@@ -244,6 +261,110 @@ _arguments "${_arguments_options[@]}" \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
 && ret=0
+;;
+(localrepo)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+":: :_ciel__repo_commands" \
+"*::: :->repo" \
+&& ret=0
+case $state in
+    (repo)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:ciel-repo-command-$line[1]:"
+        case $line[1] in
+            (refresh)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(init)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(deinit)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(repo)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+":: :_ciel__repo_commands" \
+"*::: :->repo" \
+&& ret=0
+case $state in
+    (repo)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:ciel-repo-command-$line[1]:"
+        case $line[1] in
+            (refresh)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(init)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':INSTANCE:_files' \
+&& ret=0
+;;
+(deinit)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 ;;
 (help)
 _arguments "${_arguments_options[@]}" \
@@ -263,23 +384,25 @@ _ciel_commands() {
     local commands; commands=(
         "version:display the version of CIEL!" \
 "init:initialize the work directory" \
-"load-os:unpack OS tarball or fetch the latest BuildKit from the repository" \
-"load-tree:clone package tree from the link provided or AOSC OS ABBS main repository" \
+"load-os:Unpack OS tarball or fetch the latest BuildKit from the repository" \
+"update-os:Update the OS in the container" \
+"load-tree:Clone package tree from the link provided or AOSC OS ABBS main repository" \
 "new:Create a new CIEL workspace" \
-"list:list all the instances under the specified working directory" \
-"add:add a new instance" \
-"del:remove an instance" \
-"shell:start an interactive shell" \
-"run:lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile" \
-"config:configure system and toolchain for building interactively" \
-"commit:commit changes onto the shared underlying OS" \
-"doctor:diagnose problems (hopefully)" \
-"build:build the packages using the specified instance" \
-"rollback:rollback all or specified instance" \
-"down:shutdown and unmount all or one instance" \
-"stop:shuts down an instance" \
-"mount:mount all or specified instance" \
-"farewell:remove everything related to CIEL!" \
+"list:List all the instances under the specified working directory" \
+"add:Add a new instance" \
+"del:Remove an instance" \
+"shell:Start an interactive shell" \
+"run:Lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile" \
+"config:Configure system and toolchain for building interactively" \
+"commit:Commit changes onto the shared underlying OS" \
+"doctor:Diagnose problems (hopefully)" \
+"build:Build the packages using the specified instance" \
+"rollback:Rollback all or specified instance" \
+"down:Shutdown and unmount all or one instance" \
+"stop:Shuts down an instance" \
+"mount:Mount all or specified instance" \
+"farewell:Remove everything related to CIEL!" \
+"repo:Local repository operations" \
 "help:Prints this message or the help of the given subcommand(s)" \
     )
     _describe -t commands 'ciel commands' commands "$@"
@@ -311,6 +434,13 @@ _ciel__config_commands() {
         
     )
     _describe -t commands 'ciel config commands' commands "$@"
+}
+(( $+functions[_ciel__repo__deinit_commands] )) ||
+_ciel__repo__deinit_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel repo deinit commands' commands "$@"
 }
 (( $+functions[_ciel__del_commands] )) ||
 _ciel__del_commands() {
@@ -375,12 +505,26 @@ _ciel__help_commands() {
     )
     _describe -t commands 'ciel help commands' commands "$@"
 }
+(( $+functions[_ciel__repo__help_commands] )) ||
+_ciel__repo__help_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel repo help commands' commands "$@"
+}
 (( $+functions[_ciel__init_commands] )) ||
 _ciel__init_commands() {
     local commands; commands=(
         
     )
     _describe -t commands 'ciel init commands' commands "$@"
+}
+(( $+functions[_ciel__repo__init_commands] )) ||
+_ciel__repo__init_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel repo init commands' commands "$@"
 }
 (( $+functions[_ciel__list_commands] )) ||
 _ciel__list_commands() {
@@ -402,6 +546,16 @@ _ciel__load-tree_commands() {
         
     )
     _describe -t commands 'ciel load-tree commands' commands "$@"
+}
+(( $+functions[_localrepo_commands] )) ||
+_localrepo_commands() {
+    local commands; commands=(
+        "refresh:Refresh the repository" \
+"init:Initialize the repository" \
+"deinit:Uninitialize the repository" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'localrepo commands' commands "$@"
 }
 (( $+functions[_ciel__ls_commands] )) ||
 _ciel__ls_commands() {
@@ -430,6 +584,23 @@ _ciel__new_commands() {
         
     )
     _describe -t commands 'ciel new commands' commands "$@"
+}
+(( $+functions[_ciel__repo__refresh_commands] )) ||
+_ciel__repo__refresh_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel repo refresh commands' commands "$@"
+}
+(( $+functions[_ciel__repo_commands] )) ||
+_ciel__repo_commands() {
+    local commands; commands=(
+        "refresh:Refresh the repository" \
+"init:Initialize the repository" \
+"deinit:Uninitialize the repository" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'ciel repo commands' commands "$@"
 }
 (( $+functions[_ciel__rm_commands] )) ||
 _ciel__rm_commands() {
@@ -486,6 +657,27 @@ _ciel__stop_commands() {
         
     )
     _describe -t commands 'ciel stop commands' commands "$@"
+}
+(( $+functions[_ciel__umount_commands] )) ||
+_ciel__umount_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel umount commands' commands "$@"
+}
+(( $+functions[_umount_commands] )) ||
+_umount_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'umount commands' commands "$@"
+}
+(( $+functions[_ciel__update-os_commands] )) ||
+_ciel__update-os_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel update-os commands' commands "$@"
 }
 (( $+functions[_ciel__version_commands] )) ||
 _ciel__version_commands() {
