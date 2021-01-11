@@ -412,9 +412,9 @@ pub fn package_build<'a, K: IntoIterator<Item = &'a str>>(
 /// Update AOSC OS in the container/instance
 pub fn update_os() -> Result<()> {
     info!("Updating base OS...");
-    let instance = format!("update-{}", random::<u32>());
+    let instance = format!("update-{:x}", random::<u32>());
     add_instance(&instance)?;
-    run_in_container(&instance, &["bash", "-ec", UPDATE_SCRIPT])?;
+    run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
     commit_container(&instance)?;
     remove_instance(&instance)?;
 

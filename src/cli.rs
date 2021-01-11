@@ -61,26 +61,26 @@ pub fn build_cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("shell")
                 .alias("sh")
-                .arg(Arg::with_name("INSTANCE").required(true))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used").required(true))
                 .arg(Arg::with_name("COMMANDS").required(false).min_values(1))
                 .about("Start an interactive shell"),
         )
         .subcommand(
             SubCommand::with_name("run")
                 .alias("exec")
-                .arg(Arg::with_name("INSTANCE").required(true))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used").required(true))
                 .arg(Arg::with_name("COMMANDS").required(true).min_values(1))
                 .about("Lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
         )
         .subcommand(
             SubCommand::with_name("config")
-                .arg(Arg::with_name("INSTANCE").required(true))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used").required(true))
                 .arg(Arg::with_name("g").short("g").required(false))
                 .about("Configure system and toolchain for building interactively"),
         )
         .subcommand(
             SubCommand::with_name("commit")
-                .arg(Arg::with_name("INSTANCE").required(true))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used").required(true))
                 .about("Commit changes onto the shared underlying OS"),
         )
         .subcommand(
@@ -89,29 +89,29 @@ pub fn build_cli() -> App<'static, 'static> {
         )
         .subcommand(
             SubCommand::with_name("build")
-                .arg(Arg::with_name("INSTANCE").required(true))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used").required(true))
                 .arg(Arg::with_name("PACKAGES").required(true).min_values(1))
                 .about("Build the packages using the specified instance"),
         )
         .subcommand(
             SubCommand::with_name("rollback")
-                .arg(Arg::with_name("INSTANCE"))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used"))
                 .about("Rollback all or specified instance"),
         )
         .subcommand(
             SubCommand::with_name("down")
                 .alias("umount")
-                .arg(Arg::with_name("INSTANCE"))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used"))
                 .about("Shutdown and unmount all or one instance"),
         )
         .subcommand(
             SubCommand::with_name("stop")
-                .arg(Arg::with_name("INSTANCE"))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used"))
                 .about("Shuts down an instance"),
         )
         .subcommand(
             SubCommand::with_name("mount")
-                .arg(Arg::with_name("INSTANCE"))
+                .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to be used"))
                 .about("Mount all or specified instance"),
         )
         .subcommand(
