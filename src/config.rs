@@ -30,26 +30,6 @@ pub struct CielConfig {
 }
 
 impl CielConfig {
-    pub fn new(
-        version: usize,
-        maintainer: String,
-        dnssec: bool,
-        apt_sources: String,
-        local_repo: bool,
-        local_sources: bool,
-        extra_options: Vec<String>,
-    ) -> Self {
-        CielConfig {
-            version,
-            maintainer,
-            dnssec,
-            apt_sources,
-            local_repo,
-            local_sources,
-            extra_options,
-        }
-    }
-
     pub fn save_config(&self) -> Result<String> {
         Ok(toml::to_string(self)?)
     }
