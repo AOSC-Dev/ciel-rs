@@ -5,3 +5,7 @@
 /OUTPUT
 /TREE
 /SRCS
+
+.#*
+*.tar*
+.vscode
