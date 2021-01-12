@@ -33,6 +33,7 @@ libsystemd-sys = "0.8"
 walkdir = "2"
 xattr = "0.2"
 rand = "0.8"
+dotenv = "0.15"
 
 [build-dependencies]
 dbus-codegen = "0.9"

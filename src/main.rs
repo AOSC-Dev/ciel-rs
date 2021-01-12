@@ -10,8 +10,10 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use clap::ArgMatches;
 use console::style;
+use dotenv::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
 
@@ -22,6 +24,17 @@ macro_rules! print_error {
             process::exit(1);
         }
     };
+}
+
+#[inline]
+fn get_instance_option(args: &ArgMatches) -> Result<String> {
+    let default_instance = std::env::var("CIEL_INST");
+    let option_instance = args.value_of("INSTANCE");
+    if default_instance.is_err() && option_instance.is_none() {
+        return Err(anyhow!("No instance specified!"));
+    }
+
+    Ok(option_instance.map_or_else(|| default_instance.expect("Internal error"), String::from))
 }
 
 #[inline]
@@ -38,8 +51,18 @@ fn main() -> Result<()> {
     let directory = args.value_of("C").unwrap_or(".");
     // Switch to the target directory
     std::env::set_current_dir(directory).unwrap();
+    // source .env file, ignore errors
+    dotenv().ok();
+    let subcmd = args.subcommand();
+    // check if the workspace exists
+    if !["init", "new"].contains(&subcmd.0) {
+        if !Path::new("./.ciel").is_dir() {
+            error!("This directory does not look like a Ciel workspace");
+            process::exit(1);
+        }
+    }
     // Switch table
-    match args.subcommand() {
+    match subcmd {
         ("farewell", _) => {
             actions::farewell(Path::new(directory)).unwrap();
         }
@@ -62,12 +85,12 @@ fn main() -> Result<()> {
             print_error!({ actions::update_os() });
         }
         ("config", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::config_os(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::config_os(&instance) });
         }
         ("mount", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::mount_fs(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::mount_fs(&instance) });
         }
         ("new", _) => {
             if let Err(e) = actions::onboarding() {
@@ -76,37 +99,37 @@ fn main() -> Result<()> {
             }
         }
         ("run", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
+            let instance = get_instance_option(args)?;
             let cmd = args.values_of("COMMANDS").unwrap();
             let args: Vec<&str> = cmd.into_iter().collect();
-            let status = actions::run_in_container(instance, &args)?;
+            let status = actions::run_in_container(&instance, &args)?;
             process::exit(status);
         }
         ("shell", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
+            let instance = get_instance_option(args)?;
             if let Some(cmd) = args.values_of("COMMANDS") {
                 let command = cmd.into_iter().collect::<Vec<&str>>().join(" ");
-                let status = actions::run_in_container(instance, &["/bin/bash", "-c", &command])?;
+                let status = actions::run_in_container(&instance, &["/bin/bash", "-c", &command])?;
                 process::exit(status);
             }
-            let status = actions::run_in_container(instance, &["/bin/bash"])?;
+            let status = actions::run_in_container(&instance, &["/bin/bash"])?;
             process::exit(status);
         }
         ("stop", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::stop_container(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::stop_container(&instance) });
         }
         ("down", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::container_down(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::container_down(&instance) });
         }
         ("commit", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::commit_container(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::commit_container(&instance) });
         }
         ("rollback", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
-            print_error!({ actions::rollback_container(instance) });
+            let instance = get_instance_option(args)?;
+            print_error!({ actions::rollback_container(&instance) });
         }
         ("del", Some(args)) => {
             let instance = args.value_of("INSTANCE").unwrap();
@@ -117,9 +140,9 @@ fn main() -> Result<()> {
             print_error!({ actions::add_instance(instance) });
         }
         ("build", Some(args)) => {
-            let instance = args.value_of("INSTANCE").unwrap();
+            let instance = get_instance_option(args)?;
             let packages = args.values_of("PACKAGES").unwrap();
-            let status = actions::package_build(instance, packages)?;
+            let status = actions::package_build(&instance, packages)?;
             process::exit(status);
         }
         ("", _) => {
@@ -141,17 +164,17 @@ fn main() -> Result<()> {
             }
             ("init", Some(args)) => {
                 info!("Initializing repository...");
-                let instance = args.value_of("INSTANCE").unwrap();
+                let instance = get_instance_option(args)?;
                 let cwd = std::env::current_dir().unwrap();
-                print_error!({ actions::mount_fs(instance) });
+                print_error!({ actions::mount_fs(&instance) });
                 print_error!({ repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(instance)) });
                 info!("Repository has been initialized and refreshed.");
             }
             ("deinit", Some(args)) => {
                 info!("Disabling local repository...");
-                let instance = args.value_of("INSTANCE").unwrap();
+                let instance = get_instance_option(args)?;
                 let cwd = std::env::current_dir().unwrap();
-                print_error!({ actions::mount_fs(instance) });
+                print_error!({ actions::mount_fs(&instance) });
                 print_error!({ repo::deinit_repo(&cwd.join(instance)) });
                 info!("Repository has been disabled.");
             }

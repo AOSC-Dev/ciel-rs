@@ -96,7 +96,7 @@ impl OverlayFS {
 
                 if let Some(text) = opaque {
                     // the new dir (completely) replace the old one
-                    if text == &b"y"[..] {
+                    if text == b"y" {
                         // Delete corresponding dir
                         mods.push(Diff::OverrideDir(rel_path.clone()));
                         processed_dirs.push(rel_path.clone());
