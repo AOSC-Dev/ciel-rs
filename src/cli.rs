@@ -27,7 +27,7 @@ pub fn build_cli() -> App<'static, 'static> {
         .version(crate_version!())
         .about("CIEL! is a nspawn container manager")
         .subcommand(SubCommand::with_name("version").about("display the version of CIEL!"))
-        .subcommand(SubCommand::with_name("init").about("initialize the work directory"))
+        .subcommand(SubCommand::with_name("init").about("Initialize the work directory"))
         .subcommand(
             SubCommand::with_name("load-os")
                 .arg(Arg::with_name("url").help("URL to the tarball"))
