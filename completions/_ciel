@@ -146,7 +146,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (exec)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to run command in]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -156,7 +156,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (run)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to run command in]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -166,8 +166,8 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (config)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
-'-g[]' \
+'-i+[Instance to be configured]' \
+'(-i)-g[Configure base system instead of an instance]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -176,7 +176,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (commit)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be committed]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -193,7 +193,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (build)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to build in]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -203,7 +203,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (rollback)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be rolled back]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -212,7 +212,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (umount)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be un-mounted]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -221,7 +221,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (down)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be un-mounted]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -230,7 +230,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (stop)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be stopped]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -239,7 +239,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (mount)
 _arguments "${_arguments_options[@]}" \
-'-i+[Instance to be used]' \
+'-i+[Instance to be mounted]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
