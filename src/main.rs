@@ -131,6 +131,9 @@ fn main() -> Result<()> {
             print_error!({ actions::update_os() });
         }
         ("config", Some(args)) => {
+            if args.is_present("g") {
+                unimplemented!("-g is not implemented yet");
+            }
             let instance = get_instance_option(args)?;
             print_error!({ actions::config_os(&instance) });
         }

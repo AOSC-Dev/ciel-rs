@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{Confirm, Input};
+use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
 use std::{
@@ -30,21 +31,30 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
 ];
 const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get -y update && apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" full-upgrade"#;
 
+/// Ensure that the directories exist and mounted
 macro_rules! ensure_host_sanity {
     () => {{
         let mut extra_options = Vec::new();
-        let mut mounts = &DEFAULT_MOUNTS[..2];
+        let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
+            .into_iter()
+            .map(|x| (x.0.to_string(), x.1))
+            .collect();
         if let Ok(c) = config::read_config() {
             extra_options = c.extra_options;
-            if c.local_sources {
-                mounts = &DEFAULT_MOUNTS;
+            if !c.local_sources {
+                // remove SRCS
+                mounts.swap_remove(2);
+            }
+            if c.sep_mount {
+                let branch_name = get_branch_name().unwrap_or("HEAD".to_string());
+                mounts.push((format!("OUTPUT-{}/debs", branch_name), "/debs/"));
             }
         } else {
             warn!("This workspace is not yet configured, default settings are used.");
         }
 
-        for mount in mounts {
-            fs::create_dir_all(mount.0)?;
+        for mount in &mounts {
+            fs::create_dir_all(&mount.0)?;
         }
 
         (extra_options, mounts)
@@ -63,6 +73,18 @@ pub fn for_each_instance<F: Fn(&str) -> Result<()>>(func: &F) -> Result<()> {
     Ok(())
 }
 
+/// Get the branch name of the workspace TREE repository
+#[inline]
+fn get_branch_name() -> Result<String> {
+    let repo = Repository::open("TREE")?;
+    let head = repo.head()?;
+
+    Ok(head
+        .shorthand()
+        .ok_or_else(|| anyhow!("Unable to resolve Git ref"))?
+        .to_owned())
+}
+
 fn commit(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
     info!("Un-mounting all the instances...");
@@ -78,6 +100,7 @@ fn commit(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Rollback the container (by removing the upper layer)
 fn rollback(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
     info!("Rolling back instance `{}`...", instance);
@@ -300,7 +323,7 @@ pub fn start_container(instance: &str) -> Result<String> {
         mount_fs(instance)?;
     }
     if !inst.started {
-        spawn_container(&ns_name, instance, &extra_options, mounts)?;
+        spawn_container(&ns_name, instance, &extra_options, &mounts)?;
     }
 
     Ok(ns_name)
@@ -378,6 +401,7 @@ pub fn remove_instance(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Build packages in the container
 pub fn package_build<'a, K: IntoIterator<Item = &'a str>>(
     instance: &str,
     packages: K,

@@ -25,8 +25,10 @@ pub struct CielConfig {
     apt_sources: String,
     pub local_repo: bool,
     pub local_sources: bool,
-    #[serde(rename = "nspawn_extra_options")]
+    #[serde(rename = "nspawn-extra-options")]
     pub extra_options: Vec<String>,
+    #[serde(rename = "branch-exclusive-output")]
+    pub sep_mount: bool,
 }
 
 impl CielConfig {
@@ -49,6 +51,7 @@ impl Default for CielConfig {
             local_repo: true,
             local_sources: false,
             extra_options: Vec::new(),
+            sep_mount: false,
         }
     }
 }
@@ -137,6 +140,10 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     config.local_repo = Confirm::new()
         .with_prompt("Enable local packages repository")
         .default(config.local_repo)
+        .interact()?;
+    config.sep_mount = Confirm::new()
+        .with_prompt("Use different OUTPUT dir for different branches")
+        .default(config.sep_mount)
         .interact()?;
 
     Ok(config)

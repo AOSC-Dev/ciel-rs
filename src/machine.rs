@@ -118,12 +118,12 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
     Err(anyhow!("Timeout waiting for container {}", ns_name))
 }
 
-fn setup_bind_mounts(ns_name: &str, mounts: &[(&str, &str)]) -> Result<()> {
+fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
     let conn = Connection::new_system()?;
     let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
     for mount in mounts {
-        fs::create_dir_all(mount.0)?;
-        let source_path = fs::canonicalize(mount.0)?;
+        fs::create_dir_all(&mount.0)?;
+        let source_path = fs::canonicalize(&mount.0)?;
         proxy.bind_mount_machine(
             ns_name,
             &source_path.to_string_lossy(),
@@ -152,7 +152,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     ns_name: &str,
     path: P,
     extra_options: &[String],
-    mounts: &[(&str, &str)],
+    mounts: &[(String, &str)],
 ) -> Result<()> {
     let path = path
         .as_ref()
