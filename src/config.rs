@@ -51,7 +51,7 @@ impl Default for CielConfig {
             local_repo: true,
             local_sources: false,
             extra_options: Vec::new(),
-            sep_mount: false,
+            sep_mount: true,
         }
     }
 }
