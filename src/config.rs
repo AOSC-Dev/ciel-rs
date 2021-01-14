@@ -2,7 +2,7 @@
 
 use crate::common::CURRENT_CIEL_VERSION;
 use anyhow::{anyhow, Result};
-use dialoguer::{Confirm, Editor, Input};
+use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::{
@@ -117,16 +117,17 @@ fn create_parent_dir(path: &Path) -> Result<()> {
 
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
-    config.maintainer = Input::<String>::new()
+    let theme = ColorfulTheme::default();
+    config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
         .default(config.maintainer)
         .validate_with(validate_maintainer)
         .interact()?;
-    config.dnssec = Confirm::new()
+    config.dnssec = Confirm::with_theme(&theme)
         .with_prompt("Enable DNSSEC")
         .default(config.dnssec)
         .interact()?;
-    let edit_source = Confirm::new()
+    let edit_source = Confirm::with_theme(&theme)
         .with_prompt("Edit sources.list")
         .default(false)
         .interact()?;
@@ -135,15 +136,15 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
             .edit(&config.apt_sources)?
             .unwrap_or_else(|| DEFAULT_APT_SOURCE.to_owned());
     }
-    config.local_sources = Confirm::new()
+    config.local_sources = Confirm::with_theme(&theme)
         .with_prompt("Enable local sources caching")
         .default(config.local_sources)
         .interact()?;
-    config.local_repo = Confirm::new()
+    config.local_repo = Confirm::with_theme(&theme)
         .with_prompt("Enable local packages repository")
         .default(config.local_repo)
         .interact()?;
-    config.sep_mount = Confirm::new()
+    config.sep_mount = Confirm::with_theme(&theme)
         .with_prompt("Use different OUTPUT dir for different branches")
         .default(config.sep_mount)
         .interact()?;

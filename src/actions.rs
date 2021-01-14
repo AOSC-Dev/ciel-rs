@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use console::{style, Term};
-use dialoguer::{Confirm, Input};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
@@ -240,6 +240,7 @@ pub fn remove_mount(instance: &str) -> Result<()> {
 
 /// Show interactive onboarding guide, triggered by issuing `ciel new`
 pub fn onboarding() -> Result<()> {
+    let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
         error!("Seems like you've already created a ciel workspace here.");
@@ -249,11 +250,11 @@ pub fn onboarding() -> Result<()> {
     info!("Before continuing, I need to ask you a few questions:");
     let config = config::ask_for_config(None)?;
     let mut init_instance: Option<String> = None;
-    if Confirm::new()
+    if Confirm::with_theme(&theme)
         .with_prompt("Do you want to add a new instance now?")
         .interact()?
     {
-        let name: String = Input::new()
+        let name: String = Input::with_theme(&theme)
             .with_prompt("Name of the instance")
             .interact()?;
         init_instance = Some(name.clone());
@@ -280,7 +281,7 @@ pub fn onboarding() -> Result<()> {
         warn!(
             "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
         );
-        tarball_url = Input::<String>::new()
+        tarball_url = Input::<String>::with_theme(&theme)
             .with_prompt("Tarball URL")
             .interact()?;
     }
