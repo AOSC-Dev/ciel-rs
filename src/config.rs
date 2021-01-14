@@ -107,7 +107,9 @@ fn validate_maintainer(maintainer: &String) -> Result<(), String> {
 
 #[inline]
 fn create_parent_dir(path: &Path) -> Result<()> {
-    let path = path.parent().ok_or(anyhow!("Parent directory is root."))?;
+    let path = path
+        .parent()
+        .ok_or_else(|| anyhow!("Parent directory is root."))?;
     fs::create_dir_all(path)?;
 
     Ok(())
@@ -131,7 +133,7 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     if edit_source {
         config.apt_sources = Editor::new()
             .edit(&config.apt_sources)?
-            .unwrap_or(DEFAULT_APT_SOURCE.to_owned());
+            .unwrap_or_else(|| DEFAULT_APT_SOURCE.to_owned());
     }
     config.local_sources = Confirm::new()
         .with_prompt("Enable local sources caching")

@@ -181,9 +181,7 @@ impl LayerManager for OverlayFS {
         fs::create_dir_all(&self.upper)?;
         fs::create_dir_all(&self.lower)?;
         // let's mount them
-        overlay
-            .mount()
-            .or_else(|e| Err(anyhow!("{}", e.to_string())))?;
+        overlay.mount().map_err(|e| anyhow!("{}", e.to_string()))?;
 
         Ok(())
     }
@@ -256,7 +254,7 @@ pub(crate) fn get_overlayfs_manager(inst_name: &str) -> Result<Box<dyn LayerMana
 
 /// Check if path have all specified prefixes (with order)
 #[inline]
-fn has_prefix(path: &Path, prefixes: &Vec<PathBuf>) -> bool {
+fn has_prefix(path: &Path, prefixes: &[PathBuf]) -> bool {
     prefixes
         .iter()
         .any(|prefix| path.strip_prefix(prefix).is_ok())

@@ -44,7 +44,7 @@ fn legacy_container_name(path: &Path) -> Result<String> {
     let current_dir = std::env::current_dir()?;
     let name = path
         .file_name()
-        .ok_or(anyhow!("Invalid container path: {:?}", path))?;
+        .ok_or_else(|| anyhow!("Invalid container path: {:?}", path))?;
     let mut path = current_dir.as_os_str().as_bytes().to_owned();
     path.push(0); // add trailing null terminator
     unsafe {
@@ -58,7 +58,7 @@ fn legacy_container_name(path: &Path) -> Result<String> {
     Ok(format!(
         "{}-{:x}",
         name.to_str()
-            .ok_or(anyhow!("Container name is not valid unicode."))?,
+            .ok_or_else(|| anyhow!("Container name is not valid unicode."))?,
         key_id
     ))
 }
@@ -69,12 +69,12 @@ fn new_container_name(path: &Path) -> Result<String> {
     let hash = adler32(path.as_os_str().as_bytes())?;
     let name = path
         .file_name()
-        .ok_or(anyhow!("Invalid container path: {:?}", path))?;
+        .ok_or_else(|| anyhow!("Invalid container path: {:?}", path))?;
 
     Ok(format!(
         "{}-{:x}",
         name.to_str()
-            .ok_or(anyhow!("Container name is not valid unicode."))?,
+            .ok_or_else(|| anyhow!("Container name is not valid unicode."))?,
         hash
     ))
 }
@@ -210,9 +210,10 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     // let's inspect the cmdline of the PID 1 in the container
     let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
     // take until the first null byte
-    let pos: usize = f.iter().position(|c| *c == 0u8).ok_or(anyhow!(
-        "Unable to parse the process cmdline of PID 1 in the container"
-    ))?;
+    let pos: usize = f
+        .iter()
+        .position(|c| *c == 0u8)
+        .ok_or_else(|| anyhow!("Unable to parse the process cmdline of PID 1 in the container"))?;
     // ... well, of course it's a path
     let path = Path::new(OsStr::from_bytes(&f[..pos]));
     let exe_name = path.file_name();

@@ -66,11 +66,9 @@ fn main() -> Result<()> {
     // get subcommands from command line parser
     let subcmd = args.subcommand();
     // check if the workspace exists, except when the command is `init` or `new`
-    if !["init", "new"].contains(&subcmd.0) {
-        if !Path::new("./.ciel").is_dir() {
-            error!("This directory does not look like a Ciel workspace");
-            process::exit(1);
-        }
+    if !["init", "new"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
+        error!("This directory does not look like a Ciel workspace");
+        process::exit(1);
     }
     // Switch table
     match subcmd {

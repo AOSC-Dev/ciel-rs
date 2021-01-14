@@ -10,7 +10,10 @@ fn list_helpers() -> Result<Vec<String>> {
         .filter_map(|x| {
             if let Ok(x) = x {
                 let path = x.path();
-                let filename = path.file_name().unwrap_or(OsStr::new("")).to_string_lossy();
+                let filename = path
+                    .file_name()
+                    .unwrap_or_else(|| OsStr::new(""))
+                    .to_string_lossy();
                 if path.is_file() && filename.starts_with("ciel-") {
                     return Some(filename.to_string());
                 }
