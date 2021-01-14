@@ -46,8 +46,7 @@ macro_rules! ensure_host_sanity {
                 mounts.swap_remove(2);
             }
             if c.sep_mount {
-                let branch_name = get_branch_name().unwrap_or("HEAD".to_string());
-                mounts.push((format!("OUTPUT-{}/debs", branch_name), "/debs/"));
+                mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
             }
         } else {
             warn!("This workspace is not yet configured, default settings are used.");
@@ -83,6 +82,19 @@ fn get_branch_name() -> Result<String> {
         .shorthand()
         .ok_or_else(|| anyhow!("Unable to resolve Git ref"))?
         .to_owned())
+}
+
+/// Determine the output directory name
+#[inline]
+fn get_output_directory(sep_mount: bool) -> String {
+    if sep_mount {
+        format!(
+            "OUTPUT-{}",
+            get_branch_name().unwrap_or_else(|_| "HEAD".to_string())
+        )
+    } else {
+        "OUTPUT".to_string()
+    }
 }
 
 fn commit(instance: &str) -> Result<()> {
@@ -166,7 +178,7 @@ pub fn config_os(instance: &str) -> Result<()> {
             Path::new(CIEL_DATA_DIR).join("config.toml"),
             c.save_config()?,
         )?;
-        info!("Configuration applied.");
+        info!("Configurations applied.");
     } else {
         return Err(anyhow!("Could not recognize the configuration."));
     }
@@ -250,7 +262,7 @@ pub fn onboarding() -> Result<()> {
             name
         );
     } else {
-        info!("Okay. You can still add a new instance later.");
+        info!("Okay. You can always add a new instance later.");
     }
 
     info!("Initializing workspace...");
@@ -419,7 +431,8 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         return Ok(status);
     }
 
-    let root = std::env::current_dir()?.join("OUTPUT");
+    let output_dir = get_output_directory(conf.sep_mount);
+    let root = std::env::current_dir()?.join(output_dir);
     let term = Term::buffered_stderr();
     mount_fs(&instance)?;
     repo::init_repo(&root, Path::new(instance))?;
