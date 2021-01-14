@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::style;
+use console::{style, Term};
 use dialoguer::{Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
@@ -402,7 +402,7 @@ pub fn remove_instance(instance: &str) -> Result<()> {
 }
 
 /// Build packages in the container
-pub fn package_build<'a, K: IntoIterator<Item = &'a str>>(
+pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     instance: &str,
     packages: K,
 ) -> Result<i32> {
@@ -420,9 +420,17 @@ pub fn package_build<'a, K: IntoIterator<Item = &'a str>>(
     }
 
     let root = std::env::current_dir()?.join("OUTPUT");
+    let term = Term::buffered_stderr();
     mount_fs(&instance)?;
     repo::init_repo(&root, Path::new(instance))?;
-    for package in packages {
+    let total = packages.len();
+    for (index, package) in packages.enumerate() {
+        let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+        if status != 0 {
+            error!("Failed to update the OS before building packages");
+            return Ok(status);
+        }
+        term.set_title(format!("ciel: [{}/{}] {}", index, total, package));
         let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
         if status != 0 {
             return Ok(status);
@@ -438,7 +446,10 @@ pub fn update_os() -> Result<()> {
     info!("Updating base OS...");
     let instance = format!("update-{:x}", random::<u32>());
     add_instance(&instance)?;
-    run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+    let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+    if status != 0 {
+        return Err(anyhow!("Failed to update OS: {}", status));
+    }
     commit_container(&instance)?;
     remove_instance(&instance)?;
 
