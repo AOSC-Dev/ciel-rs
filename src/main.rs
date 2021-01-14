@@ -11,7 +11,7 @@ mod overlayfs;
 mod repo;
 
 use anyhow::{anyhow, Result};
-use clap::ArgMatches;
+use clap::{crate_version, ArgMatches};
 use console::style;
 use dotenv::dotenv;
 use std::process;
@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     // get subcommands from command line parser
     let subcmd = args.subcommand();
     // check if the workspace exists, except when the command is `init` or `new`
-    if !["init", "new"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
+    if !["init", "new", "version"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
         error!("This directory does not look like a Ciel workspace");
         process::exit(1);
     }
@@ -227,7 +227,7 @@ fn main() -> Result<()> {
             }
         },
         ("version", _) => {
-            todo!()
+            println!("{}", crate_version!());
         }
         // catch all other conditions
         _ => {

@@ -29,7 +29,7 @@ pub fn build_cli() -> App<'static, 'static> {
     App::new("CIEL!")
         .version(crate_version!())
         .about("CIEL! is a nspawn container manager")
-        .subcommand(SubCommand::with_name("version").about("display the version of CIEL!"))
+        .subcommand(SubCommand::with_name("version").about("Display the version of CIEL!"))
         .subcommand(SubCommand::with_name("init").about("Initialize the work directory"))
         .subcommand(
             SubCommand::with_name("load-os")
@@ -147,7 +147,7 @@ pub fn build_cli() -> App<'static, 'static> {
                 Arg::with_name("batch")
                     .short("b")
                     .long("batch")
-                    .help("batch mode, no input required"),
+                    .help("Batch mode, no input required"),
             ]
         )
 }
