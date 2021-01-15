@@ -134,6 +134,7 @@ dependencies = [
  "reqwest",
  "serde",
  "tar",
+ "tempfile",
  "termcolor",
  "terminal_size",
  "toml",

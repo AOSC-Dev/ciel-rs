@@ -4,6 +4,7 @@ mod common;
 mod config;
 mod dbus_machine1;
 mod dbus_machine1_machine;
+mod diagnose;
 mod logging;
 mod machine;
 mod network;
@@ -196,7 +197,7 @@ fn main() -> Result<()> {
             machine::print_instances()?;
         }
         ("doctor", _) => {
-            todo!()
+            print_error!({ diagnose::run_diagnose() });
         }
         ("repo", Some(args)) => match args.subcommand() {
             ("refresh", _) => {
