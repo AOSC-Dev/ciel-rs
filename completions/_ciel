@@ -16,8 +16,8 @@ _ciel() {
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
 '-C+[set the CIEL! working directory]' \
-'-b[batch mode, no input required]' \
-'--batch[batch mode, no input required]' \
+'-b[Batch mode, no input required]' \
+'--batch[Batch mode, no input required]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
@@ -53,7 +53,7 @@ _arguments "${_arguments_options[@]}" \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-'::url -- URL to the tarball:_files' \
+'::url -- URL or path to the tarball:_files' \
 && ret=0
 ;;
 (update-os)
@@ -382,8 +382,8 @@ esac
 (( $+functions[_ciel_commands] )) ||
 _ciel_commands() {
     local commands; commands=(
-        "version:display the version of CIEL!" \
-"init:initialize the work directory" \
+        "version:Display the version of CIEL!" \
+"init:Initialize the work directory" \
 "load-os:Unpack OS tarball or fetch the latest BuildKit from the repository" \
 "update-os:Update the OS in the container" \
 "load-tree:Clone package tree from the link provided or AOSC OS ABBS main repository" \
