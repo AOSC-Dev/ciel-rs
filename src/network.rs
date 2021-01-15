@@ -4,6 +4,14 @@ use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
 use serde::Deserialize;
 use std::{env::consts::ARCH, path::Path};
+use std::{
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    thread::{self, sleep},
+    time::Duration,
+};
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
@@ -101,43 +109,77 @@ pub fn pick_latest_tarball() -> Result<Tarball> {
 pub fn download_git(uri: &str, root: &Path) -> Result<()> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let mut co_callback = git2::build::CheckoutBuilder::new();
-    let progress_dl = indicatif::ProgressBar::new(1);
-    let progress_res = indicatif::ProgressBar::new(1);
-    let progress_co = indicatif::ProgressBar::new(1);
+    let current: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
+    let total: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
+    let stage: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
+    let cur_bytes: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
 
-    progress_dl.set_style(GIT_PROGRESS.clone());
-    progress_res.set_style(GIT_PROGRESS.clone());
-    progress_co.set_style(GIT_PROGRESS.clone());
-
-    progress_dl.set_message("Waiting for server...");
-    progress_dl.set_position(0);
+    let current_tx = current.clone();
+    let total_tx = total.clone();
+    let stage_tx = stage.clone();
+    let cur_bytes_tx = cur_bytes.clone();
 
     callbacks.transfer_progress(move |p: git2::Progress| {
         if p.received_objects() == p.total_objects() {
-            progress_res.set_message("Resolving deltas...");
-            progress_res.set_length(p.total_deltas() as u64);
-            progress_res.set_position(p.indexed_deltas() as u64);
+            current_tx.store(p.indexed_deltas(), Ordering::SeqCst);
+            total_tx.store(p.total_deltas(), Ordering::SeqCst);
+            stage_tx.store(1, Ordering::SeqCst);
         } else {
-            let human_bytes = indicatif::HumanBytes(p.received_bytes() as u64);
-            progress_dl.set_position(p.received_objects() as u64);
-            progress_dl.set_length(p.total_objects() as u64);
-            progress_dl.set_message(&format!("{}", human_bytes));
+            current_tx.store(p.received_objects(), Ordering::SeqCst);
+            total_tx.store(p.total_objects(), Ordering::SeqCst);
+            cur_bytes_tx.store(p.received_bytes(), Ordering::SeqCst);
         }
 
         true
     });
 
-    co_callback.progress(move |_, cur, total| {
-        progress_co.set_message("Checking out files...");
-        progress_co.set_length(total as u64);
-        progress_co.set_position(cur as u64);
+    let current_co = current.clone();
+    let total_co = total.clone();
+    let stage_co = stage.clone();
+    let stage_bar = stage.clone();
+
+    co_callback.progress(move |_, cur, ttl| {
+        current_co.store(cur, Ordering::SeqCst);
+        total_co.store(ttl, Ordering::SeqCst);
+        stage_co.store(2, Ordering::SeqCst);
     });
     let mut options = git2::FetchOptions::new();
     options.remote_callbacks(callbacks);
+    // drawing progress bar in a separate thread
+    let bar = thread::spawn(move || {
+        let progress = indicatif::ProgressBar::new(1);
+        progress.set_style(GIT_PROGRESS.clone());
+        loop {
+            let current = current.load(Ordering::SeqCst);
+            let total = total.load(Ordering::SeqCst);
+            progress.set_length(total as u64);
+            progress.set_position(current as u64);
+
+            match stage_bar.load(Ordering::SeqCst) {
+                0 => {
+                    let human_bytes =
+                        indicatif::HumanBytes(cur_bytes.load(Ordering::SeqCst) as u64);
+                    progress.set_message(&format!("{}", human_bytes));
+                }
+                1 => {
+                    progress.set_message("Resolving deltas...");
+                }
+                2 => {
+                    progress.set_message("Checking out files...");
+                }
+                _ => break,
+            }
+            sleep(Duration::from_millis(100));
+        }
+        progress.finish_and_clear();
+    });
+
     git2::build::RepoBuilder::new()
         .fetch_options(options)
         .with_checkout(co_callback)
         .clone(uri, root)?;
+    stage.store(4, Ordering::SeqCst);
+    bar.join().unwrap();
 
     Ok(())
 }
