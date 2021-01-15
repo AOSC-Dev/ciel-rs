@@ -127,15 +127,24 @@ fn rollback(instance: &str) -> Result<()> {
 
 /// Remove everything in the current workspace
 pub fn farewell(path: &Path) -> Result<()> {
-    let delete = Confirm::new()
+    let theme = ColorfulTheme::default();
+    let delete = Confirm::with_theme(&theme)
         .with_prompt("DELETE THIS CIEL WORKSPACE?")
+        .default(false)
         .interact()?;
     if !delete {
         info!("Not confirmed.");
         return Ok(());
     }
-    info!("If you are absolutely sure, please type the following:\nDo as I say!");
-    if Input::<String>::new().with_prompt("Your turn").interact()? != "Do as I say!" {
+    info!(
+        "If you are absolutely sure, please type the following:\n{}",
+        style("Do as I say!").bold()
+    );
+    if Input::<String>::with_theme(&theme)
+        .with_prompt("Your turn")
+        .interact()?
+        != "Do as I say!"
+    {
         info!("Prompt answered incorrectly. Not confirmed.");
         return Ok(());
     }
