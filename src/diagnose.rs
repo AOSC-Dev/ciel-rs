@@ -9,6 +9,7 @@ use std::{
     thread,
 };
 use tempfile::tempfile_in;
+use which::which;
 
 use crate::error;
 
@@ -16,6 +17,7 @@ const SYSTEMD1_PATH: &str = "/org/freedesktop/systemd1";
 const SYSTEMD1_DEST: &str = "org.freedesktop.systemd1";
 const SYSTEMD1_OBJ: &str = "org.freedesktop.systemd1.Manager";
 const TEST_TEXT: &[u8] = b"An-An was born a rabbit, but found herself a girl with bunny ears and tails when she woke up one day. She couldn't seem to remember why.";
+const TEST_PROGRAMS: &[&str] = &["systemd-nspawn", "systemd-run", "dpkg-scanpackages"];
 const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_sd_bus,
     &test_io_simple,
@@ -41,7 +43,11 @@ fn test_io_simple() -> Result<String> {
 }
 
 fn test_required_binaries() -> Result<String> {
-    // TODO
+    for binary in TEST_PROGRAMS {
+        if which(binary).is_err() {
+            return Err(anyhow!("Required program `{}` is not found", binary));
+        }
+    }
     Ok("Required binaries are correctly installed".to_string())
 }
 

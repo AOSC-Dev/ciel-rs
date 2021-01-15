@@ -35,6 +35,7 @@ walkdir = "2"
 xattr = "0.2"
 rand = "0.8"
 dotenv = "0.15"
+which = "4.0"
 
 [build-dependencies]
 dbus-codegen = "0.9"
