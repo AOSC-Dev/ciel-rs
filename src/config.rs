@@ -56,6 +56,7 @@ impl Default for CielConfig {
     }
 }
 
+#[allow(clippy::ptr_arg)]
 fn validate_maintainer(maintainer: &String) -> Result<(), String> {
     let mut lt = false; // "<"
     let mut gt = false; // ">"
