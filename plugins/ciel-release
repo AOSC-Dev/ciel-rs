@@ -1,0 +1,55 @@
+#!/bin/bash
+# Usage: ciel-release <variant>, where <variant> is the name of the variant.
+#        This command will also invoke ciel-generate, so <variant> should be one of
+#        which defined in ciel-generate.
+export CIEL_INST="ciel--release--"
+
+XZ_PARAM="-9 -e --lzma2=preset=9e,nice=273"
+DATE="$(TZ=UTC date +'%Y%m%d')"
+ciel add ciel--release--
+ARCH="$(ciel shell -i ciel--release-- -n "dpkg-architecture -qDEB_BUILD_ARCH" | dos2unix)"
+ciel factory-reset -i ciel--release--
+ciel commit -i ciel--release--
+ciel del ciel--release--
+VARIANT="$1"
+OS_PATH="$CIEL_DIR/.ciel/container/dist"
+WORKDIR="$PWD"
+
+if [[ ! "$CIEL_DIR" ]]; then
+	echo "\$CIEL_DIR cannot be null."
+	exit 127
+fi
+
+if [[ ! "$TARBALL" ]]; then
+	TARBALL=aosc-os_${VARIANT}_"${DATE}"_"${ARCH}".tar.xz
+fi
+
+pushd "$OS_PATH" || exit $?
+
+_ciel_tarball() {
+	# Make a tarball
+	tar cf - * | $COMPRESSOR > "$WORKDIR/$TARBALL" || exit $?
+	# Generate SHA256 checksum.
+	sha256sum "$WORKDIR/$TARBALL" > "$WORKDIR/$TARBALL".sha256sum || exit $?
+}
+
+if [[ ! "$COMPRESSOR" ]]; then
+	if [ -z "$2" ]; then
+		echo "Usage: ciel release <variant> <threads>"
+		echo ""
+		echo "<threads> not defined or not a natural integer!"
+		echo "Defaulting to 0, using as many threads as possible!"
+		echo "This could result in out-of-memory conditions"
+		echo ""
+		echo "Please declare a natural integer for XZ thread count."
+		echo "The higher the thread count, the higher the memory requirement."
+		export XZ_THREADS=0
+	else
+		export XZ_THREADS=$2
+	fi
+	COMPRESSOR="xz $XZ_PARAM -T $XZ_THREADS"
+fi
+
+_ciel_tarball
+
+popd

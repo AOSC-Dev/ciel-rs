@@ -1,0 +1,46 @@
+#!/bin/bash -e
+# Usage: ciel-localrepo <directory>, one directory at a time.
+# Not recommended for manual use.
+
+REPO_ROOT="$1"
+GPG_KEYRING="/etc/ciel/ciel.gpg"
+APT_KEYRING="/etc/apt/trusted.gpg"
+
+function generate_key() {
+    gpg --no-default-keyring --keyring "$GPG_KEYRING" --fingerprint
+    gpg --no-default-keyring --keyring "$GPG_KEYRING" --batch --gen-key - <<EOS
+Key-Type: 1
+Key-Length: 2048
+Subkey-Type: 1
+Subkey-Length: 2048
+Name-Real: CIEL!
+Expire-Date: 50y
+Passphrase: CIEL
+Key-Usage: sign
+Subkey-Usage: sign
+EOS
+    gpg --no-default-keyring --keyring "$GPG_KEYRING" --batch --export -a > '/etc/ciel/ciel.pub'
+}
+
+[[ -d $(dirname "$GPG_KEYRING") ]] || mkdir -p $(dirname "$GPG_KEYRING")
+[[ -f "$GPG_KEYRING" ]] || generate_key
+if [[ "$CIEL_LR_FIRST" == '1' ]]; then
+    gpg --no-default-keyring --keyring "$REPO_ROOT/$APT_KEYRING" --import -a < '/etc/ciel/ciel.pub' || true
+    exit 0
+fi
+
+pushd "$REPO_ROOT/../" > /dev/null
+dpkg-scanpackages './debs' > "./debs/Packages"
+popd > /dev/null
+
+gpg --pinentry-mode loopback --passphrase='CIEL' --no-default-keyring --keyring "$GPG_KEYRING" --clearsign -az3 <<EOF > "$REPO_ROOT/InRelease"
+Origin: AOSC
+Label: AOSC OS
+Suite: local
+Date: $(date -u -R)
+Valid-Until: $(date -u -R --date='fortnight')
+Description: AOSC OS Repository - Local
+Architectures: all $(uname -p)
+SHA256:
+ $(sha256sum "${REPO_ROOT}/Packages" | cut -f 1 -d ' ') $(du -b "${REPO_ROOT}/Packages" | cut -f-1) Packages
+EOF

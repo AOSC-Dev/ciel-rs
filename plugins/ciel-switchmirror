@@ -1,0 +1,11 @@
+#!/bin/bash
+# Usage: ciel-switchmirror <mirror name in apt-gen-list>
+
+export CIEL_INST="ciel--switchmirror--"
+export CIEL_BATCH_MODE="true"
+
+ciel add "$CIEL_INST"
+ciel shell "apt-gen-list m $1"
+ciel factory-reset
+ciel commit
+ciel del "$CIEL_INST"

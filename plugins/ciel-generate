@@ -1,0 +1,455 @@
+#!/bin/bash
+# Usage: ciel-generate <recipe>, one recipe at a time.
+
+export CIEL_INST="ciel--generate--"
+export CIEL_BATCH_MODE="true"
+
+# Determine architecture of build host.
+BUILD_ARCH="$(dpkg-architecture -qDEB_BUILD_ARCH)"
+
+# Determine the recipe to build.
+VARIANT="${1/+/_}"
+
+# FIXME: Handy variable.
+CALCULATED_RECIPE="${VARIANT^^}_RECIPE"
+
+# Common denominators.
+PREREQ_RECIPE="systemd"
+if [[ "${VARIANT}" = *sunxi* && "${VARIANT}" = *rk* ]]; then
+    BOOTABLE_RECIPE="boot-base aosc-os-presets-base"
+else
+    BOOTABLE_RECIPE="boot-base kernel-base aosc-os-presets-base"
+fi
+FONT_RECIPE="noto-cjk-fonts noto-fonts hanazono-fonts adobe-source-code-pro \
+             adobe-source-serif-pro croscore-fonts crosextra-fonts \
+             dejavu-fonts freefont liberation-fonts roboto-fonts \
+             ttf-tibetan-machine-unicode ttf-ancient-fonts unifont"
+
+# Define default browser.
+# Firefox does not work well on PPC64.
+if [[ "${BUILD_ARCH}" = "ppc64" ]]; then
+	BROWSER_RECIPE="palemoon"
+else
+	BROWSER_RECIPE="firefox"
+fi
+BROWSER_RECIPE+=" thunderbird"
+
+# Available from all desktop variants.
+DESKTOP_RECIPE="${BROWSER_RECIPE} ${FONT_RECIPE} productivity-base \
+                print-base codec-base proofread-base xdg-user-dirs \
+                xdg-user-dirs-gtk imchooser aosc-os-presets-desktop \
+                aosc-community-wallpapers"
+
+USE_DKMS=0
+# Special case for sunxi-base.
+if [[ "$VARIANT" == sunxi-* ]]; then
+	if [[ ! "$DEVICE_NAME" ]]; then
+		echo "DEVICE_NAME environment variable not set!" >&2
+		exit 1
+	fi
+	case $DEVICE_NAME in
+	sun[45]i*)
+		BOOTABLE_RECIPE="linux+kernel+sunxi+nokvm" ;;
+	sun[6789]i*)
+		BOOTABLE_RECIPE="linux+kernel+sunxi+kvm" ;;
+	*)
+		echo "Not recognized DEVICE_NAME!" >&2
+		exit 1 ;;
+	esac
+	BOOTABLE_RECIPE+=" u-boot-aosc-utils u-boot-$DEVICE_NAME"
+	case $DEVICE_NAME in
+	sun7i-a20-cubietruck|sun7i-a20-bananapi-m1-plus)
+		BOOTABLE_RECIPE+=" firmware-wifi-ap6210" ;;
+	sun8i-h2-plus-bananapi-m2-zero|sun8i-h3-bananapi-m2-plus|sun8i-r40-bananapi-m2-ultra)
+		BOOTABLE_RECIPE+=" firmware-wifi-ap6212" ;;
+	sun8i-h3-orangepi-plus)
+		BOOTABLE_RECIPE+=" rtl8189es"
+		USE_DKMS=1 ;;
+	esac
+	BOOTABLE_RECIPE+=" firmware-free firmware-nonfree"
+	BASE_VARIANT="$(echo $VARIANT | cut -d - -f 2-)"
+	CALCULATED_RECIPE="${BASE_VARIANT^^}_RECIPE"
+fi
+
+# Special case for sunxi64-base.
+if [[ "$VARIANT" == sunxi64-* ]]; then
+	if [[ ! "$DEVICE_NAME" ]]; then
+		echo "DEVICE_NAME environment variable not set!" >&2
+		exit 1
+	fi
+	BOOTABLE_RECIPE="linux+kernel+sunxi64 u-boot-aosc-utils u-boot-$DEVICE_NAME"
+	case $DEVICE_NAME in
+	sun50i-a64-bananapi-m64)
+		BOOTABLE_RECIPE+=" firmware-wifi-ap6212" ;;
+	sun50i-a64-pinebook|sun50i-a64-pinetab*|sun50i-a64-pinephone*)
+		BOOTABLE_RECIPE+=" rtl8723cs"
+		USE_DKMS=1 ;;
+	esac
+	BOOTABLE_RECIPE+=" firmware-free firmware-nonfree"
+	BASE_VARIANT="$(echo $VARIANT | cut -d - -f 2-)"
+	CALCULATED_RECIPE="${BASE_VARIANT^^}_RECIPE"
+fi
+
+# Special case for rk64-base
+if [[ "$VARIANT" == rk64-* ]]; then
+	if [[ ! "$DEVICE_NAME" ]]; then
+		echo "DEVICE_NAME environment variable not set!" >&2
+		exit 1
+	fi
+	BOOTABLE_RECIPE="linux+kernel+rk64 u-boot-aosc-utils u-boot-$DEVICE_NAME"
+	BOOTABLE_RECIPE+=" firmware-free firmware-nonfree"
+	BASE_VARIANT="$(echo $VARIANT | cut -d - -f 2-)"
+	CALCULATED_RECIPE="${BASE_VARIANT^^}_RECIPE"
+fi
+
+if (($USE_DKMS)); then
+	BOOTABLE_RECIPE+=" gcc dkms"
+fi
+
+# Specific recipes of all variants.
+CONTAINER_RECIPE="admin-base core-base editor-base python-base network-base \
+                  systemd-base web-base util-base"
+BASE_RECIPE="${CONTAINER_RECIPE} ${BOOTABLE_RECIPE} alsa-utils"
+BUILDKIT_RECIPE="${CONTAINER_RECIPE} devel-base debug-base git autobuild3 acbs"
+SERVER_RECIPE="${BASE_RECIPE} server-base"
+CINNAMON_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} cinnamon-base cinnamon-distro-base ibus-base \
+                 lightdm-gtk-greeter-settings gnome-packagekit gnome-software \
+                 cinnamon-default-settings alsa-utils aosc-os-presets-cinnamon"
+CINNAMON_NVIDIA_RECIPE="${CINNAMON_RECIPE} nvidia"
+CINNAMON_NVIDIA340_RECIPE="${CINNAMON_RECIPE} nvidia+340 nvidia-libgl+340"
+CINNAMON_NVIDIA390_RECIPE="${CINNAMON_RECIPE} nvidia+390"
+GNOME_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} gnome-base ibus-base gnome-distro-base \
+              gnome-default-settings alsa-utils aosc-os-presets-gnome"
+GNOME_NVIDIA_RECIPE="${GNOME_RECIPE} nvidia"
+GNOME_NVIDIA340_RECIPE="${GNOME_RECIPE} nvidia+340 nvidia-libgl+340"
+GNOME_NVIDIA390_RECIPE="${GNOME_RECIPE} nvidia+390"
+KDE_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} kde-base fcitx-base sddm mpv kdeplasma-addons \
+            alsa-utils plasma-distro-base aosc-os-presets-plasma"
+KDE_NVIDIA_RECIPE="${KDE_RECIPE} nvidia"
+KDE_NVIDIA340_RECIPE="${KDE_RECIPE} nvidia+340 nvidia-libgl+340"
+KDE_NVIDIA390_RECIPE="${KDE_RECIPE} nvidia+390"
+LXDE_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} lxde-base lxde-distro-base ibus-base \
+             lightdm-gtk-greeter-settings lxde-default-settings \
+             arc-icon-theme network-manager-applet \
+             gnome-screenshot volumeicon alsa-utils aosc-os-presets-lxde"
+LXDE_NVIDIA_RECIPE="${LXDE_RECIPE} nvidia"
+LXDE_NVIDIA340_RECIPE="${LXDE_RECIPE} nvidia+340 nvidia-libgl+340"
+LXDE_NVIDIA390_RECIPE="${LXDE_RECIPE} nvidia+390"
+MATE_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} mate-base mate-distro-base ibus-base \
+             lightdm-gtk-greeter-settings mpv mate-default-settings alsa-utils \
+             aosc-os-presets-mate"
+MATE_NVIDIA_RECIPE="${MATE_RECIPE} nvidia"
+MATE_NVIDIA340_RECIPE="${MATE_RECIPE} nvidia+340 nvidia-libgl+340"
+MATE_NVIDIA390_RECIPE="${MATE_RECIPE} nvidia+390"
+XFCE_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} xfce-base xfce-distro-base ibus-base \
+             lightdm-gtk-greeter-settings mpv xfce4-default-settings alsa-utils \
+             aosc-os-presets-xfce"
+XFCE_NVIDIA_RECIPE="${XFCE_RECIPE} nvidia"
+XFCE_NVIDIA340_RECIPE="${XFCE_RECIPE} nvidia+340 nvidia-libgl+340"
+XFCE_NVIDIA390_RECIPE="${XFCE_RECIPE} nvidia+390"
+
+# Special case for Retro.
+if [[ "$VARIANT" == retro-* ]]; then
+	BOOTABLE_RECIPE="boot-base kernel-base aosc-os-presets-base"
+	FONT_RECIPE="unifont"
+	BROWSER_RECIPE="netsurf sylpheed"
+	DESKTOP_RECIPE="${BROWSER_RECIPE} ${FONT_RECIPE} \
+                        xdg-user-dirs aosc-os-presets-desktop"
+	BASE_RECIPE="${BOOTABLE_RECIPE} admin-base core-base editor-base \
+                     network-base systemd-base web-base util-base"
+	X11_RECIPE="${BASE_RECIPE} ${DESKTOP_RECIPE} retro-x11-base"
+fi
+
+# Common functions.
+_recipe_post() {
+	ciel factory-reset
+	ciel commit
+	ciel del $CIEL_INST
+}
+
+_recipe_pre_install() {
+	ciel update-os
+	ciel add $CIEL_INST
+	ciel shell "apt-get -o Dpkg::Options::=\"--force-confnew\" install --yes ${PREREQ_RECIPE}"
+}
+
+# Recipe-specific functions.
+_recipe_install() {
+	ciel shell "apt-get -o Dpkg::Options::=\"--force-confnew\" install --yes ${!CALCULATED_RECIPE}"
+	ciel shell "apt-get autoremove --purge --yes"
+}
+_recipe_base_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_sunxi-base_pre_install() {
+	ciel shell "apt-gen-list c +bsp-sunxi"
+	ciel commit
+	ciel shell "apt-get update"
+}
+_recipe_sunxi-base_config(){
+	ciel shell "systemctl preset-all"
+}
+_recipe_sunxi64-base_pre_install() {
+	ciel shell "apt-gen-list c +bsp-sunxi"
+	ciel commit
+	ciel shell "apt-get update"
+}
+_recipe_sunxi64-base_config(){
+	ciel shell "systemctl preset-all"
+	if (($USE_DKMS)); then
+		ciel shell "systemctl enable dkms.service"
+	fi
+}
+_recipe_sunxi64-cinnamon_pre_install() {
+        ciel shell "apt-gen-list c +bsp-sunxi"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_sunxi64-cinnamon_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_sunxi64-gnome_pre_install() {
+	ciel shell "apt-gen-list c +bsp-sunxi"
+	ciel commit
+	ciel shell "apt-get update"
+}
+_recipe_sunxi64-gnome_config(){
+	ciel shell "systemctl preset-all"
+	if (($USE_DKMS)); then
+		ciel shell "systemctl enable dkms.service"
+	fi
+}
+_recipe_sunxi64-kde_pre_install() {
+	ciel shell "apt-gen-list c +bsp-sunxi"
+	ciel commit
+	ciel shell "apt-get update"
+}
+_recipe_sunxi64-kde_config(){
+	ciel shell "systemctl preset-all"
+	if (($USE_DKMS)); then
+		ciel shell "systemctl enable dkms.service"
+	fi
+}
+_recipe_sunxi64-lxde_pre_install() {
+        ciel shell "apt-gen-list c +bsp-sunxi"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_sunxi64-lxde_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_sunxi64-mate_pre_install() {
+        ciel shell "apt-gen-list c +bsp-sunxi"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_sunxi64-mate_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_sunxi64-xfce_pre_install() {
+        ciel shell "apt-gen-list c +bsp-sunxi"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_sunxi64-xfce_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-base_pre_install() {
+	ciel shell "apt-gen-list c +bsp-rk"
+	ciel commit
+	ciel shell "apt-get update"
+}
+_recipe_rk64-base_config(){
+	ciel shell "systemctl preset-all"
+	if (($USE_DKMS)); then
+		ciel shell "systemctl enable dkms.service"
+	fi
+}
+_recipe_rk64-cinnamon_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-cinnamon_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-gnome_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-gnome_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-kde_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-kde_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-lxde_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-lxde_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-mate_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-mate_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_rk64-xfce_pre_install() {
+        ciel shell "apt-gen-list c +bsp-rk"
+        ciel commit
+        ciel shell "apt-get update"
+}
+_recipe_rk64-xfce_config(){
+        ciel shell "systemctl preset-all"
+        if (($USE_DKMS)); then
+                ciel shell "systemctl enable dkms.service"
+        fi
+}
+_recipe_buildkit_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_container_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_server_config() {
+        ciel shell "systemctl preset-all"
+}
+_recipe_cinnamon_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_cinnamon_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_cinnamon_nvidia340_config() {
+        ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_cinnamon_nvidia390_config() {
+        ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_gnome_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_gnome_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_gnome_nvidia340_config() {
+        ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_gnome_nvidia390_config() {
+        ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_kde_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_kde_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_kde_nvidia340_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_kde_nvidia390_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_lxde_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_lxde_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_lxde_nvidia340_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_lxde_nvidia390_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_mate_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_mate_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_mate_nvidia340_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_mate_nvidia390_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_xfce_config() {
+	ciel shell "systemctl preset-all"
+}
+_recipe_xfce_nvidia_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_xfce_nvidia340_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+_recipe_xfce_nvidia390_config() {
+	ciel shell "systemctl preset-all"
+	ciel shell "systemctl enable nvidia-persistenced"
+}
+
+# Nike.
+set -e
+_recipe_pre_install
+if type _recipe_${VARIANT}_pre_install >/dev/null 2>&1; then
+	_recipe_${VARIANT}_pre_install
+fi
+_recipe_install
+_recipe_${VARIANT}_config
+_recipe_post
+set +e
