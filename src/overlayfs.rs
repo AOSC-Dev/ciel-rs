@@ -193,8 +193,20 @@ impl LayerManager for OverlayFS {
 
     fn commit(&mut self) -> Result<()> {
         let mods = self.diff()?;
-        for i in mods {
-            overlay_exec_action(i, self)?;
+        // FIXME: use drain_filter in the future
+        // first pass to execute all the deletion actions
+        for i in mods.iter() {
+            match i {
+                Diff::WhiteoutFile(_) => overlay_exec_action(i, self)?,
+                _ => continue,
+            }
+        }
+        // second pass for everything else
+        for i in mods.iter() {
+            match i {
+                Diff::WhiteoutFile(_) => continue,
+                _ => overlay_exec_action(i, self)?,
+            }
         }
         // clear all the remnant items in the upper layer
         self.rollback()?;
@@ -274,7 +286,7 @@ fn sync_permission(from: &Path, to: &Path) -> Result<()> {
 }
 
 #[inline]
-fn overlay_exec_action(action: Diff, overlay: &OverlayFS) -> Result<()> {
+fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
     match action {
         Diff::Symlink(path) => {
             let upper_path = overlay.upper.join(&path);
