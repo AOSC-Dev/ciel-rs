@@ -9,7 +9,7 @@ use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
 use dbus::blocking::{Connection, Proxy};
-use libc::ftok;
+use libc::{c_char, ftok};
 use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
 use std::{
     ffi::{CString, OsStr},
@@ -51,7 +51,7 @@ fn legacy_container_name(path: &Path) -> Result<String> {
     path.push(0); // add trailing null terminator
     unsafe {
         // unsafe because of the `ftok` invokation
-        key_id = ftok(path.as_ptr() as *const i8, 0);
+        key_id = ftok(path.as_ptr() as *const c_char, 0);
     }
     if key_id < 0 {
         return Err(anyhow!("ftok() failed."));
