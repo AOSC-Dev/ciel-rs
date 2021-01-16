@@ -1,3 +1,27 @@
+function __ciel_list_instances
+    if ! test -d .ciel/container/instances
+        return
+    end
+    find .ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\tInstance\n'
+end
+
+function __ciel_list_packages
+    if ! test -d TREE
+        return
+    end
+    find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n'
+    if string match -q -- "*/*" "$current"
+        return
+    end
+    find "TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -printf '%f\n'
+end
+
+function __ciel_list_plugins
+    set ciel_path (command -v ciel)
+    set ciel_plugin_dir (dirname $ciel_path)"/../libexec/ciel-plugin"
+    find "$ciel_plugin_dir" -maxdepth 1 -mindepth 1 -type f -printf '%f\t-Ciel plugin-\n' | cut -d'-' -f2-
+end
+
 complete -c ciel -n "__fish_use_subcommand" -s C -d 'set the CIEL! working directory'
 complete -c ciel -n "__fish_use_subcommand" -s b -l batch -d 'Batch mode, no input required'
 complete -c ciel -n "__fish_use_subcommand" -s h -l help -d 'Prints help information'
@@ -90,3 +114,16 @@ complete -c ciel -n "__fish_seen_subcommand_from help" -s h -l help -d 'Prints h
 complete -c ciel -n "__fish_seen_subcommand_from help" -s V -l version -d 'Prints version information'
 complete -c ciel -n "__fish_seen_subcommand_from help" -s h -l help -d 'Prints help information'
 complete -c ciel -n "__fish_seen_subcommand_from help" -s V -l version -d 'Prints version information'
+# Enhanced completions
+complete -xc ciel -n "__fish_seen_subcommand_from build" -a "(__ciel_list_packages)"
+complete -xc ciel -n "__fish_seen_subcommand_from build" -s i -d 'Instance to build in' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from run" -s i -d 'Instance to run command in' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from config" -s i -d 'Instance to be configured' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from commit" -s i -d 'Instance to be committed' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from build" -s i -d 'Instance to build in' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from rollback" -s i -d 'Instance to be rolled back' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from down" -s i -d 'Instance to be un-mounted' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from stop" -s i -d 'Instance to be stopped' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from mount" -s i -d 'Instance to be mounted' -a "(__ciel_list_instances)"
+complete -xc ciel -n "__fish_seen_subcommand_from load-os" -a "(__fish_complete_suffix tar.xz)"
+complete -c ciel -a "(__ciel_list_plugins)"
