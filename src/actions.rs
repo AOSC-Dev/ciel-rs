@@ -189,6 +189,7 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
     }
     if let Ok(c) = config {
         config::apply_config(path, &c)?;
+        fs::create_dir_all(CIEL_DATA_DIR)?;
         fs::write(
             Path::new(CIEL_DATA_DIR).join("config.toml"),
             c.save_config()?,
@@ -466,6 +467,8 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         }
         repo::refresh_repo(&root)?;
     }
+    // clear terminal title
+    term.set_title("");
 
     Ok(0)
 }
