@@ -17,7 +17,7 @@ _ciel_list_plugins() {
     local CIEL="$(command -v ciel)"
     [ -z "$CIEL" ] && return
     local PLUGIN_DIR="$(dirname $CIEL)/../libexec/ciel-plugin"
-    find "$PLUGIN_DIR" -maxdepth 1 -mindepth 1 -type f -name 'ciel-*' -printf '%f\n' | cut -d'-' -f2
+    find "$PLUGIN_DIR" -maxdepth 1 -mindepth 1 -type f -name 'ciel-*' -printf '%f\n' | cut -d'-' -f2-
 }
 
 _ciel() {
