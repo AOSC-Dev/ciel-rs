@@ -1,3 +1,25 @@
+_ciel_list_instances() {
+    [ -d .ciel/container/instances ] || return
+    find .ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
+}
+
+_ciel_list_packages() {
+    [ -d TREE ] || return
+    GROUPS="$(find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
+    COMPREPLY+=($(compgen -W "$GROUPS" -- "${1}"))
+    if [[ "$1" == *'/'* ]]; then
+        return
+    fi
+    COMPREPLY+=($(find "TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -name "${1}*" -printf '%f\n'))
+}
+
+_ciel_list_plugins() {
+    local CIEL="$(command -v ciel)"
+    [ -z "$CIEL" ] && return
+    local PLUGIN_DIR="$(dirname $CIEL)/../libexec/ciel-plugin"
+    find "$PLUGIN_DIR" -maxdepth 1 -mindepth 1 -type f -name 'ciel-*' -printf '%f\n' | cut -d'-' -f2
+}
+
 _ciel() {
     local i cur prev opts cmds
     COMPREPLY=()
@@ -115,7 +137,7 @@ _ciel() {
         ciel)
             opts=" -b -h -V -C  --batch --help --version   version init load-os update-os load-tree new list add del shell run config commit doctor build rollback down stop mount farewell repo help  ls  rm  sh  exec  umount  harakiri  localrepo"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                COMPREPLY=( $(compgen -W "${opts} $(_ciel_list_plugins)" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
@@ -148,22 +170,22 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts=" -h -V -i  --help --version  <PACKAGES>... "
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+            opts=" -h -V -i  --help --version "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && ! ${CIEL_INST} ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
                     COMPREPLY=()
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            _ciel_list_packages "$cur"
             return 0
             ;;
         ciel__commit)
@@ -175,7 +197,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -194,7 +216,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -207,7 +229,7 @@ _ciel() {
         ciel__del)
             opts=" -h -V  --help --version  <INSTANCE> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                COMPREPLY=( $(compgen -W "${opts} $(_ciel_list_instances)" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
@@ -243,7 +265,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -262,7 +284,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -416,7 +438,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -517,9 +539,9 @@ _ciel() {
             return 0
             ;;
         ciel__rm)
-            opts=" -h -V  --help --version  <INSTANCE> "
+            opts=" -h -V  --help --version  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                COMPREPLY=( $(compgen -W "${opts} $(_ciel_list_instances)" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
@@ -540,7 +562,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -559,7 +581,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -578,7 +600,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -597,7 +619,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -616,7 +638,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
@@ -635,7 +657,7 @@ _ciel() {
             case "${prev}" in
                 
                     -i)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
                 *)
