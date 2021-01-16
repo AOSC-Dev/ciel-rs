@@ -232,7 +232,8 @@ pub fn unmount_fs(instance: &str) -> Result<()> {
 pub fn remove_mount(instance: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(instance);
     if !target.is_dir() {
-        return Err(anyhow!("{} is not a directory.", instance));
+        warn!("{} is not a directory.", instance);
+        return Ok(());
     }
     match fs::read_dir(&target) {
         Ok(mut entry) => {
