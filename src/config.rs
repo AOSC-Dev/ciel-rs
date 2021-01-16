@@ -134,6 +134,8 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         .interact()?;
     if edit_source {
         config.apt_sources = Editor::new()
+            .executable("nano")
+            .extension(".list")
             .edit(&config.apt_sources)?
             .unwrap_or_else(|| DEFAULT_APT_SOURCE.to_owned());
     }
