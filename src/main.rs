@@ -131,10 +131,10 @@ fn main() -> Result<()> {
         }
         ("config", Some(args)) => {
             if args.is_present("g") {
-                unimplemented!("-g is not implemented yet");
+                print_error!({ actions::config_os(None) });
             }
             let instance = get_instance_option(args)?;
-            print_error!({ actions::config_os(&instance) });
+            print_error!({ actions::config_os(Some(&instance)) });
         }
         ("mount", Some(args)) => {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });

@@ -173,16 +173,22 @@ pub fn load_os(url: &str) -> Result<()> {
 }
 
 /// Ask user for the configuration and then apply it
-pub fn config_os(instance: &str) -> Result<()> {
+pub fn config_os(instance: Option<&str>) -> Result<()> {
     let config;
     if let Ok(c) = config::read_config() {
         config = config::ask_for_config(Some(c));
     } else {
         config = config::ask_for_config(None);
     }
-    let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    let path;
+    if let Some(instance) = instance {
+        let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+        path = man.get_config_layer()?;
+    } else {
+        path = PathBuf::from(CIEL_DIST_DIR);
+    }
     if let Ok(c) = config {
-        config::apply_config(man.get_config_layer()?, &c)?;
+        config::apply_config(path, &c)?;
         fs::write(
             Path::new(CIEL_DATA_DIR).join("config.toml"),
             c.save_config()?,
@@ -303,7 +309,7 @@ pub fn onboarding() -> Result<()> {
         Path::new(CIEL_DATA_DIR).join("config.toml"),
         config.save_config()?,
     )?;
-    info!("Configuration applied.");
+    info!("Configurations applied.");
     let cwd = std::env::current_dir()?;
     if config.local_repo {
         info!("Setting up local repository ...");
