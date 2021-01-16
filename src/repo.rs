@@ -13,7 +13,7 @@ pub fn refresh_repo(root: &Path) -> Result<()> {
     fs::create_dir_all(&path)?;
     let mut output = fs::File::create(path.join("Packages"))?;
     let mut child = Command::new("dpkg-scanpackages")
-        .args(&["-h", "sha256", "debs/"])
+        .args(&["-h", "sha256", "."])
         .stdout(Stdio::piped())
         .current_dir(path)
         .spawn()?;
