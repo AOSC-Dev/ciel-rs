@@ -15,7 +15,7 @@ pub fn refresh_repo(root: &Path) -> Result<()> {
     let mut child = Command::new("dpkg-scanpackages")
         .args(&["-h", "sha256", "debs/"])
         .stdout(Stdio::piped())
-        .current_dir(root)
+        .current_dir(path)
         .spawn()?;
     let mut stdout = child.stdout.take().unwrap();
     io::copy(&mut stdout, &mut output)?;
