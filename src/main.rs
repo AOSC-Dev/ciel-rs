@@ -160,7 +160,7 @@ fn main() -> Result<()> {
                 let status = actions::run_in_container(&instance, &["/bin/bash", "-ec", &command])?;
                 process::exit(status);
             }
-            let status = actions::run_in_container(&instance, &["/bin/bash", "--login"])?;
+            let status = actions::run_in_container(&instance, &["/bin/bash"])?;
             process::exit(status);
         }
         ("stop", Some(args)) => {
