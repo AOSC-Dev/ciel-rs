@@ -36,6 +36,8 @@ xattr = "0.2"
 rand = "0.8"
 dotenv = "0.15"
 which = "4.0"
+sha2 = "0.9"
+chrono = "0.4"
 
 [build-dependencies]
 dbus-codegen = "0.9"
