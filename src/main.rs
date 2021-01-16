@@ -132,6 +132,7 @@ fn main() -> Result<()> {
         ("config", Some(args)) => {
             if args.is_present("g") {
                 print_error!({ actions::config_os(None) });
+                return Ok(());
             }
             let instance = get_instance_option(args)?;
             print_error!({ actions::config_os(Some(&instance)) });
