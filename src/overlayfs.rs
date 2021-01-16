@@ -300,6 +300,10 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             let upper_path = overlay.upper.join(&path);
             let lower_path = overlay.base.join(&path);
             // Replace lower dir with upper
+            if lower_path.is_dir() {
+                // If exists and was not removed already, then remove it
+                fs::remove_dir_all(&lower_path)?;
+            }
             fs::rename(&upper_path, &lower_path)?;
         }
         Diff::RenamedDir(from, to) => {
