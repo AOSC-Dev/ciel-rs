@@ -30,6 +30,7 @@ pub struct Variant {
     tarballs: Vec<Tarball>,
 }
 
+/// AOSC OS Tarball Recipe structure
 #[derive(Deserialize)]
 pub struct Recipe {
     pub version: usize,

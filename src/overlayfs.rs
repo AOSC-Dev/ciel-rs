@@ -50,12 +50,14 @@ struct OverlayFS {
     work: PathBuf,
 }
 
+/// Create a new overlay filesystem on the host system
 pub fn create_new_instance_fs<P: AsRef<Path>>(inst_path: P, inst_name: P) -> Result<()> {
     let inst = inst_path.as_ref().join(inst_name.as_ref());
     fs::create_dir_all(&inst)?;
     Ok(())
 }
 
+/// OverlayFS operations
 #[derive(Debug)]
 enum Diff {
     Symlink(PathBuf),

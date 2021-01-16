@@ -103,6 +103,7 @@ fn test_disk_io() -> Result<String> {
     Err(anyhow!("Disk I/O is not working correctly"))
 }
 
+/// Carry out the diagnostic tests
 pub fn run_diagnose() -> Result<()> {
     let mut lines = vec![];
     let mut has_error = false;

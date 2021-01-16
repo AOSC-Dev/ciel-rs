@@ -25,6 +25,7 @@ fn list_helpers() -> Result<Vec<String>> {
     Ok(plugins)
 }
 
+/// Build the CLI instance
 pub fn build_cli() -> App<'static, 'static> {
     App::new("CIEL!")
         .version(crate_version!())

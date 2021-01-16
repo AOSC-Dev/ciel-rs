@@ -28,6 +28,7 @@ const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
     "--system-call-filter=swapcontext",
 ];
 
+/// Instance status information
 #[derive(Debug)]
 pub struct CielInstance {
     name: String,
@@ -39,6 +40,7 @@ pub struct CielInstance {
     booted: Option<bool>,
 }
 
+/// Used for getting the instance name from Ciel 1/2
 fn legacy_container_name(path: &Path) -> Result<String> {
     let key_id;
     let current_dir = std::env::current_dir()?;
@@ -63,6 +65,7 @@ fn legacy_container_name(path: &Path) -> Result<String> {
     ))
 }
 
+/// Used for getting the instance name from Ciel 3+
 fn new_container_name(path: &Path) -> Result<String> {
     // New container name is calculated using the following formula:
     // $name-adler32($PWD)
@@ -118,6 +121,7 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
     Err(anyhow!("Timeout waiting for container {}", ns_name))
 }
 
+/// Setting up cross-namespace bind-mounts for the container using systemd
 fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
     let conn = Connection::new_system()?;
     let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
