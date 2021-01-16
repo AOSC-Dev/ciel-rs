@@ -109,7 +109,7 @@ pub fn run_diagnose() -> Result<()> {
     for test in TEST_CASES {
         match test() {
             Ok(msg) => {
-                if msg.starts_with("!") {
+                if msg.starts_with('!') {
                     lines.push(format!(
                         "{} {}",
                         style("!").yellow(),
