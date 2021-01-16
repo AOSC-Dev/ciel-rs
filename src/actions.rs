@@ -47,6 +47,7 @@ macro_rules! ensure_host_sanity {
             }
             if c.sep_mount {
                 mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
+                mounts.swap_remove(0);
             }
         } else {
             warn!("This workspace is not yet configured, default settings are used.");
