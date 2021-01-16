@@ -1,0 +1,36 @@
+#!/bin/bash -e
+
+remove_files () {
+WHITELIST="^/var/lib/apt/gen
+^/var/lib/apt/extended_states
+^/var/lib/dkms
+^/var/lib/dpkg
+^/var/log/journal$
+/\.updated$"
+    DPKG_FILES="$(mktemp)"
+    ALL_FILES="$(mktemp)"
+    RM_FILES="$(mktemp)"
+    PATTERN_FILES="$(mktemp)"
+    echo 'Listing dpkg packages ...'
+    PACKAGES="$(dpkg-query --show --showformat="\${Package}\n")"
+    echo 'Collecting files from dpkg ...'
+    find / -mindepth 2 >> "$ALL_FILES"
+    for p in $PACKAGES; do
+        dpkg-query --listfiles "$p" >> "$DPKG_FILES"
+    done
+    echo "$WHITELIST" > "$PATTERN_FILES"
+    grep -vxf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
+    mv "${ALL_FILES}.new" "$ALL_FILES"
+    grep -vxFf "$DPKG_FILES" < "$ALL_FILES" > "$RM_FILES"
+    echo 'Removing files ...'
+    xargs -L 1000 -a "$RM_FILES" rm -rf
+    rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
+}
+
+[ -z "$CIEL_INST" ] && ( echo "No instance specified" && exit 1 )
+ciel down -i "$CIEL_INST"
+ciel mount -i "$CIEL_INST"
+declare -f remove_files > "$CIEL_INST/rm-script"
+echo "remove_files; rm -fv '/rm-script'" >> "$CIEL_INST/rm-script"
+chmod a+x "$CIEL_INST/rm-script"
+ciel shell -i "$CIEL_INST" "/rm-script"
