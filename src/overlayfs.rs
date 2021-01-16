@@ -319,9 +319,7 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
         Diff::NewDir(path) => {
             let lower_path = overlay.base.join(&path);
             // Construct lower path
-            // All preceeding path should be created by previous iteration
-            // So create_dir should be enough
-            fs::create_dir(&lower_path)?;
+            fs::create_dir_all(&lower_path)?;
         }
         Diff::ModifiedDir(path) => {
             // Do nothing, just sync permission

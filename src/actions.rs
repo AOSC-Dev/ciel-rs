@@ -451,7 +451,7 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
 
     let output_dir = get_output_directory(conf.sep_mount);
     let root = std::env::current_dir()?.join(output_dir);
-    let term = Term::buffered_stderr();
+    let term = Term::stderr();
     mount_fs(&instance)?;
     repo::init_repo(&root, Path::new(instance))?;
     let total = packages.len();
