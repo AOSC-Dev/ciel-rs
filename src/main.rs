@@ -232,7 +232,7 @@ fn main() -> Result<()> {
             println!("{}", crate_version!());
         }
         // catch all other conditions
-        _ => {
+        (_, options) => {
             let exe_dir = std::env::current_exe()?;
             let exe_dir = exe_dir.parent().expect("Where am I?");
             let cmd = args.subcommand().0;
@@ -244,7 +244,13 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
             info!("Executing plugin ciel-{}", cmd);
-            process::exit(Command::new(plugin).status().unwrap().code().unwrap());
+            let mut process = &mut Command::new(plugin);
+            if let Some(args) = options {
+                if let Some(args) = args.values_of("COMMANDS") {
+                    process = process.args(args.collect::<Vec<&str>>());
+                }
+            }
+            process::exit(process.status().unwrap().code().unwrap());
         }
     }
 

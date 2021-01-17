@@ -133,7 +133,9 @@ pub fn build_cli() -> App<'static, 'static> {
             let plugins = list_helpers();
             if let Ok(plugins) = plugins {
                 plugins.iter().map(|plugin| {
-                    SubCommand::with_name(plugin.strip_prefix("ciel-").unwrap_or("???")).about("")
+                    SubCommand::with_name(plugin.strip_prefix("ciel-").unwrap_or("???"))
+                    .arg(Arg::with_name("COMMANDS").required(false).min_values(1).help("Plugin specific commands"))
+                    .about("")
                 }).collect()
             } else {
                 vec![]
