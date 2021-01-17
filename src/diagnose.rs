@@ -64,7 +64,7 @@ fn test_fs_support() -> Result<String> {
         }
     }
 
-    Err(anyhow!("Kernel does not support overlayfs"))
+    Err(anyhow!("Kernel does not support overlayfs, try `modprobe overlay`"))
 }
 
 fn test_vm_container() -> Result<String> {

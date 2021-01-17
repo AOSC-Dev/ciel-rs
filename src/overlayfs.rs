@@ -2,11 +2,15 @@ use crate::common;
 use anyhow::{anyhow, Result};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
-use std::ffi::OsStr;
 use std::fs;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{
+    ffi::OsStr,
+    io::{BufRead, BufReader},
+};
 
 pub trait LayerManager {
     /// Return the name of the layer manager, e.g. "overlay".
@@ -182,6 +186,8 @@ impl LayerManager for OverlayFS {
         fs::create_dir_all(&self.work)?;
         fs::create_dir_all(&self.upper)?;
         fs::create_dir_all(&self.lower)?;
+        // check overlay usability
+        load_overlayfs_support()?;
         // let's mount them
         overlay.mount().map_err(|e| anyhow!("{}", e.to_string()))?;
 
@@ -272,6 +278,31 @@ fn has_prefix(path: &Path, prefixes: &[PathBuf]) -> bool {
     prefixes
         .iter()
         .any(|prefix| path.strip_prefix(prefix).is_ok())
+}
+
+fn load_overlayfs_support() -> Result<()> {
+    if test_overlay_usability().is_err() {
+        Command::new("modprobe").arg("overlay").status().map_err(|e| anyhow!("Unable to load overlay kernel module: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[inline]
+pub fn test_overlay_usability() -> Result<()> {
+    let f = fs::File::open("/proc/filesystems")?;
+    let reader = BufReader::new(f);
+    for line in reader.lines() {
+        let line = line?;
+        let mut fs_type = line.splitn(2, '\t');
+        if let Some(fs_type) = fs_type.nth(1) {
+            if fs_type == "overlay" {
+                return Ok(());
+            }
+        }
+    }
+
+    Err(anyhow!("No overlayfs support detected"))
 }
 
 /// Set permission of to according to from
