@@ -102,7 +102,7 @@ fn commit(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
     info!("Un-mounting all the instances...");
     // Un-mount all the instances
-    for_each_instance(&unmount_fs)?;
+    for_each_instance(&container_down)?;
     info!("Committing instance `{}`...", instance);
     let spinner = create_spinner("Committing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
@@ -153,7 +153,7 @@ pub fn farewell(path: &Path) -> Result<()> {
     info!("... as you wish. Commencing destruction ...");
     info!("Un-mounting all the instances...");
     // Un-mount all the instances
-    for_each_instance(&unmount_fs)?;
+    for_each_instance(&container_down)?;
     fs::remove_dir_all(path.join(".ciel"))?;
 
     Ok(())
@@ -189,6 +189,12 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
         path = PathBuf::from(CIEL_DIST_DIR);
     }
     if let Ok(c) = config {
+        info!("Shutting down instance(s) before applying config...");
+        if let Some(instance) = instance {
+            container_down(instance)?;
+        } else {
+            for_each_instance(&container_down)?;
+        }
         config::apply_config(path, &c)?;
         fs::create_dir_all(CIEL_DATA_DIR)?;
         fs::write(
