@@ -496,19 +496,19 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     let output_dir = get_output_directory(conf.sep_mount);
     let root = std::env::current_dir()?.join(output_dir);
     let term = Term::stderr();
-    mount_fs(&instance)?;
     let packages = expand_package_list(packages);
     let total = packages.len();
     for (index, package) in packages.into_iter().enumerate() {
-        info!("[{}/{}] Building {}...", index, total, package);
+        info!("[{}/{}] Building {}...", index + 1, total, package);
         info!("Refreshing local repository...");
+        mount_fs(&instance)?;
         repo::init_repo(&root, Path::new(instance))?;
         let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
         if status != 0 {
             error!("Failed to update the OS before building packages");
             return Ok(status);
         }
-        term.set_title(format!("ciel: [{}/{}] {}", index, total, package));
+        term.set_title(format!("ciel: [{}/{}] {}", index + 1, total, package));
         term.flush().ok();
         let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
         if status != 0 {
