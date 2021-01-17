@@ -27,6 +27,7 @@ WHITELIST="^/var/lib/apt/gen
     rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
 }
 
+CIEL_INST="${1:-CIEL_INST}"
 [ -z "$CIEL_INST" ] && ( echo "No instance specified" && exit 1 )
 ciel down -i "$CIEL_INST"
 ciel mount -i "$CIEL_INST"
