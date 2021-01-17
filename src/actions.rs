@@ -4,10 +4,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, io::{BufRead, BufReader}, path::{Path, PathBuf}};
 
 use crate::{
     common::is_instance_exists,
@@ -96,6 +93,46 @@ fn get_output_directory(sep_mount: bool) -> String {
     } else {
         "OUTPUT".to_string()
     }
+}
+
+fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
+    let f = fs::File::open(filename)?;
+    let reader = BufReader::new(f);
+    let mut results = Vec::new();
+    for line in reader.lines() {
+        let line = line?;
+        // skip comment
+        if line.starts_with('#') {
+            continue;
+        }
+        // trim whitespace
+        let trimmed = line.trim();
+        results.push(trimmed.to_owned());
+    }
+
+    Ok(results)
+}
+
+fn expand_package_list<'a, I: IntoIterator<Item=&'a str>>(packages: I) -> Vec<String> {
+    let mut expanded = Vec::new();
+    for package in packages {
+        if !package.starts_with("groups/") {
+            expanded.push(package.to_string());
+            continue;
+        }
+        let list_file = Path::new("./TREE").join(&package);
+        match read_package_list(list_file) {
+            Ok(list) => {
+                info!("Read {} packages from {}", list.len(), package);
+                expanded.extend(list);
+            }
+            Err(e) => {
+                warn!("Unable to read package group `{}`: {}", package, e);
+            }
+        }
+    }
+
+    expanded
 }
 
 fn commit(instance: &str) -> Result<()> {
@@ -460,9 +497,10 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     let root = std::env::current_dir()?.join(output_dir);
     let term = Term::stderr();
     mount_fs(&instance)?;
+    let packages = expand_package_list(packages);
     let total = packages.len();
-    for (index, package) in packages.enumerate() {
-        info!("[{}/{}] Building {}...", total, index, package);
+    for (index, package) in packages.into_iter().enumerate() {
+        info!("[{}/{}] Building {}...", index, total, package);
         info!("Refreshing local repository...");
         repo::init_repo(&root, Path::new(instance))?;
         let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
@@ -472,7 +510,7 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         }
         term.set_title(format!("ciel: [{}/{}] {}", index, total, package));
         term.flush().ok();
-        let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
+        let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
         if status != 0 {
             error!("Build failed with status: {}", status);
             return Ok(status);
