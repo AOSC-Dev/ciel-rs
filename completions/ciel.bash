@@ -5,8 +5,8 @@ _ciel_list_instances() {
 
 _ciel_list_packages() {
     [ -d TREE ] || return
-    GROUPS="$(find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
-    COMPREPLY+=($(compgen -W "$GROUPS" -- "${1}"))
+    local PGROUPS="$(find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
+    COMPREPLY+=($(compgen -W "$PGROUPS" -- "${1}"))
     if [[ "$1" == *'/'* ]]; then
         return
     fi
