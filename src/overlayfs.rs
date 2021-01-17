@@ -282,7 +282,10 @@ fn has_prefix(path: &Path, prefixes: &[PathBuf]) -> bool {
 
 fn load_overlayfs_support() -> Result<()> {
     if test_overlay_usability().is_err() {
-        Command::new("modprobe").arg("overlay").status().map_err(|e| anyhow!("Unable to load overlay kernel module: {}", e))?;
+        Command::new("modprobe")
+            .arg("overlay")
+            .status()
+            .map_err(|e| anyhow!("Unable to load overlay kernel module: {}", e))?;
     }
 
     Ok(())

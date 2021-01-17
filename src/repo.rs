@@ -1,14 +1,14 @@
 //! Local repository
 
 use anyhow::{anyhow, Result};
+use chrono::prelude::*;
+use sha2::{Digest, Sha256};
+use std::io::Write;
 use std::{
     fs, io,
     path::Path,
     process::{Command, Stdio},
 };
-use sha2::{Sha256, Digest};
-use chrono::prelude::*;
-use std::io::Write;
 
 fn generate_release(path: &Path) -> Result<String> {
     let mut f = fs::File::open(path.join("Packages"))?;
@@ -18,7 +18,12 @@ fn generate_release(path: &Path) -> Result<String> {
     let meta = f.metadata()?;
     let timestamp = Utc::now().format("%a, %d %b %Y %X %z");
 
-    Ok(format!("Date: {}\nSHA256:\n {:x} {} Packages\n", timestamp, result, meta.len()))
+    Ok(format!(
+        "Date: {}\nSHA256:\n {:x} {} Packages\n",
+        timestamp,
+        result,
+        meta.len()
+    ))
 }
 
 /// Rrefresh the local repository (Update Packages file)
