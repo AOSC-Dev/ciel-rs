@@ -460,9 +460,11 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     let root = std::env::current_dir()?.join(output_dir);
     let term = Term::stderr();
     mount_fs(&instance)?;
-    repo::init_repo(&root, Path::new(instance))?;
     let total = packages.len();
     for (index, package) in packages.enumerate() {
+        info!("[{}/{}] Building {}...", total, index, package);
+        info!("Refreshing local repository...");
+        repo::init_repo(&root, Path::new(instance))?;
         let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
         if status != 0 {
             error!("Failed to update the OS before building packages");
@@ -472,10 +474,10 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         term.flush().ok();
         let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
         if status != 0 {
+            error!("Build failed with status: {}", status);
             return Ok(status);
         }
         rollback_container(instance)?;
-        repo::refresh_repo(&root)?;
     }
     // clear terminal title
     term.set_title("");
