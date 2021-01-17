@@ -131,7 +131,7 @@ dependencies = [
 
 [[package]]
 name = "ciel-rs"
-version = "3.0.0-alpha4"
+version = "3.0.0-alpha5"
 dependencies = [
  "adler32",
  "anyhow",
