@@ -469,10 +469,12 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
             return Ok(status);
         }
         term.set_title(format!("ciel: [{}/{}] {}", index, total, package));
+        term.flush().ok();
         let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
         if status != 0 {
             return Ok(status);
         }
+        rollback_container(instance)?;
         repo::refresh_repo(&root)?;
     }
     // clear terminal title
