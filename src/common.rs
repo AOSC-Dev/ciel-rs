@@ -1,6 +1,7 @@
 use anyhow::Result;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
+use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::{
     io::{Read, Write},
@@ -28,6 +29,14 @@ pub fn create_spinner(msg: &str, tick_rate: u64) -> indicatif::ProgressBar {
     spinner.enable_steady_tick(tick_rate);
 
     spinner
+}
+
+/// Calculate the Sha256 checksum of the given stream
+pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut reader, &mut hasher)?;
+
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 /// Extract the given .tar.xz stream and preserve all the file attributes

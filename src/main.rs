@@ -94,7 +94,7 @@ fn main() -> Result<()> {
             if let Some(url) = url {
                 // load from network using specified url
                 if url.starts_with("https://") || url.starts_with("http://") {
-                    print_error!({ actions::load_os(url) });
+                    print_error!({ actions::load_os(url, None) });
                     return Ok(());
                 }
                 // load from file
@@ -119,11 +119,12 @@ fn main() -> Result<()> {
                 error!("Unable to determine the latest tarball: {}", e);
                 process::exit(1);
             }
+            let tarball = tarball.unwrap();
             print_error!({
                 actions::load_os(&format!(
                     "https://releases.aosc.io/{}",
-                    tarball.unwrap().path
-                ))
+                    tarball.path
+                ), Some(tarball.sha256sum))
             });
         }
         ("update-os", _) => {

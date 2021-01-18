@@ -6,16 +6,7 @@ use nix::unistd::sync;
 use rand::random;
 use std::{fs, io::{BufRead, BufReader}, path::{Path, PathBuf}};
 
-use crate::{
-    common::is_instance_exists,
-    common::{
-        self, extract_system_tarball, is_legacy_workspace, CIEL_DATA_DIR, CIEL_DIST_DIR,
-        CIEL_INST_DIR,
-    },
-    machine::spawn_container,
-    machine::{get_container_ns_name, inspect_instance},
-    network, overlayfs, repo,
-};
+use crate::{common::is_instance_exists, common::{self, CIEL_DATA_DIR, CIEL_DIST_DIR, CIEL_INST_DIR, extract_system_tarball, is_legacy_workspace, sha256sum}, machine::spawn_container, machine::{get_container_ns_name, inspect_instance}, network, overlayfs, repo};
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
@@ -197,14 +188,30 @@ pub fn farewell(path: &Path) -> Result<()> {
 }
 
 /// Download the OS tarball and then extract it for use as the base layer
-pub fn load_os(url: &str) -> Result<()> {
+pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
     info!("Downloading base OS tarball...");
     let path = Path::new(url)
         .file_name()
         .ok_or_else(|| anyhow!("Unable to convert path to string"))?
         .to_str()
         .ok_or_else(|| anyhow!("Unable to decode path string"))?;
-    let total = download_file_progress(url, path)?;
+    let total;
+    if !Path::new(path).is_file() {
+        total = download_file_progress(url, path)?;
+    } else {
+        let tarball = fs::File::open(path)?;
+        total = tarball.metadata()?.len();
+    }
+    if let Some(sha256) = sha256 {
+        info!("Verifying tarball checksum...");
+        let tarball = fs::File::open(path)?;
+        let checksum = sha256sum(tarball)?;
+        if sha256 == checksum {
+            info!("Checksum verified.");
+        } else {
+            return Err(anyhow!("Checksum mismatch: expected {} but got {}", sha256, checksum));
+        }
+    }
     extract_system_tarball(&PathBuf::from(path), total)?;
 
     Ok(())
@@ -331,22 +338,25 @@ pub fn onboarding() -> Result<()> {
     common::ciel_init()?;
     info!("Initializing container OS...");
     let tarball_url;
+    let tarball_sha256;
     info!("Searching for latest AOSC OS buildkit release...");
     if let Ok(tarball) = network::pick_latest_tarball() {
         info!(
             "Ciel has picked buildkit for {}, released on {}",
             tarball.arch, tarball.date
         );
+        tarball_sha256 = Some(tarball.sha256sum);
         tarball_url = format!("https://releases.aosc.io/{}", tarball.path);
     } else {
         warn!(
             "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
         );
+        tarball_sha256 = None;
         tarball_url = Input::<String>::with_theme(&theme)
             .with_prompt("Tarball URL")
             .interact()?;
     }
-    load_os(&tarball_url)?;
+    load_os(&tarball_url, tarball_sha256)?;
     info!("Initializing ABBS tree...");
     if Path::new("TREE").is_dir() {
         warn!("TREE already exists, skipping this step...");
