@@ -171,6 +171,7 @@ _ciel() {
             ;;
         ciel__build)
             opts=" -h -V -i  --help --version "
+            source .env || true
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && ! ${CIEL_INST} ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
