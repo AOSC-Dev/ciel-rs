@@ -348,7 +348,13 @@ pub fn onboarding() -> Result<()> {
     }
     load_os(&tarball_url)?;
     info!("Initializing ABBS tree...");
-    network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
+    if Path::new("TREE").is_dir() {
+        warn!("TREE already exists, skipping this step...");
+    } else {
+        // if TREE is a file, then remove it
+        fs::remove_file("TREE").ok();
+        network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
+    }
     config::apply_config(CIEL_DIST_DIR, &config)?;
     info!("Applying configurations...");
     fs::write(
