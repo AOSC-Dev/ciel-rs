@@ -63,7 +63,7 @@ macro_rules! ensure_host_sanity {
 pub fn for_each_instance<F: Fn(&str) -> Result<()>>(func: &F) -> Result<()> {
     let instances = machine::list_instances_simple()?;
     for instance in instances {
-        eprintln!("{} {}", style(">>>").bold(), instance);
+        eprintln!("{} {}", style(">>>").bold(), style(&instance).cyan().bold());
         func(&instance)?;
     }
 
@@ -140,7 +140,7 @@ fn commit(instance: &str) -> Result<()> {
     info!("Un-mounting all the instances...");
     // Un-mount all the instances
     for_each_instance(&container_down)?;
-    info!("Committing instance `{}`...", instance);
+    info!("{}: committing instance...", instance);
     let spinner = create_spinner("Committing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.commit()?;
@@ -153,7 +153,7 @@ fn commit(instance: &str) -> Result<()> {
 /// Rollback the container (by removing the upper layer)
 fn rollback(instance: &str) -> Result<()> {
     get_instance_ns_name(instance)?;
-    info!("Rolling back instance `{}`...", instance);
+    info!("{}: rolling back instance...", instance);
     let spinner = create_spinner("Removing upper layer...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.rollback()?;
@@ -276,7 +276,7 @@ pub fn unmount_fs(instance: &str) -> Result<()> {
 pub fn remove_mount(instance: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(instance);
     if !target.is_dir() {
-        warn!("{} is not a directory.", instance);
+        warn!("{}: mount point is not a directory.", instance);
         return Ok(());
     }
     match fs::read_dir(&target) {
@@ -364,10 +364,10 @@ pub fn onboarding() -> Result<()> {
     }
     if let Some(init_instance) = init_instance {
         overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
-        info!("Instance `{}` initialized.", init_instance);
+        info!("{}: instance initialized.", init_instance);
         if config.local_repo {
             repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(&init_instance))?;
-            info!("Local repository initialized in `{}`.", init_instance);
+            info!("{}: local repository initialized.", init_instance);
         }
     }
 
@@ -416,12 +416,12 @@ pub fn stop_container(instance: &str) -> Result<()> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
     if !inst.started {
-        info!("Instance `{}` is not running!", instance);
+        info!("{}: instance is not running!", instance);
         return Ok(());
     }
-    info!("Stopping instance `{}`...", instance);
+    info!("{}: stopping...", instance);
     machine::terminate_container_by_name(&ns_name)?;
-    info!("Instance `{}` is stopped.", instance);
+    info!("{}: instance stopped.", instance);
 
     Ok(())
 }
@@ -439,7 +439,7 @@ pub fn container_down(instance: &str) -> Result<()> {
 pub fn commit_container(instance: &str) -> Result<()> {
     container_down(instance)?;
     commit(instance)?;
-    info!("Instance `{}` has been committed.", instance);
+    info!("{}: instance has been committed.", instance);
 
     Ok(())
 }
@@ -448,7 +448,7 @@ pub fn commit_container(instance: &str) -> Result<()> {
 pub fn rollback_container(instance: &str) -> Result<()> {
     container_down(instance)?;
     rollback(instance)?;
-    info!("Instance `{}` has been rolled back.", instance);
+    info!("{}: instance has been rolled back.", instance);
 
     Ok(())
 }
@@ -457,7 +457,7 @@ pub fn rollback_container(instance: &str) -> Result<()> {
 #[inline]
 pub fn add_instance(instance: &str) -> Result<()> {
     overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance)?;
-    info!("Instance `{}` created.", instance);
+    info!("{}: instance created.", instance);
 
     Ok(())
 }
@@ -465,12 +465,12 @@ pub fn add_instance(instance: &str) -> Result<()> {
 /// Remove the container/instance and its filesystem from the host filesystem
 pub fn remove_instance(instance: &str) -> Result<()> {
     container_down(instance)?;
-    info!("Removing instance `{}`...", instance);
+    info!("{}: removing instance...", instance);
     let spinner = create_spinner("Removing the instance...", 200);
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.destroy()?;
     spinner.finish_and_clear();
-    info!("Instance `{}` removed.", instance);
+    info!("{}: instance removed.", instance);
 
     Ok(())
 }
@@ -500,8 +500,8 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     let total = packages.len();
     for (index, package) in packages.into_iter().enumerate() {
         info!("[{}/{}] Building {}...", index + 1, total, package);
-        info!("Refreshing local repository...");
         mount_fs(&instance)?;
+        info!("Refreshing local repository...");
         repo::init_repo(&root, Path::new(instance))?;
         let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
         if status != 0 {
