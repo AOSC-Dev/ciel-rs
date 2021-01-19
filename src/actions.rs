@@ -1,12 +1,27 @@
 use anyhow::{anyhow, Result};
+use chrono::Duration;
 use console::{style, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
-use std::{fs, io::{BufRead, BufReader}, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
-use crate::{common::is_instance_exists, common::{self, CIEL_DATA_DIR, CIEL_DIST_DIR, CIEL_INST_DIR, extract_system_tarball, is_legacy_workspace, sha256sum}, machine::spawn_container, machine::{get_container_ns_name, inspect_instance}, network, overlayfs, repo};
+use crate::{
+    common::is_instance_exists,
+    common::{
+        self, extract_system_tarball, is_legacy_workspace, sha256sum, CIEL_DATA_DIR, CIEL_DIST_DIR,
+        CIEL_INST_DIR,
+    },
+    machine::spawn_container,
+    machine::{get_container_ns_name, inspect_instance},
+    network, overlayfs, repo,
+};
 use crate::{config, machine};
 use crate::{error, info};
 use crate::{network::download_file_progress, warn};
@@ -86,6 +101,17 @@ fn get_output_directory(sep_mount: bool) -> String {
     }
 }
 
+#[inline]
+fn format_duration(duration: Duration) -> String {
+    let seconds = duration.num_seconds();
+    format!(
+        "{:02}:{:02}:{:02}",
+        seconds / 3600,
+        (seconds / 60) % 60,
+        seconds % 60
+    )
+}
+
 fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
     let f = fs::File::open(filename)?;
     let reader = BufReader::new(f);
@@ -104,7 +130,7 @@ fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
     Ok(results)
 }
 
-fn expand_package_list<'a, I: IntoIterator<Item=&'a str>>(packages: I) -> Vec<String> {
+fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<String> {
     let mut expanded = Vec::new();
     for package in packages {
         if !package.starts_with("groups/") {
@@ -209,7 +235,11 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
         if sha256 == checksum {
             info!("Checksum verified.");
         } else {
-            return Err(anyhow!("Checksum mismatch: expected {} but got {}", sha256, checksum));
+            return Err(anyhow!(
+                "Checksum mismatch: expected {} but got {}",
+                sha256,
+                checksum
+            ));
         }
     }
     extract_system_tarball(&PathBuf::from(path), total)?;
@@ -375,7 +405,7 @@ pub fn onboarding() -> Result<()> {
     let cwd = std::env::current_dir()?;
     if config.local_repo {
         info!("Setting up local repository ...");
-        repo::refresh_repo(&cwd)?;
+        repo::refresh_repo(&cwd.join("OUTPUT"))?;
         info!("Local repository ready.");
     }
     if let Some(init_instance) = init_instance {
@@ -514,6 +544,7 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     let term = Term::stderr();
     let packages = expand_package_list(packages);
     let total = packages.len();
+    let start = Instant::now();
     for (index, package) in packages.into_iter().enumerate() {
         info!("[{}/{}] Building {}...", index + 1, total, package);
         mount_fs(&instance)?;
@@ -533,6 +564,13 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         }
         rollback_container(instance)?;
     }
+    let duration = Duration::from_std(start.elapsed())?;
+    eprintln!(
+        "{} - {} packages in {}",
+        style("BUILD SUCCESSFUL").bold().green(),
+        total,
+        format_duration(duration)
+    );
     // clear terminal title
     term.set_title("");
 
@@ -552,4 +590,10 @@ pub fn update_os() -> Result<()> {
     remove_instance(&instance)?;
 
     Ok(())
+}
+
+#[test]
+fn test_time_format() {
+    let test_dur = Duration::seconds(3661);
+    assert_eq!(format_duration(test_dur), "01:01:01");
 }

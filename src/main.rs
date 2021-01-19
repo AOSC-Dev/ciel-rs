@@ -121,10 +121,10 @@ fn main() -> Result<()> {
             }
             let tarball = tarball.unwrap();
             print_error!({
-                actions::load_os(&format!(
-                    "https://releases.aosc.io/{}",
-                    tarball.path
-                ), Some(tarball.sha256sum))
+                actions::load_os(
+                    &format!("https://releases.aosc.io/{}", tarball.path),
+                    Some(tarball.sha256sum),
+                )
             });
         }
         ("update-os", _) => {
