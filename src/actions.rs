@@ -90,7 +90,7 @@ fn get_branch_name() -> Result<String> {
 
 /// Determine the output directory name
 #[inline]
-fn get_output_directory(sep_mount: bool) -> String {
+pub fn get_output_directory(sep_mount: bool) -> String {
     if sep_mount {
         format!(
             "OUTPUT-{}",
@@ -412,6 +412,7 @@ pub fn onboarding() -> Result<()> {
         overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
         info!("{}: instance initialized.", init_instance);
         if config.local_repo {
+            mount_fs(&init_instance)?;
             repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(&init_instance))?;
             info!("{}: local repository initialized.", init_instance);
         }

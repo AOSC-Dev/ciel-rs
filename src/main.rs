@@ -37,6 +37,13 @@ macro_rules! one_or_all_instance {
     }};
 }
 
+fn get_output_dir() -> String {
+    if let Ok(c) = config::read_config() {
+        return actions::get_output_directory(c.sep_mount);
+    }
+    "OUTPUT".to_string()
+}
+
 #[inline]
 fn get_instance_option(args: &ArgMatches) -> Result<String> {
     let default_instance = std::env::var("CIEL_INST");
@@ -211,7 +218,7 @@ fn main() -> Result<()> {
             ("refresh", _) => {
                 info!("Refreshing repository...");
                 print_error!({
-                    repo::refresh_repo(&std::env::current_dir().unwrap().join("OUTPUT"))
+                    repo::refresh_repo(&std::env::current_dir().unwrap().join(get_output_dir()))
                 });
                 info!("Repository has been refreshed.");
             }
@@ -220,7 +227,7 @@ fn main() -> Result<()> {
                 let instance = get_instance_option(args)?;
                 let cwd = std::env::current_dir().unwrap();
                 print_error!({ actions::mount_fs(&instance) });
-                print_error!({ repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(instance)) });
+                print_error!({ repo::init_repo(&cwd.join(get_output_dir()), &cwd.join(instance)) });
                 info!("Repository has been initialized and refreshed.");
             }
             ("deinit", Some(args)) => {
