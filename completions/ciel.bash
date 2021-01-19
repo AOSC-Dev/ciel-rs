@@ -341,7 +341,7 @@ _ciel() {
             return 0
             ;;
         ciel__init)
-            opts=" -h -V  --help --version  "
+            opts=" -h -V --upgrade --help --version  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

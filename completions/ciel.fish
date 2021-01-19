@@ -50,6 +50,7 @@ complete -c ciel -n "__fish_use_subcommand" -f -a "repo" -d 'Local repository op
 complete -c ciel -n "__fish_use_subcommand" -f -a "help" -d 'Prints this message or the help of the given subcommand(s)'
 complete -c ciel -n "__fish_seen_subcommand_from version" -s h -l help -d 'Prints help information'
 complete -c ciel -n "__fish_seen_subcommand_from version" -s V -l version -d 'Prints version information'
+complete -c ciel -n "__fish_seen_subcommand_from init" -l upgrade -d 'Upgrade Ciel workspace from an older version'
 complete -c ciel -n "__fish_seen_subcommand_from init" -s h -l help -d 'Prints help information'
 complete -c ciel -n "__fish_seen_subcommand_from init" -s V -l version -d 'Prints version information'
 complete -c ciel -n "__fish_seen_subcommand_from load-os" -s h -l help -d 'Prints help information'
