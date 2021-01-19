@@ -76,9 +76,15 @@ fn main() -> Result<()> {
         ("farewell", _) => {
             actions::farewell(Path::new(directory)).unwrap();
         }
-        ("init", _) => {
-            warn!("Please do not use this command manually ...");
-            warn!("... try `ciel new` instead.");
+        ("init", Some(args)) => {
+            if args.is_present("upgrade") {
+                info!("Upgrading workspace...");
+                info!("First, shutting down all the instances...");
+                print_error!({ actions::for_each_instance(&actions::container_down) });
+            } else {
+                warn!("Please do not use this command manually ...");
+                warn!("... try `ciel new` instead.");
+            }
             print_error!({ common::ciel_init() });
             info!("Initialized working directory at {}", directory);
         }
