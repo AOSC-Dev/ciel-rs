@@ -4,7 +4,7 @@ use crate::common::CURRENT_CIEL_VERSION;
 use anyhow::{anyhow, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::{ffi::OsString, path::Path};
 use std::{
     fs,
     io::{Read, Write},
@@ -116,6 +116,18 @@ fn create_parent_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[inline]
+fn get_default_editor() -> OsString {
+    if let Some(prog) = std::env::var_os("VISUAL") {
+        return prog;
+    }
+    if let Some(prog) = std::env::var_os("EDITOR") {
+        return prog;
+    }
+    
+    "nano".into()
+}
+
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
     let theme = ColorfulTheme::default();
@@ -134,7 +146,7 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         .interact()?;
     if edit_source {
         config.apt_sources = Editor::new()
-            .executable("nano")
+            .executable(get_default_editor())
             .extension(".list")
             .edit(&config.apt_sources)?
             .unwrap_or_else(|| DEFAULT_APT_SOURCE.to_owned());
