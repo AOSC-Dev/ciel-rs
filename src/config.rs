@@ -124,7 +124,10 @@ fn get_default_editor() -> OsString {
     if let Some(prog) = std::env::var_os("EDITOR") {
         return prog;
     }
-    
+    if let Ok(editor) = which::which("editor") {
+        return editor.as_os_str().to_os_string();
+    }
+
     "nano".into()
 }
 

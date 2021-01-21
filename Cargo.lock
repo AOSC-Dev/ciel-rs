@@ -846,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "nc"
-version = "0.5.2"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5de73c28fe8bdb88c72a795ea7787b975beeedba531220758d89eb03c8102643"
+checksum = "f149dc04990ba30c7f092c9308d2397f08aa69c222c22ae2a59f5e9a13ae71b7"
 dependencies = [
  "cc",
 ]
