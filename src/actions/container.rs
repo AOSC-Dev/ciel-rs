@@ -1,80 +1,23 @@
 use anyhow::{anyhow, Result};
-use chrono::Duration;
-use console::{style, Term};
+use console::style;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
 use std::{
     fs,
-    io::{BufRead, BufReader},
     path::{Path, PathBuf},
-    time::Instant,
 };
 
 use crate::{
-    common::is_instance_exists,
-    common::{
-        self, extract_system_tarball, is_legacy_workspace, sha256sum, CIEL_DATA_DIR, CIEL_DIST_DIR,
-        CIEL_INST_DIR,
-    },
-    machine::spawn_container,
-    machine::{get_container_ns_name, inspect_instance},
-    network, overlayfs, repo,
+    common::*,
+    config, ensure_host_sanity, error, info,
+    machine::{self, get_container_ns_name, inspect_instance, spawn_container},
+    network::download_file_progress,
+    overlayfs, warn,
 };
-use crate::{config, machine};
-use crate::{error, info};
-use crate::{network::download_file_progress, warn};
-use common::create_spinner;
 
-const DEFAULT_MOUNTS: &[(&str, &str)] = &[
-    ("OUTPUT/debs/", "/debs/"),
-    ("TREE", "/tree"),
-    ("SRCS", "/var/cache/acbs/tarballs"),
-];
-const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get -y update && apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" full-upgrade"#;
-
-/// Ensure that the directories exist and mounted
-macro_rules! ensure_host_sanity {
-    () => {{
-        let mut extra_options = Vec::new();
-        let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
-            .into_iter()
-            .map(|x| (x.0.to_string(), x.1))
-            .collect();
-        if let Ok(c) = config::read_config() {
-            extra_options = c.extra_options;
-            if !c.local_sources {
-                // remove SRCS
-                mounts.swap_remove(2);
-            }
-            if c.sep_mount {
-                mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
-                mounts.swap_remove(0);
-            }
-        } else {
-            warn!("This workspace is not yet configured, default settings are used.");
-        }
-
-        for mount in &mounts {
-            fs::create_dir_all(&mount.0)?;
-        }
-
-        (extra_options, mounts)
-    }};
-}
-
-/// A convenience function for iterating over all the instances while executing the actions
-#[inline]
-pub fn for_each_instance<F: Fn(&str) -> Result<()>>(func: &F) -> Result<()> {
-    let instances = machine::list_instances_simple()?;
-    for instance in instances {
-        eprintln!("{} {}", style(">>>").bold(), style(&instance).cyan().bold());
-        func(&instance)?;
-    }
-
-    Ok(())
-}
+use super::{for_each_instance, DEFAULT_MOUNTS, UPDATE_SCRIPT};
 
 /// Get the branch name of the workspace TREE repository
 #[inline]
@@ -99,57 +42,6 @@ pub fn get_output_directory(sep_mount: bool) -> String {
     } else {
         "OUTPUT".to_string()
     }
-}
-
-#[inline]
-fn format_duration(duration: Duration) -> String {
-    let seconds = duration.num_seconds();
-    format!(
-        "{:02}:{:02}:{:02}",
-        seconds / 3600,
-        (seconds / 60) % 60,
-        seconds % 60
-    )
-}
-
-fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
-    let f = fs::File::open(filename)?;
-    let reader = BufReader::new(f);
-    let mut results = Vec::new();
-    for line in reader.lines() {
-        let line = line?;
-        // skip comment
-        if line.starts_with('#') {
-            continue;
-        }
-        // trim whitespace
-        let trimmed = line.trim();
-        results.push(trimmed.to_owned());
-    }
-
-    Ok(results)
-}
-
-fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<String> {
-    let mut expanded = Vec::new();
-    for package in packages {
-        if !package.starts_with("groups/") {
-            expanded.push(package.to_string());
-            continue;
-        }
-        let list_file = Path::new("./TREE").join(&package);
-        match read_package_list(list_file) {
-            Ok(list) => {
-                info!("Read {} packages from {}", list.len(), package);
-                expanded.extend(list);
-            }
-            Err(e) => {
-                warn!("Unable to read package group `{}`: {}", package, e);
-            }
-        }
-    }
-
-    expanded
 }
 
 fn commit(instance: &str) -> Result<()> {
@@ -336,91 +228,6 @@ pub fn remove_mount(instance: &str) -> Result<()> {
     Ok(())
 }
 
-/// Show interactive onboarding guide, triggered by issuing `ciel new`
-pub fn onboarding() -> Result<()> {
-    let theme = ColorfulTheme::default();
-    info!("Welcome to ciel!");
-    if Path::new(".ciel").exists() {
-        error!("Seems like you've already created a ciel workspace here.");
-        info!("Please run `ciel farewell` to nuke it before running this command.");
-        return Err(anyhow!("Unable to create a ciel workspace."));
-    }
-    info!("Before continuing, I need to ask you a few questions:");
-    let config = config::ask_for_config(None)?;
-    let mut init_instance: Option<String> = None;
-    if Confirm::with_theme(&theme)
-        .with_prompt("Do you want to add a new instance now?")
-        .interact()?
-    {
-        let name: String = Input::with_theme(&theme)
-            .with_prompt("Name of the instance")
-            .interact()?;
-        init_instance = Some(name.clone());
-        info!(
-            "Understood. `{}` will be created after initialization is finished.",
-            name
-        );
-    } else {
-        info!("Okay. You can always add a new instance later.");
-    }
-
-    info!("Initializing workspace...");
-    common::ciel_init()?;
-    info!("Initializing container OS...");
-    let tarball_url;
-    let tarball_sha256;
-    info!("Searching for latest AOSC OS buildkit release...");
-    if let Ok(tarball) = network::pick_latest_tarball() {
-        info!(
-            "Ciel has picked buildkit for {}, released on {}",
-            tarball.arch, tarball.date
-        );
-        tarball_sha256 = Some(tarball.sha256sum);
-        tarball_url = format!("https://releases.aosc.io/{}", tarball.path);
-    } else {
-        warn!(
-            "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
-        );
-        tarball_sha256 = None;
-        tarball_url = Input::<String>::with_theme(&theme)
-            .with_prompt("Tarball URL")
-            .interact()?;
-    }
-    load_os(&tarball_url, tarball_sha256)?;
-    info!("Initializing ABBS tree...");
-    if Path::new("TREE").is_dir() {
-        warn!("TREE already exists, skipping this step...");
-    } else {
-        // if TREE is a file, then remove it
-        fs::remove_file("TREE").ok();
-        network::download_git(network::GIT_TREE_URL, Path::new("TREE"))?;
-    }
-    config::apply_config(CIEL_DIST_DIR, &config)?;
-    info!("Applying configurations...");
-    fs::write(
-        Path::new(CIEL_DATA_DIR).join("config.toml"),
-        config.save_config()?,
-    )?;
-    info!("Configurations applied.");
-    let cwd = std::env::current_dir()?;
-    if config.local_repo {
-        info!("Setting up local repository ...");
-        repo::refresh_repo(&cwd.join("OUTPUT"))?;
-        info!("Local repository ready.");
-    }
-    if let Some(init_instance) = init_instance {
-        overlayfs::create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
-        info!("{}: instance initialized.", init_instance);
-        if config.local_repo {
-            mount_fs(&init_instance)?;
-            repo::init_repo(&cwd.join("OUTPUT"), &cwd.join(&init_instance))?;
-            info!("{}: local repository initialized.", init_instance);
-        }
-    }
-
-    Ok(())
-}
-
 fn get_instance_ns_name(instance: &str) -> Result<String> {
     if !is_instance_exists(instance) {
         error!("Instance `{}` does not exist.", instance);
@@ -522,62 +329,6 @@ pub fn remove_instance(instance: &str) -> Result<()> {
     Ok(())
 }
 
-/// Build packages in the container
-pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
-    instance: &str,
-    packages: K,
-) -> Result<i32> {
-    let conf = config::read_config();
-    if conf.is_err() {
-        return Err(anyhow!("Please configure this workspace first!"));
-    }
-    let conf = conf.unwrap();
-
-    if !conf.local_repo {
-        let mut cmd = vec!["/bin/acbs-build", "--"];
-        cmd.extend(packages.into_iter());
-        let status = run_in_container(instance, &cmd)?;
-        return Ok(status);
-    }
-
-    let output_dir = get_output_directory(conf.sep_mount);
-    let root = std::env::current_dir()?.join(output_dir);
-    let term = Term::stderr();
-    let packages = expand_package_list(packages);
-    let total = packages.len();
-    let start = Instant::now();
-    for (index, package) in packages.into_iter().enumerate() {
-        info!("[{}/{}] Building {}...", index + 1, total, package);
-        mount_fs(&instance)?;
-        info!("Refreshing local repository...");
-        repo::init_repo(&root, Path::new(instance))?;
-        let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
-        if status != 0 {
-            error!("Failed to update the OS before building packages");
-            return Ok(status);
-        }
-        term.set_title(format!("ciel: [{}/{}] {}", index + 1, total, package));
-        term.flush().ok();
-        let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
-        if status != 0 {
-            error!("Build failed with status: {}", status);
-            return Ok(status);
-        }
-        rollback_container(instance)?;
-    }
-    let duration = Duration::from_std(start.elapsed())?;
-    eprintln!(
-        "{} - {} packages in {}",
-        style("BUILD SUCCESSFUL").bold().green(),
-        total,
-        format_duration(duration)
-    );
-    // clear terminal title
-    term.set_title("");
-
-    Ok(0)
-}
-
 /// Update AOSC OS in the container/instance
 pub fn update_os() -> Result<()> {
     info!("Updating base OS...");
@@ -591,10 +342,4 @@ pub fn update_os() -> Result<()> {
     remove_instance(&instance)?;
 
     Ok(())
-}
-
-#[test]
-fn test_time_format() {
-    let test_dur = Duration::seconds(3661);
-    assert_eq!(format_duration(test_dur), "01:01:01");
 }
