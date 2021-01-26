@@ -22,7 +22,7 @@ tar = "0.4"
 xz2 = "0.1"
 progress-streams = "1.1"
 libmount = { git = "https://github.com/liushuyu/libmount" }
-nom = "6.0"
+nom = "6.1"
 libc = "0.2"
 adler32 = "1.2"
 nc = "0.6"
