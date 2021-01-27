@@ -10,10 +10,7 @@ use std::{
 
 use crate::{config, error, info, repo, warn};
 
-use super::{
-    container::{get_output_directory, mount_fs, rollback_container, run_in_container},
-    UPDATE_SCRIPT,
-};
+use super::{UPDATE_SCRIPT, container::{get_output_directory, mount_fs, rollback_container, run_in_container}, stop_container};
 
 #[inline]
 fn format_duration(duration: Duration) -> String {
@@ -76,6 +73,8 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         return Err(anyhow!("Please configure this workspace first!"));
     }
     let conf = conf.unwrap();
+
+    stop_container(instance)?;
 
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build", "--"];
