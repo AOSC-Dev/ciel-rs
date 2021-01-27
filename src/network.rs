@@ -71,13 +71,32 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     Ok(total)
 }
 
+#[cfg(target_arch = "powerpc64")]
+#[inline]
+fn get_arch_name() -> Option<&'static str> {
+    let mut endian: libc::c_int = -1;
+    let mut result = 0;
+    unsafe {
+        result = libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int);
+    }
+    if result < 0 {
+        return None;
+    }
+    match endian {
+        libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
+        libc::PR_ENDIAN_BIG => Some("ppc64"),
+        _ => None,
+    }
+}
+
+#[cfg(not(target_arch = "powerpc64"))]
 #[inline]
 fn get_arch_name() -> Option<&'static str> {
     match ARCH {
         "x86_64" => Some("amd64"),
         "x86" => Some("i486"),
         "powerpc" => Some("powerpc"),
-        "powerpc64" => Some("ppc64el"),
+        "aarch64" => Some("arm64"),
         "mips64" => Some("loongson3"),
         _ => None,
     }
