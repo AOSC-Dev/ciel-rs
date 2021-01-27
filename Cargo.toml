@@ -25,7 +25,6 @@ libmount = { git = "https://github.com/liushuyu/libmount" }
 nom = "6.1"
 libc = "0.2"
 adler32 = "1.2"
-nc = "0.6"
 rayon = "1.5"
 termcolor = "1.1"
 terminal_size = "0.1"

@@ -196,14 +196,14 @@ pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
     // +2 (Linux uses 2 extra signals for threads) +4 for systemd poweroff signal
-    let poweroff = nc::types::SIGRTMIN + 2 + 4; // only works with systemd
+    let poweroff = (libc::SIGSYS + 1) + 2 + 4; // only works with systemd
     proxy.kill("leader", poweroff)?;
 
     Ok(())
 }
 
 fn kill_container(proxy: &Proxy<&Connection>) -> Result<()> {
-    proxy.kill("all", nc::types::SIGKILL)?;
+    proxy.kill("all", libc::SIGKILL)?;
     proxy.terminate()?;
 
     Ok(())

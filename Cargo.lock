@@ -169,7 +169,6 @@ dependencies = [
  "libc",
  "libmount",
  "libsystemd-sys",
- "nc",
  "nix",
  "nom",
  "progress-streams",
@@ -863,15 +862,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "nc"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f149dc04990ba30c7f092c9308d2397f08aa69c222c22ae2a59f5e9a13ae71b7"
-dependencies = [
- "cc",
 ]
 
 [[package]]
