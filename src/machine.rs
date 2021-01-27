@@ -145,6 +145,8 @@ pub fn get_container_ns_name<P: AsRef<Path>>(path: P, legacy: bool) -> Result<St
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
     if legacy {
+        warn!("You are working in a legacy workspace. Use `ciel init --upgrade` to upgrade.");
+        warn!("Please make sure to save your work before upgrading.");
         return legacy_container_name(&path);
     }
 
