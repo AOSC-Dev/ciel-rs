@@ -28,6 +28,9 @@ const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
     "--system-call-filter=swapcontext",
 ];
 
+extern "C" {
+    fn SYS_SIGRTMIN() -> libc::c_int;
+}
 /// Instance status information
 #[derive(Debug)]
 pub struct CielInstance {
@@ -197,8 +200,13 @@ pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
 }
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
-    // +2 (Linux uses 2 extra signals for threads) +4 for systemd poweroff signal
-    let poweroff = (libc::SIGSYS + 1) + 2 + 4; // only works with systemd
+    // +4 for systemd poweroff signal
+    let poweroff;
+    // unsafe due to use of external functions
+    unsafe {
+        // only works with systemd
+        poweroff = SYS_SIGRTMIN() + 4;
+    }
     proxy.kill("leader", poweroff)?;
 
     Ok(())
