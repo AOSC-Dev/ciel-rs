@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Duration;
-use console::{style, Term};
+use console::style;
 use std::{
     fs,
     io::{BufRead, BufReader},
@@ -10,7 +10,10 @@ use std::{
 
 use crate::{config, error, info, repo, warn};
 
-use super::{UPDATE_SCRIPT, container::{get_output_directory, mount_fs, rollback_container, run_in_container}, stop_container};
+use super::{
+    container::{get_output_directory, mount_fs, rollback_container, run_in_container},
+    stop_container, UPDATE_SCRIPT,
+};
 
 #[inline]
 fn format_duration(duration: Duration) -> String {
@@ -85,11 +88,13 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
 
     let output_dir = get_output_directory(conf.sep_mount);
     let root = std::env::current_dir()?.join(output_dir);
-    let term = Term::stderr();
     let packages = expand_package_list(packages);
     let total = packages.len();
     let start = Instant::now();
     for (index, package) in packages.into_iter().enumerate() {
+        // set terminal title, \r is for hiding the message if the terminal does not support the sequence
+        eprint!("\x1b]0;ciel: [{}/{}] {}\x07\r", index + 1, total, package);
+        // hopefully the sequence gets flushed together with the `info!` below
         info!("[{}/{}] Building {}...", index + 1, total, package);
         mount_fs(&instance)?;
         info!("Refreshing local repository...");
@@ -99,8 +104,6 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
             error!("Failed to update the OS before building packages");
             return Ok(status);
         }
-        term.set_title(format!("ciel: [{}/{}] {}", index + 1, total, package));
-        term.flush().ok();
         let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
         if status != 0 {
             error!("Build failed with status: {}", status);
@@ -115,8 +118,6 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
         total,
         format_duration(duration)
     );
-    // clear terminal title
-    term.set_title("");
 
     Ok(0)
 }
