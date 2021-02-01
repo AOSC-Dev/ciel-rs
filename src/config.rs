@@ -151,7 +151,11 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         config.apt_sources = Editor::new()
             .executable(get_default_editor())
             .extension(".list")
-            .edit(&config.apt_sources)?
+            .edit(if config.apt_sources.is_empty() {
+                DEFAULT_APT_SOURCE
+            } else {
+                &config.apt_sources
+            })?
             .unwrap_or_else(|| DEFAULT_APT_SOURCE.to_owned());
     }
     config.local_sources = Confirm::with_theme(&theme)
