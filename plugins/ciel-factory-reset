@@ -1,11 +1,22 @@
 #!/bin/bash -e
 
 remove_files () {
-WHITELIST="^/var/lib/apt/gen
+WHITELIST="^/tree
+^/dev
+^/efi
+^/etc
+^/run
+^/usr
+^/var/lib/apt/gen
 ^/var/lib/apt/extended_states
 ^/var/lib/dkms
 ^/var/lib/dpkg
 ^/var/log/journal$
+^/usr/lib/locale/locale-archive
+^/root
+^/home
+^/proc
+^/sys
 /\.updated$"
     DPKG_FILES="$(mktemp)"
     ALL_FILES="$(mktemp)"
@@ -19,11 +30,11 @@ WHITELIST="^/var/lib/apt/gen
         dpkg-query --listfiles "$p" >> "$DPKG_FILES"
     done
     echo "$WHITELIST" > "$PATTERN_FILES"
-    grep -vxf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
+    grep -vEf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
     mv "${ALL_FILES}.new" "$ALL_FILES"
     grep -vxFf "$DPKG_FILES" < "$ALL_FILES" > "$RM_FILES"
     echo 'Removing files ...'
-    xargs -L 1000 -a "$RM_FILES" rm -rf
+    xargs -L 1000 -a "$RM_FILES" rm -rfv
     rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
 }
 
