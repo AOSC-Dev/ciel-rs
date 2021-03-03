@@ -12,7 +12,7 @@ console = "0.14"
 dbus = "0.9"
 dialoguer = "0.7"
 indicatif = "0.15"
-nix = "0.19"
+nix = "0.20"
 lazy_static = "1.4"
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }

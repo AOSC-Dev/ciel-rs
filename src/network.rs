@@ -71,6 +71,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     Ok(total)
 }
 
+/// AOSC OS specific architecture mapping for ppc64
 #[cfg(target_arch = "powerpc64")]
 #[inline]
 fn get_arch_name() -> Option<&'static str> {
@@ -89,6 +90,7 @@ fn get_arch_name() -> Option<&'static str> {
     }
 }
 
+/// AOSC OS specific architecture mapping table
 #[cfg(not(target_arch = "powerpc64"))]
 #[inline]
 fn get_arch_name() -> Option<&'static str> {
