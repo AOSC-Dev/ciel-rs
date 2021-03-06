@@ -12,7 +12,7 @@ use crate::{config, error, info, repo, warn};
 
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
-    stop_container, UPDATE_SCRIPT,
+    UPDATE_SCRIPT,
 };
 
 #[inline]
@@ -77,7 +77,7 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     }
     let conf = conf.unwrap();
 
-    stop_container(instance)?;
+    rollback_container(instance)?;
 
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build", "--"];
