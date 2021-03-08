@@ -142,7 +142,9 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
 /// Ask user for the configuration and then apply it
 pub fn config_os(instance: Option<&str>) -> Result<()> {
     let config;
+    let mut prev_voltile = None;
     if let Ok(c) = config::read_config() {
+        prev_voltile = Some(c.volatile_mount);
         config = config::ask_for_config(Some(c));
     } else {
         config = config::ask_for_config(None);
@@ -168,6 +170,15 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
             c.save_config()?,
         )?;
         info!("Configurations applied.");
+        let volatile_changed = if let Some(prev_voltile) = prev_voltile {
+            prev_voltile != c.volatile_mount
+        } else {
+            false
+        };
+        if volatile_changed {
+            warn!("You have changed the volatile mount option, please save your work and\x1b[1m\x1b[93m rollback \x1b[4mall the instances\x1b[0m.");
+            return Ok(());
+        }
         warn!(
             "Please rollback {} for the new config to take effect!",
             if let Some(inst) = instance {
