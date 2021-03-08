@@ -26,7 +26,7 @@ fn generate_release(path: &Path) -> Result<String> {
     ))
 }
 
-/// Rrefresh the local repository (Update Packages file)
+/// Refresh the local repository (Update Packages file)
 pub fn refresh_repo(root: &Path) -> Result<()> {
     let path = root.join("debs");
     fs::create_dir_all(&path)?;

@@ -53,7 +53,7 @@ fn legacy_container_name(path: &Path) -> Result<String> {
     let mut path = current_dir.as_os_str().as_bytes().to_owned();
     path.push(0); // add trailing null terminator
     unsafe {
-        // unsafe because of the `ftok` invokation
+        // unsafe because of the `ftok` invocation
         key_id = ftok(path.as_ptr() as *const c_char, 0);
     }
     if key_id < 0 {

@@ -76,7 +76,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
 #[inline]
 fn get_arch_name() -> Option<&'static str> {
     let mut endian: libc::c_int = -1;
-    let mut result = 0;
+    let result;
     unsafe {
         result = libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int);
     }

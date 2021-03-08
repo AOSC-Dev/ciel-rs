@@ -199,6 +199,15 @@ impl LayerManager for OverlayFS {
         is_mounted(target, &OsStr::new("overlay"))
     }
 
+    fn rollback(&mut self) -> Result<()> {
+        fs::remove_dir_all(&self.upper)?;
+        fs::remove_dir_all(&self.work)?;
+        fs::create_dir(&self.upper)?;
+        fs::create_dir(&self.work)?;
+
+        Ok(())
+    }
+
     fn commit(&mut self) -> Result<()> {
         let mods = self.diff()?;
         // FIXME: use drain_filter in the future
@@ -218,15 +227,6 @@ impl LayerManager for OverlayFS {
         }
         // clear all the remnant items in the upper layer
         self.rollback()?;
-
-        Ok(())
-    }
-
-    fn rollback(&mut self) -> Result<()> {
-        fs::remove_dir_all(&self.upper)?;
-        fs::remove_dir_all(&self.work)?;
-        fs::create_dir(&self.upper)?;
-        fs::create_dir(&self.work)?;
 
         Ok(())
     }
