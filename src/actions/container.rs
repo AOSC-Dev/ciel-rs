@@ -168,6 +168,14 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
             c.save_config()?,
         )?;
         info!("Configurations applied.");
+        warn!(
+            "Please rollback {} for the new config to take effect!",
+            if let Some(inst) = instance {
+                inst
+            } else {
+                "all your instances"
+            }
+        );
     } else {
         return Err(anyhow!("Could not recognize the configuration."));
     }
@@ -177,7 +185,9 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
 
 /// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
+    let config = config::read_config()?;
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
+    man.set_volatile(config.volatile_mount)?;
     machine::mount_layers(man, instance)?;
     info!("{}: filesystem mounted.", instance);
 

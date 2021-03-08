@@ -29,6 +29,8 @@ pub struct CielConfig {
     pub extra_options: Vec<String>,
     #[serde(rename = "branch-exclusive-output")]
     pub sep_mount: bool,
+    #[serde(rename = "volatile-mount", default)]
+    pub volatile_mount: bool,
 }
 
 impl CielConfig {
@@ -52,6 +54,7 @@ impl Default for CielConfig {
             local_sources: false,
             extra_options: Vec::new(),
             sep_mount: true,
+            volatile_mount: true,
         }
     }
 }
@@ -169,6 +172,10 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     config.sep_mount = Confirm::with_theme(&theme)
         .with_prompt("Use different OUTPUT dir for different branches")
         .default(config.sep_mount)
+        .interact()?;
+    config.volatile_mount = Confirm::with_theme(&theme)
+        .with_prompt("Use volatile mode for filesystem operations")
+        .default(config.volatile_mount)
         .interact()?;
 
     Ok(config)

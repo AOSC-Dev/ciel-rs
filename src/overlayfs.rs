@@ -42,6 +42,8 @@ pub trait LayerManager {
     fn get_config_layer(&mut self) -> Result<PathBuf>;
     /// Return the directory where the base layer is located
     fn get_base_layer(&mut self) -> Result<PathBuf>;
+    /// Set the volatile state of the instance filesystem
+    fn set_volatile(&mut self, volatile: bool) -> Result<()>;
     /// Destroy the filesystem of the current instance
     fn destroy(&mut self) -> Result<()>;
 }
@@ -52,6 +54,7 @@ struct OverlayFS {
     lower: PathBuf,
     upper: PathBuf,
     work: PathBuf,
+    volatile: bool,
 }
 
 /// Create a new overlay filesystem on the host system
@@ -171,11 +174,12 @@ impl LayerManager for OverlayFS {
             lower: inst.join("layers/local"),
             upper: inst.join("layers/diff"),
             work: inst.join("layers/diff.tmp"),
+            volatile: false,
         }))
     }
     fn mount(&mut self, to: &Path) -> Result<()> {
         let base_dirs = [self.lower.clone(), self.base.clone()];
-        let overlay = Overlay::writable(
+        let mut overlay = Overlay::writable(
             // base_dirs variable contains the base and lower directories
             base_dirs.iter().map(|x| x.as_ref()),
             self.upper.clone(),
@@ -188,6 +192,9 @@ impl LayerManager for OverlayFS {
         fs::create_dir_all(&self.lower)?;
         // check overlay usability
         load_overlayfs_support()?;
+        if self.volatile {
+            overlay.set_options(b"volatile".to_vec());
+        }
         // let's mount them
         overlay.mount().map_err(|e| anyhow!("{}", e.to_string()))?;
 
@@ -209,6 +216,10 @@ impl LayerManager for OverlayFS {
     }
 
     fn commit(&mut self) -> Result<()> {
+        if self.volatile {
+            // for safety reasons
+            nix::unistd::sync();
+        }
         let mods = self.diff()?;
         // FIXME: use drain_filter in the future
         // first pass to execute all the deletion actions
@@ -247,6 +258,12 @@ impl LayerManager for OverlayFS {
 
     fn destroy(&mut self) -> Result<()> {
         fs::remove_dir_all(&self.inst)?;
+
+        Ok(())
+    }
+
+    fn set_volatile(&mut self, volatile: bool) -> Result<()> {
+        self.volatile = volatile;
 
         Ok(())
     }

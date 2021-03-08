@@ -143,7 +143,7 @@ dependencies = [
  "libc",
  "libmount",
  "libsystemd-sys",
- "nix 0.20.0",
+ "nix",
  "nom",
  "progress-streams",
  "rand",
@@ -695,10 +695,10 @@ dependencies = [
 [[package]]
 name = "libmount"
 version = "0.1.15"
-source = "git+https://github.com/liushuyu/libmount#d66deadf4e5f580e3b8d5c61eac1b31f9201ebe9"
+source = "git+https://github.com/liushuyu/libmount#fb1850d32192153c07eb43d77fac52be12beee4e"
 dependencies = [
  "libc",
- "nix 0.19.1",
+ "nix",
  "quick-error",
 ]
 
@@ -825,18 +825,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "nix"
-version = "0.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2ccba0cfe4fdf15982d1674c69b1fd80bad427d293849982668dfe454bd61f2"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if",
- "libc",
 ]
 
 [[package]]
@@ -1307,9 +1295,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed22b90a0e734a23a7610f4283ac9e5acfb96cbb30dfefa540d66f866f1c09c5"
+checksum = "123a78a3596b24fee53a6464ce52d8ecbf62241e6294c7e7fe12086cd161f512"
 dependencies = [
  "proc-macro2",
  "quote",
