@@ -77,6 +77,7 @@ pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     }
     let conf = conf.unwrap();
 
+    mount_fs(instance)?;
     rollback_container(instance)?;
 
     if !conf.local_repo {
