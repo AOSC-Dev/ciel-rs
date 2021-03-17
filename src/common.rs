@@ -54,7 +54,7 @@ pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<()> {
     let mut f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
-        "{spinner} [{bar:40.cyan/blue}] Extracting tarball... ({bytes_per_sec}, eta {eta})",
+        "{spinner} [{bar:25.cyan/blue}] Extracting tarball... ({bytes_per_sec}, eta {eta})",
     ));
     progress_bar.enable_steady_tick(500);
     let reader = ProgressReader::new(&mut f, |progress: usize| {

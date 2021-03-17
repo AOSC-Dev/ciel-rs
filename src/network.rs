@@ -39,7 +39,7 @@ pub struct Recipe {
 
 lazy_static! {
     static ref GIT_PROGRESS: indicatif::ProgressStyle = indicatif::ProgressStyle::default_bar()
-        .template("[{bar:40.cyan/blue}] {pos}/{len} {msg} ({eta})");
+        .template("[{bar:25.cyan/blue}] {pos}/{len} {msg} ({eta})");
 }
 
 /// Download a file from the web
@@ -59,7 +59,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     }
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
-        "{spinner} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, eta {eta})",
+        "{spinner} [{bar:25.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, eta {eta})",
     ));
     progress_bar.enable_steady_tick(500);
     let mut reader = ProgressReader::new(&mut resp, |progress: usize| {
