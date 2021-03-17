@@ -1,3 +1,4 @@
+use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
@@ -58,9 +59,10 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
         total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
     }
     let progress_bar = indicatif::ProgressBar::new(total);
-    progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
-        "{spinner} [{bar:25.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, eta {eta})",
-    ));
+    progress_bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template(make_progress_bar!("{bytes}/{total_bytes}")),
+    );
     progress_bar.enable_steady_tick(500);
     let mut reader = ProgressReader::new(&mut resp, |progress: usize| {
         progress_bar.inc(progress as u64);

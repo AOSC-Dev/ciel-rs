@@ -22,6 +22,13 @@ lazy_static! {
             .template("{spinner:.green} {wide_msg}");
 }
 
+#[macro_export]
+macro_rules! make_progress_bar {
+    ($msg:expr) => {
+        concat!("{spinner} [{bar:25.cyan/blue}] ", $msg, " ({bytes_per_sec}, eta {eta})")
+    }
+}
+
 #[inline]
 pub fn create_spinner(msg: &str, tick_rate: u64) -> indicatif::ProgressBar {
     let spinner = indicatif::ProgressBar::new_spinner().with_style(SPINNER_STYLE.clone());
@@ -54,7 +61,7 @@ pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<()> {
     let mut f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
-        "{spinner} [{bar:25.cyan/blue}] Extracting tarball... ({bytes_per_sec}, eta {eta})",
+        make_progress_bar!("Extracting tarball..."),
     ));
     progress_bar.enable_steady_tick(500);
     let reader = ProgressReader::new(&mut f, |progress: usize| {
