@@ -17,7 +17,7 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("TREE", "/tree"),
     ("SRCS", "/var/cache/acbs/tarballs"),
 ];
-const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get -y update && apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" full-upgrade"#;
+const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get -y update && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge"#;
 
 /// Ensure that the directories exist and mounted
 #[macro_export]
