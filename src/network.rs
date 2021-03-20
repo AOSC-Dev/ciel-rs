@@ -13,6 +13,7 @@ use std::{
     thread::{self, sleep},
     time::Duration,
 };
+use fs3::FileExt;
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
@@ -57,6 +58,11 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let mut total: u64 = 0;
     if let Some(length) = resp.headers().get("content-length") {
         total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
+    }
+    if total > 0 {
+        // pre-allocate all the required disk space, 
+        // fails early when there is insufficient disk space available
+        output.allocate(total)?;
     }
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(
