@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use console::style;
 use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use dbus::blocking::Connection;
+use fs3::statvfs;
+use indicatif::HumanBytes;
 use std::sync::mpsc::channel;
 use std::{fs::File, io::BufRead, time::Duration};
 use std::{
@@ -25,6 +27,7 @@ const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_fs_support,
     &test_vm_container,
     &test_disk_io,
+    &test_disk_space,
 ];
 
 fn test_sd_bus() -> Result<String> {
@@ -103,6 +106,20 @@ fn test_disk_io() -> Result<String> {
     error!("The test file is taking too long to write, suspecting I/O stuck.");
 
     Err(anyhow!("Disk I/O is not working correctly"))
+}
+
+fn test_disk_space() -> Result<String> {
+    let stats = statvfs(std::fs::canonicalize(".")?)?;
+    if stats.available_space() < (10 * 1024 * 1024 * 1024) {
+        // 10 GB
+        Err(anyhow!("Disk space insufficient. Need at least 10 GB of free space to do something meaningful (You have {}).", HumanBytes(stats.available_space())))
+    } else {
+        Ok(format!(
+            "Disk space is sufficient ({} free of {}).",
+            HumanBytes(stats.available_space()),
+            HumanBytes(stats.total_space())
+        ))
+    }
 }
 
 /// Carry out the diagnostic tests
