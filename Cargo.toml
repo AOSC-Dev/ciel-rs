@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 console = "0.14"
 dbus = "0.9"
-dialoguer = "0.7"
+dialoguer = "0.8"
 indicatif = "0.15"
 nix = "0.20"
 lazy_static = "1.4"
