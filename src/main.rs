@@ -206,7 +206,7 @@ fn main() -> Result<()> {
                 let status = actions::package_fetch(&instance, packages)?;
                 process::exit(status);
             }
-            let status = actions::package_build(&instance, packages)?;
+            let status = actions::package_build(&instance, packages, args.is_present("OFFLINE"))?;
             process::exit(status);
         }
         ("", _) => {

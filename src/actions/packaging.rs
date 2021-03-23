@@ -76,7 +76,7 @@ pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
     }
     let conf = conf.unwrap();
     if !conf.local_sources {
-        warn!("Using this function without local sources caching is meaningless.");
+        warn!("Using this function without local sources caching is probably meaningless.");
     }
 
     mount_fs(instance)?;
@@ -90,15 +90,24 @@ pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
 }
 
 /// Build packages in the container
-pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
+pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     instance: &str,
     packages: K,
+    offline: bool,
 ) -> Result<i32> {
     let conf = config::read_config();
     if conf.is_err() {
         return Err(anyhow!("Please configure this workspace first!"));
     }
     let conf = conf.unwrap();
+
+    if offline || std::env::var("CIEL_OFFLINE").is_ok() {
+        info!("Preparing offline mode. Fetching source packages first ...");
+        package_fetch(&instance, packages.clone())?;
+        info!("Enabling offline mode. Adjusting container configurations ...");
+        std::env::set_var("CIEL_OFFLINE", "ON");
+        info!("Running in offline mode. Network access disabled.");
+    }
 
     mount_fs(instance)?;
     rollback_container(instance)?;

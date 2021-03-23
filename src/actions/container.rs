@@ -267,7 +267,10 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
 pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
-    let (extra_options, mounts) = ensure_host_sanity!();
+    let (mut extra_options, mounts) = ensure_host_sanity!();
+    if std::env::var("CIEL_OFFLINE").is_ok() {
+        extra_options.push("--private-network".to_string());
+    }
     if !inst.mounted {
         mount_fs(instance)?;
     }
