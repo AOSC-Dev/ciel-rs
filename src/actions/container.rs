@@ -271,6 +271,7 @@ pub fn start_container(instance: &str) -> Result<String> {
     if std::env::var("CIEL_OFFLINE").is_ok() {
         // add the offline option (private-network means don't share the host network)
         extra_options.push("--private-network".to_string());
+        info!("{}: network disconnected.", instance);
     }
     if !inst.mounted {
         mount_fs(instance)?;
