@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::ffi::OsStr;
 
+/// List all the available plugins/helper scripts
 fn list_helpers() -> Result<Vec<String>> {
     let exe_dir = std::env::current_exe()?;
     let exe_dir = exe_dir.parent().ok_or_else(|| anyhow!("Where am I?"))?;

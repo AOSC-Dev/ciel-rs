@@ -44,6 +44,7 @@ fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
     Ok(results)
 }
 
+/// Expand the packages list to an array of packages
 fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<String> {
     let mut expanded = Vec::new();
     for package in packages {
@@ -66,6 +67,7 @@ fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<
     expanded
 }
 
+/// Fetch all the source packages in one go
 pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
     instance: &str,
     packages: K,

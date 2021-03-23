@@ -1,5 +1,6 @@
 use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
+use fs3::FileExt;
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
@@ -13,7 +14,6 @@ use std::{
     thread::{self, sleep},
     time::Duration,
 };
-use fs3::FileExt;
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
@@ -60,7 +60,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
         total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
     }
     if total > 0 {
-        // pre-allocate all the required disk space, 
+        // pre-allocate all the required disk space,
         // fails early when there is insufficient disk space available
         output.allocate(total)?;
     }
