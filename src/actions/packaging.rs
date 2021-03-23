@@ -66,6 +66,29 @@ fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<
     expanded
 }
 
+pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
+    instance: &str,
+    packages: K,
+) -> Result<i32> {
+    let conf = config::read_config();
+    if conf.is_err() {
+        return Err(anyhow!("Please configure this workspace first!"));
+    }
+    let conf = conf.unwrap();
+    if !conf.local_sources {
+        warn!("Using this function without local sources caching is meaningless.");
+    }
+
+    mount_fs(instance)?;
+    rollback_container(instance)?;
+
+    let mut cmd = vec!["/bin/acbs-build", "-g", "--"];
+    cmd.extend(packages.into_iter());
+    let status = run_in_container(instance, &cmd)?;
+
+    Ok(status)
+}
+
 /// Build packages in the container
 pub fn package_build<'a, K: ExactSizeIterator<Item = &'a str>>(
     instance: &str,

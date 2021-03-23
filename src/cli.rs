@@ -95,6 +95,7 @@ pub fn build_cli() -> App<'static, 'static> {
         )
         .subcommand(
             SubCommand::with_name("build")
+                .arg(Arg::with_name("FETCH").short("g").takes_value(false).help("Fetch source packages only"))
                 .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to build in"))
                 .arg(Arg::with_name("PACKAGES").required(true).min_values(1))
                 .about("Build the packages using the specified instance"),

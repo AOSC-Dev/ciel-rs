@@ -173,7 +173,6 @@ pub fn spawn_container<P: AsRef<Path>>(
         .args(&["-D", path, "-M", ns_name, "--"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .env("SYSTEMD_NSPAWN_TMPFS_TMP", "0")
         .spawn()?;
 
     info!("Waiting for container to start...");

@@ -202,6 +202,10 @@ fn main() -> Result<()> {
         ("build", Some(args)) => {
             let instance = get_instance_option(args)?;
             let packages = args.values_of("PACKAGES").unwrap();
+            if args.is_present("FETCH") {
+                let status = actions::package_fetch(&instance, packages)?;
+                process::exit(status);
+            }
             let status = actions::package_build(&instance, packages)?;
             process::exit(status);
         }
