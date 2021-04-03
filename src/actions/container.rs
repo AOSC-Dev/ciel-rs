@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::style;
+use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
@@ -74,6 +74,14 @@ fn rollback(instance: &str) -> Result<()> {
 
 /// Remove everything in the current workspace
 pub fn farewell(path: &Path) -> Result<()> {
+    if !user_attended() {
+        eprintln!("DELETE THIS CIEL WORKSPACE?");
+        info!("Not controlled by an user. Automatically confirmed.");
+        // Un-mount all the instances
+        for_each_instance(&container_down)?;
+        fs::remove_dir_all(path.join(".ciel"))?;
+        return Ok(());
+    }
     let theme = ColorfulTheme::default();
     let delete = Confirm::with_theme(&theme)
         .with_prompt("DELETE THIS CIEL WORKSPACE?")

@@ -1,7 +1,9 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
+use crate::info;
 use anyhow::{anyhow, Result};
+use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
 use std::{ffi::OsString, path::Path};
@@ -136,6 +138,10 @@ fn get_default_editor() -> OsString {
 
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
+    if !user_attended() {
+        info!("Not controlled by an user. Default values are used.");
+        return Ok(config);
+    }
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
