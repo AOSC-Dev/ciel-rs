@@ -107,6 +107,7 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
         info!("Preparing offline mode. Fetching source packages first ...");
         package_fetch(&instance, packages.clone())?;
         std::env::set_var("CIEL_OFFLINE", "ON");
+        // FIXME: does not work with current version of systemd
         info!("Running in offline mode. Network access disabled.");
     }
 

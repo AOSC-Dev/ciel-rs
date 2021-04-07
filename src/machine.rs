@@ -175,9 +175,9 @@ pub fn spawn_container<P: AsRef<Path>>(
         .stderr(Stdio::null())
         .spawn()?;
 
-    info!("Waiting for container to start...");
+    info!("{}: waiting for container to start...", ns_name);
     wait_for_container(&mut child, ns_name, 10)?;
-    info!("Setting up mounts...");
+    info!("{}: setting up mounts...", ns_name);
     if let Err(e) = setup_bind_mounts(ns_name, mounts) {
         warn!("Failed to setup bind mounts: {:?}", e);
     }

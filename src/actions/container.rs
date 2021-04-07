@@ -233,7 +233,7 @@ pub fn unmount_fs(instance: &str) -> Result<()> {
 /// Remove the mount point (usually a directory) of the container overlay filesystem
 pub fn remove_mount(instance: &str) -> Result<()> {
     let target = std::env::current_dir()?.join(instance);
-    if !target.is_dir() {
+    if target.exists() && !target.is_dir() {
         warn!("{}: mount point is not a directory.", instance);
         return Ok(());
     }
@@ -277,6 +277,7 @@ pub fn start_container(instance: &str) -> Result<String> {
     let inst = inspect_instance(instance, &ns_name)?;
     let (mut extra_options, mounts) = ensure_host_sanity!();
     if std::env::var("CIEL_OFFLINE").is_ok() {
+        // FIXME: does not work with current version of systemd
         // add the offline option (private-network means don't share the host network)
         extra_options.push("--private-network".to_string());
         info!("{}: network disconnected.", instance);
