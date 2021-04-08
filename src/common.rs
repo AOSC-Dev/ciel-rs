@@ -25,8 +25,12 @@ lazy_static! {
 #[macro_export]
 macro_rules! make_progress_bar {
     ($msg:expr) => {
-        concat!("{spinner} [{bar:25.cyan/blue}] ", $msg, " ({bytes_per_sec}, eta {eta})")
-    }
+        concat!(
+            "{spinner} [{bar:25.cyan/blue}] ",
+            $msg,
+            " ({bytes_per_sec}, eta {eta})"
+        )
+    };
 }
 
 #[inline]
@@ -60,9 +64,10 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<()> {
 pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<()> {
     let mut f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
-    progress_bar.set_style(indicatif::ProgressStyle::default_bar().template(
-        make_progress_bar!("Extracting tarball..."),
-    ));
+    progress_bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template(make_progress_bar!("Extracting tarball...")),
+    );
     progress_bar.enable_steady_tick(500);
     let reader = ProgressReader::new(&mut f, |progress: usize| {
         progress_bar.inc(progress as u64);

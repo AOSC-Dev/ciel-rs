@@ -136,6 +136,7 @@ fn get_default_editor() -> OsString {
     "nano".into()
 }
 
+/// Shows a series of prompts to let the user select the configurations
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
     if !user_attended() {
@@ -187,6 +188,7 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     Ok(config)
 }
 
+/// Reads the configuration file from the current workspace
 pub fn read_config() -> Result<CielConfig> {
     let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
     let mut data: Vec<u8> = Vec::new();
@@ -195,6 +197,7 @@ pub fn read_config() -> Result<CielConfig> {
     Ok(CielConfig::load_config(data.as_slice())?)
 }
 
+/// Applies the given configuration (th configuration itself will not be saved to the disk)
 pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> {
     // write maintainer information
     let rootfs = root.as_ref();
