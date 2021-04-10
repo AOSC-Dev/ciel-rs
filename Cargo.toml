@@ -39,17 +39,13 @@ which = "4.0"
 sha2 = "0.9"
 chrono = "0.4"
 fs3 = "0.5"
+clap = "2.33"
 
 [build-dependencies]
 dbus-codegen = "0.9"
 clap = "2.33"
 anyhow = "1.0"
 cc = "1.0"
-
-[dependencies.clap]
-version = "2.33"
-default-features = false
-features = [ "suggestions", "color" ]
 
 [profile.release]
 lto = true

@@ -26,7 +26,10 @@ fn format_duration(duration: Duration) -> String {
     )
 }
 
-fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
+fn read_package_list<P: AsRef<Path>>(filename: P, depth: usize) -> Result<Vec<String>> {
+    if depth > 32 {
+        return Err(anyhow!("Nested group exceeded 32 levels! Potential infinite loop."));
+    }
     let f = fs::File::open(filename)?;
     let reader = BufReader::new(f);
     let mut results = Vec::new();
@@ -38,6 +41,13 @@ fn read_package_list<P: AsRef<Path>>(filename: P) -> Result<Vec<String>> {
         }
         // trim whitespace
         let trimmed = line.trim();
+        // process nested groups
+        if trimmed.starts_with("groups/") {
+            let path = Path::new("./TREE").join(trimmed);
+            let nested = read_package_list(&path, depth + 1)?;
+            results.extend(nested);
+            continue;
+        }
         results.push(trimmed.to_owned());
     }
 
@@ -53,7 +63,7 @@ fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<
             continue;
         }
         let list_file = Path::new("./TREE").join(&package);
-        match read_package_list(list_file) {
+        match read_package_list(list_file, 0) {
             Ok(list) => {
                 info!("Read {} packages from {}", list.len(), package);
                 expanded.extend(list);
