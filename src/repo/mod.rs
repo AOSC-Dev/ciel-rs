@@ -1,14 +1,12 @@
 //! Local repository
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::prelude::*;
 use sha2::{Digest, Sha256};
 use std::io::Write;
-use std::{
-    fs, io,
-    path::Path,
-    process::{Command, Stdio},
-};
+use std::{fs, io, path::Path};
+
+mod scan;
 
 fn generate_release(path: &Path) -> Result<String> {
     let mut f = fs::File::open(path.join("Packages"))?;
@@ -31,17 +29,8 @@ pub fn refresh_repo(root: &Path) -> Result<()> {
     let path = root.join("debs");
     fs::create_dir_all(&path)?;
     let mut output = fs::File::create(path.join("Packages"))?;
-    let mut child = Command::new("dpkg-scanpackages")
-        .args(&["-m", "-h", "sha256", "."])
-        .stdout(Stdio::piped())
-        .current_dir(&path)
-        .spawn()?;
-    let mut stdout = child.stdout.take().unwrap();
-    io::copy(&mut stdout, &mut output)?;
-
-    if !child.wait()?.success() {
-        return Err(anyhow!("dpkg-scanpackage failed"));
-    }
+    let entries = scan::collect_all_packages(&path)?;
+    output.write_all(&scan::scan_packages_simple(&entries))?;
 
     let release = generate_release(&path)?;
     let mut release_file = fs::File::create(path.join("Release"))?;

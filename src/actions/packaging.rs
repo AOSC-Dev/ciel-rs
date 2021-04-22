@@ -28,7 +28,9 @@ fn format_duration(duration: Duration) -> String {
 
 fn read_package_list<P: AsRef<Path>>(filename: P, depth: usize) -> Result<Vec<String>> {
     if depth > 32 {
-        return Err(anyhow!("Nested group exceeded 32 levels! Potential infinite loop."));
+        return Err(anyhow!(
+            "Nested group exceeded 32 levels! Potential infinite loop."
+        ));
     }
     let f = fs::File::open(filename)?;
     let reader = BufReader::new(f);

@@ -40,6 +40,10 @@ sha2 = "0.9"
 chrono = "0.4"
 fs3 = "0.5"
 clap = "2.33"
+# repo scan
+ar = "0.8"
+faster-hex = "0.5"
+flate2 = "1.0"
 
 [build-dependencies]
 dbus-codegen = "0.9"
