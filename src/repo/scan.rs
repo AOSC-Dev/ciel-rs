@@ -1,4 +1,4 @@
-use crate::{error, info};
+use crate::error;
 use anyhow::{anyhow, Result};
 use ar::Archive as ArArchive;
 use console::style;
@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::io::SeekFrom;
 use std::{
     fs::File,
-    io::{Read, Seek},
+    io::{Read, Seek, Write},
     path::Path,
 };
 use tar::Archive as TarArchive;
@@ -108,7 +108,8 @@ pub fn scan_packages_simple(entries: &[DirEntry]) -> Vec<u8> {
         .par_iter()
         .map(|entry| -> Vec<u8> {
             let path = entry.path();
-            info!("{:?}", path);
+            print!(".");
+            std::io::stderr().flush().ok();
             match scan_single_deb_simple(path) {
                 Ok(entry) => entry,
                 Err(err) => {

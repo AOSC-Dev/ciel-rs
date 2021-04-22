@@ -1,7 +1,9 @@
 //! Local repository
 
+use crate::info;
 use anyhow::Result;
 use chrono::prelude::*;
+use console::style;
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::{fs, io, path::Path};
@@ -30,7 +32,9 @@ pub fn refresh_repo(root: &Path) -> Result<()> {
     fs::create_dir_all(&path)?;
     let mut output = fs::File::create(path.join("Packages"))?;
     let entries = scan::collect_all_packages(&path)?;
+    info!("Scanning {} packages...", entries.len());
     output.write_all(&scan::scan_packages_simple(&entries))?;
+    println!("");
 
     let release = generate_release(&path)?;
     let mut release_file = fs::File::create(path.join("Release"))?;
