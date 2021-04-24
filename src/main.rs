@@ -207,6 +207,7 @@ fn main() -> Result<()> {
                 process::exit(status);
             }
             let status = actions::package_build(&instance, packages, args.is_present("OFFLINE"))?;
+            println!("\x07"); // bell character
             process::exit(status);
         }
         ("", _) => {
