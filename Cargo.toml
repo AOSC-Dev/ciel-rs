@@ -42,7 +42,7 @@ fs3 = "0.5"
 clap = "2.33"
 # repo scan
 ar = "0.8"
-faster-hex = "0.5"
+faster-hex = "0.6"
 flate2 = "1.0"
 
 [build-dependencies]

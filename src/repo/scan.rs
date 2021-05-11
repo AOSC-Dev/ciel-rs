@@ -76,6 +76,7 @@ fn scan_single_deb_simple<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let sha256 = sha256sum(&mut f)?;
     f.seek(SeekFrom::Start(0))?;
     let mut control = open_deb_simple(f)?;
+    control.reserve(74);
     if control.ends_with(&b"\n\n"[..]) {
         control.pop();
     }
@@ -91,7 +92,7 @@ pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha256::new();
     std::io::copy(&mut reader, &mut hasher)?;
 
-    Ok(hex_string(&hasher.finalize())?)
+    Ok(hex_string(&hasher.finalize()))
 }
 
 #[inline]
