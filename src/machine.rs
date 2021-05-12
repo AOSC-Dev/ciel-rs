@@ -9,7 +9,7 @@ use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
 use dbus::blocking::{Connection, Proxy};
-use libc::{c_char, ftok};
+use libc::{c_char, ftok, waitpid, WNOHANG};
 use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
 use std::{
     ffi::{CString, OsStr},
@@ -197,6 +197,12 @@ pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
         .unwrap_or(127);
 
     Ok(exit_code)
+}
+
+/// Reap all the exited child processes
+pub(crate) fn clean_child_process() {
+    let mut status = 0;
+    unsafe { waitpid(-1, &mut status, WNOHANG) };
 }
 
 fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {

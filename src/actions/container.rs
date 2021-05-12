@@ -312,6 +312,7 @@ pub fn stop_container(instance: &str) -> Result<()> {
     }
     info!("{}: stopping...", instance);
     machine::terminate_container_by_name(&ns_name)?;
+    machine::clean_child_process();
     info!("{}: instance stopped.", instance);
 
     Ok(())
