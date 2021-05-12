@@ -34,7 +34,7 @@ macro_rules! make_progress_bar {
 }
 
 #[inline]
-pub fn create_spinner(msg: &str, tick_rate: u64) -> indicatif::ProgressBar {
+pub fn create_spinner(msg: &'static str, tick_rate: u64) -> indicatif::ProgressBar {
     let spinner = indicatif::ProgressBar::new_spinner().with_style(SPINNER_STYLE.clone());
     spinner.set_message(msg);
     spinner.enable_steady_tick(tick_rate);

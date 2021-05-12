@@ -189,7 +189,7 @@ pub fn download_git(uri: &str, root: &Path) -> Result<()> {
                 0 => {
                     let human_bytes =
                         indicatif::HumanBytes(cur_bytes.load(Ordering::SeqCst) as u64);
-                    progress.set_message(&format!("{}", human_bytes));
+                    progress.set_message(format!("{}", human_bytes));
                 }
                 1 => {
                     progress.set_message("Resolving deltas...");
