@@ -34,7 +34,7 @@ pub fn refresh_repo(root: &Path) -> Result<()> {
     let entries = scan::collect_all_packages(&path)?;
     info!("Scanning {} packages...", entries.len());
     output.write_all(&scan::scan_packages_simple(&entries))?;
-    println!("");
+    println!();
 
     let release = generate_release(&path)?;
     let mut release_file = fs::File::create(path.join("Release"))?;

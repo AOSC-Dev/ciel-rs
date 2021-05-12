@@ -51,7 +51,7 @@ pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
 }
 
 /// Extract the given .tar.xz stream and preserve all the file attributes
-pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<()> {
+pub fn extract_tar_xz<R: Read>(reader: R, path: &Path) -> Result<()> {
     let decompress = xz2::read::XzDecoder::new(reader);
     let mut tar_processor = tar::Archive::new(decompress);
     tar_processor.set_unpack_xattrs(true);
@@ -61,7 +61,7 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn extract_system_tarball(path: &PathBuf, total: u64) -> Result<()> {
+pub fn extract_system_tarball(path: &Path, total: u64) -> Result<()> {
     let mut f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(

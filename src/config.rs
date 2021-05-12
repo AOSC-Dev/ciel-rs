@@ -194,7 +194,7 @@ pub fn read_config() -> Result<CielConfig> {
     let mut data: Vec<u8> = Vec::new();
     f.read_to_end(&mut data)?;
 
-    Ok(CielConfig::load_config(data.as_slice())?)
+    CielConfig::load_config(data.as_slice())
 }
 
 /// Applies the given configuration (th configuration itself will not be saved to the disk)

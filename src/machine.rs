@@ -340,14 +340,12 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
 pub fn list_instances() -> Result<Vec<CielInstance>> {
     let legacy = is_legacy_workspace()?;
     let mut instances: Vec<CielInstance> = Vec::new();
-    for entry in fs::read_dir(CIEL_INST_DIR)? {
-        if let Ok(entry) = entry {
-            if entry.file_type().map(|e| e.is_dir())? {
-                instances.push(inspect_instance(
-                    &entry.file_name().to_string_lossy(),
-                    &get_container_ns_name(&entry.file_name(), legacy)?,
-                )?);
-            }
+    for entry in (fs::read_dir(CIEL_INST_DIR)?).flatten() {
+        if entry.file_type().map(|e| e.is_dir())? {
+            instances.push(inspect_instance(
+                &entry.file_name().to_string_lossy(),
+                &get_container_ns_name(&entry.file_name(), legacy)?,
+            )?);
         }
     }
 
@@ -357,11 +355,9 @@ pub fn list_instances() -> Result<Vec<CielInstance>> {
 /// List all the instances under the current directory, returns only instance names
 pub fn list_instances_simple() -> Result<Vec<String>> {
     let mut instances: Vec<String> = Vec::new();
-    for entry in fs::read_dir(CIEL_INST_DIR)? {
-        if let Ok(entry) = entry {
-            if entry.file_type().map(|e| e.is_dir())? {
-                instances.push(entry.file_name().to_string_lossy().to_string());
-            }
+    for entry in (fs::read_dir(CIEL_INST_DIR)?).flatten() {
+        if entry.file_type().map(|e| e.is_dir())? {
+            instances.push(entry.file_name().to_string_lossy().to_string());
         }
     }
 

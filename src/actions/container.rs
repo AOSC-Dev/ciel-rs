@@ -270,7 +270,7 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
     }
     let legacy = is_legacy_workspace()?;
 
-    Ok(get_container_ns_name(instance, legacy)?)
+    get_container_ns_name(instance, legacy)
 }
 
 /// Start the container/instance, also mounting the container filesystem prior to the action
