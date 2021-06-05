@@ -173,7 +173,7 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
 /// Clean up output directories
 pub fn cleanup_outputs() -> Result<()> {
     let spinner = create_spinner("Removing output directories ...", 200);
-    for entry in WalkDir::new(".").max_depth(0) {
+    for entry in WalkDir::new(".").max_depth(1) {
         let entry = entry?;
         if entry.file_type().is_dir() && entry.file_name().to_string_lossy().starts_with("OUTPUT-")
         {
