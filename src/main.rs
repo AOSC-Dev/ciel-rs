@@ -247,6 +247,9 @@ fn main() -> Result<()> {
                 println!("{}", args.usage());
             }
         },
+        ("clean", _) => {
+            print_error!({ actions::cleanup_outputs() });
+        },
         ("version", _) => {
             println!("{}", crate_version!());
         }

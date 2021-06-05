@@ -7,8 +7,9 @@ use std::{
     path::Path,
     time::Instant,
 };
+use walkdir::WalkDir;
 
-use crate::{config, error, info, repo, warn};
+use crate::{common::create_spinner, config, error, info, repo, warn};
 
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
@@ -167,6 +168,21 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     );
 
     Ok(0)
+}
+
+/// Clean up output directories
+pub fn cleanup_outputs() -> Result<()> {
+    let spinner = create_spinner("Removing output directories ...", 200);
+    for entry in WalkDir::new(".").max_depth(0) {
+        let entry = entry?;
+        if entry.file_type().is_dir() && entry.file_name().to_string_lossy().starts_with("OUTPUT-")
+        {
+            fs::remove_dir_all(entry.path())?;
+        }
+    }
+    spinner.finish_with_message("Done.");
+
+    Ok(())
 }
 
 #[test]

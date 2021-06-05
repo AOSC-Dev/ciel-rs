@@ -134,6 +134,10 @@ pub fn build_cli() -> App<'static, 'static> {
                 .alias("localrepo")
                 .about("Local repository operations")
         )
+        .subcommand(
+            SubCommand::with_name("clean")
+                .about("Clean all the output directories")
+        )
         .subcommands({
             let plugins = list_helpers();
             if let Ok(plugins) = plugins {
