@@ -1,6 +1,6 @@
 [package]
 name = "ciel-rs"
-version = "3.0.13-alpha.0"
+version = "3.1.0-alpha.0"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 resolver = "2"
@@ -52,6 +52,10 @@ dbus-codegen = "0.9"
 clap = "2.33"
 anyhow = "1.0"
 cc = "1.0"
+
+[features]
+default = []
+rpc = []
 
 [profile.release]
 lto = true
