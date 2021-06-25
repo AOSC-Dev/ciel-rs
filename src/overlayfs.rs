@@ -197,7 +197,9 @@ impl LayerManager for OverlayFS {
         }
         let dirty_flag = self.work.join("work/incompat");
         if dirty_flag.exists() {
-            return Err(anyhow!("This container filesystem can't be used anymore. Please rollback."));
+            return Err(anyhow!(
+                "This container filesystem can't be used anymore. Please rollback."
+            ));
         }
         // let's mount them
         overlay.mount().map_err(|e| anyhow!("{}", e.to_string()))?;

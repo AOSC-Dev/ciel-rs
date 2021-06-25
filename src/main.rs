@@ -201,12 +201,26 @@ fn main() -> Result<()> {
         }
         ("build", Some(args)) => {
             let instance = get_instance_option(args)?;
-            let packages = args.values_of("PACKAGES").unwrap();
-            if args.is_present("FETCH") {
-                let status = actions::package_fetch(&instance, packages)?;
+            let offline = args.is_present("OFFLINE");
+            let mut state = None;
+            if let Some(cont) = args.value_of("CONTINUE") {
+                state = Some(actions::load_build_checkpoint(cont)?);
+            }
+            let packages = args.values_of("PACKAGES");
+            if packages.is_none() {
+                error!("Please specify a list of packages to build!");
+                process::exit(1);
+            }
+            let packages = packages.unwrap();
+            if args.is_present("SELECT") {
+                let status = actions::packages_stage_select(&instance, packages, offline)?;
                 process::exit(status);
             }
-            let status = actions::package_build(&instance, packages, args.is_present("OFFLINE"))?;
+            if args.is_present("FETCH") {
+                let status = actions::package_fetch(&instance, &packages.collect::<Vec<&str>>())?;
+                process::exit(status);
+            }
+            let status = actions::package_build(&instance, packages, state, offline)?;
             println!("\x07"); // bell character
             process::exit(status);
         }
@@ -249,7 +263,7 @@ fn main() -> Result<()> {
         },
         ("clean", _) => {
             print_error!({ actions::cleanup_outputs() });
-        },
+        }
         ("version", _) => {
             println!("{}", crate_version!());
         }

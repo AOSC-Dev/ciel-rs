@@ -5,6 +5,7 @@ use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
 use std::{
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
@@ -295,7 +296,7 @@ pub fn start_container(instance: &str) -> Result<String> {
 }
 
 /// Execute the specified command in the container
-pub fn run_in_container(instance: &str, args: &[&str]) -> Result<i32> {
+pub fn run_in_container<S: AsRef<OsStr>>(instance: &str, args: &[S]) -> Result<i32> {
     let ns_name = start_container(instance)?;
     let status = machine::execute_container_command(&ns_name, args)?;
 

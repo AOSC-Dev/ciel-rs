@@ -186,7 +186,7 @@ pub fn spawn_container<P: AsRef<Path>>(
 }
 
 /// Execute a command in the container
-pub fn execute_container_command(ns_name: &str, args: &[&str]) -> Result<i32> {
+pub fn execute_container_command<S: AsRef<OsStr>>(ns_name: &str, args: &[S]) -> Result<i32> {
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
         .args(&["-M", ns_name, "-qt", "--"])

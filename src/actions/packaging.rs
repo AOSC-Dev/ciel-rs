@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Result};
 use chrono::Duration;
 use console::style;
+use dialoguer::{theme::ColorfulTheme, Select};
+use serde::{Deserialize, Serialize};
 use std::{
-    fs,
-    io::{BufRead, BufReader},
+    fs::{self, File},
+    io::{BufRead, BufReader, Write},
     path::Path,
     time::Instant,
 };
@@ -15,6 +17,37 @@ use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
     UPDATE_SCRIPT,
 };
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct BuildCheckPoint {
+    packages: Vec<String>,
+    progress: usize,
+    time_elapsed: usize,
+    attempts: usize,
+}
+
+pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
+    let f = File::open(path)?;
+
+    Ok(bincode::deserialize_from(f)?)
+}
+
+fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
+    let save_state = bincode::serialize(checkpoint)?;
+    let last_package = checkpoint
+        .packages
+        .get(checkpoint.progress)
+        .map_or("unknown".to_string(), |x| x.to_owned());
+    let current = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs();
+    let path = Path::new("./TREE").join(format!("{}-{}.ciel-ckpt", last_package, current));
+    let mut f = File::create(&path)?;
+    f.write_all(&save_state)?;
+    info!("Ciel created a check-point: {}", path.display());
+
+    Ok(())
+}
 
 #[inline]
 fn format_duration(duration: Duration) -> String {
@@ -81,7 +114,11 @@ fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<
 }
 
 #[inline]
-fn package_build_inner<P: AsRef<Path>>(packages: &[String], instance: &str, root: P) -> Result<i32> {
+fn package_build_inner<P: AsRef<Path>>(
+    packages: &[String],
+    instance: &str,
+    root: P,
+) -> Result<(i32, usize)> {
     let total = packages.len();
     for (index, package) in packages.into_iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
@@ -94,24 +131,49 @@ fn package_build_inner<P: AsRef<Path>>(packages: &[String], instance: &str, root
         let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
         if status != 0 {
             error!("Failed to update the OS before building packages");
-            return Ok(status);
+            return Ok((status, index));
         }
         let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
         if status != 0 {
             error!("Build failed with status: {}", status);
-            return Ok(status);
+            return Ok((status, index));
         }
         rollback_container(instance)?;
     }
 
-    Ok(0)
+    Ok((0, 0))
+}
+
+pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
+    instance: &str,
+    packages: K,
+    offline: bool,
+) -> Result<i32> {
+    let packages = expand_package_list(packages);
+    eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .default(0)
+        .with_prompt("Choose one package to start building from")
+        .paged(true)
+        .items(&packages)
+        .interact()?;
+    let empty: Vec<&str> = Vec::new();
+
+    package_build(
+        instance,
+        empty.into_iter(),
+        Some(BuildCheckPoint {
+            packages,
+            progress: selection,
+            time_elapsed: 0,
+            attempts: 1,
+        }),
+        offline,
+    )
 }
 
 /// Fetch all the source packages in one go
-pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
-    instance: &str,
-    packages: K,
-) -> Result<i32> {
+pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i32> {
     let conf = config::read_config();
     if conf.is_err() {
         return Err(anyhow!("Please configure this workspace first!"));
@@ -125,7 +187,7 @@ pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
     rollback_container(instance)?;
 
     let mut cmd = vec!["/bin/acbs-build", "-g", "--"];
-    cmd.extend(packages.into_iter());
+    cmd.extend(packages.into_iter().map(|p| p.as_ref()));
     let status = run_in_container(instance, &cmd)?;
 
     Ok(status)
@@ -135,6 +197,7 @@ pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
 pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     instance: &str,
     packages: K,
+    state: Option<BuildCheckPoint>,
     offline: bool,
 ) -> Result<i32> {
     let conf = config::read_config();
@@ -142,10 +205,22 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
         return Err(anyhow!("Please configure this workspace first!"));
     }
     let conf = conf.unwrap();
+    let mut attempts = 1usize;
+
+    let packages = if let Some(p) = state {
+        attempts = p.attempts + 1;
+        info!(
+            "Successfully restored from a checkpoint. Attempt #{} started.",
+            attempts
+        );
+        p.packages[p.progress..].to_owned()
+    } else {
+        expand_package_list(packages)
+    };
 
     if offline || std::env::var("CIEL_OFFLINE").is_ok() {
         info!("Preparing offline mode. Fetching source packages first ...");
-        package_fetch(&instance, packages.clone())?;
+        package_fetch(&instance, &packages)?;
         std::env::set_var("CIEL_OFFLINE", "ON");
         // FIXME: does not work with current version of systemd
         info!("Running in offline mode. Network access disabled.");
@@ -155,7 +230,7 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     rollback_container(instance)?;
 
     if !conf.local_repo {
-        let mut cmd = vec!["/bin/acbs-build", "--"];
+        let mut cmd = vec!["/bin/acbs-build".to_string(), "--".to_string()];
         cmd.extend(packages.into_iter());
         let status = run_in_container(instance, &cmd)?;
         return Ok(status);
@@ -163,12 +238,17 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
 
     let output_dir = get_output_directory(conf.sep_mount);
     let root = std::env::current_dir()?.join(output_dir);
-    let packages = expand_package_list(packages);
     let total = packages.len();
     let start = Instant::now();
-    let exit_status = package_build_inner(&packages, instance, root)?;
+    let (exit_status, progress) = package_build_inner(&packages, instance, root)?;
     if exit_status != 0 {
-        // TODO: save state
+        let checkpoint = BuildCheckPoint {
+            packages,
+            progress,
+            attempts,
+            time_elapsed: 0,
+        };
+        dump_build_checkpoint(&checkpoint)?;
         return Ok(exit_status);
     }
     let duration = Duration::from_std(start.elapsed())?;
