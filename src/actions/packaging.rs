@@ -80,6 +80,33 @@ fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<
     expanded
 }
 
+#[inline]
+fn package_build_inner<P: AsRef<Path>>(packages: &[String], instance: &str, root: P) -> Result<i32> {
+    let total = packages.len();
+    for (index, package) in packages.into_iter().enumerate() {
+        // set terminal title, \r is for hiding the message if the terminal does not support the sequence
+        eprint!("\x1b]0;ciel: [{}/{}] {}\x07\r", index + 1, total, package);
+        // hopefully the sequence gets flushed together with the `info!` below
+        info!("[{}/{}] Building {}...", index + 1, total, package);
+        mount_fs(&instance)?;
+        info!("Refreshing local repository...");
+        repo::init_repo(root.as_ref(), Path::new(instance))?;
+        let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+        if status != 0 {
+            error!("Failed to update the OS before building packages");
+            return Ok(status);
+        }
+        let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
+        if status != 0 {
+            error!("Build failed with status: {}", status);
+            return Ok(status);
+        }
+        rollback_container(instance)?;
+    }
+
+    Ok(0)
+}
+
 /// Fetch all the source packages in one go
 pub fn package_fetch<'a, K: ExactSizeIterator<Item = &'a str>>(
     instance: &str,
@@ -139,25 +166,10 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     let packages = expand_package_list(packages);
     let total = packages.len();
     let start = Instant::now();
-    for (index, package) in packages.into_iter().enumerate() {
-        // set terminal title, \r is for hiding the message if the terminal does not support the sequence
-        eprint!("\x1b]0;ciel: [{}/{}] {}\x07\r", index + 1, total, package);
-        // hopefully the sequence gets flushed together with the `info!` below
-        info!("[{}/{}] Building {}...", index + 1, total, package);
-        mount_fs(&instance)?;
-        info!("Refreshing local repository...");
-        repo::init_repo(&root, Path::new(instance))?;
-        let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
-        if status != 0 {
-            error!("Failed to update the OS before building packages");
-            return Ok(status);
-        }
-        let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
-        if status != 0 {
-            error!("Build failed with status: {}", status);
-            return Ok(status);
-        }
-        rollback_container(instance)?;
+    let exit_status = package_build_inner(&packages, instance, root)?;
+    if exit_status != 0 {
+        // TODO: save state
+        return Ok(exit_status);
     }
     let duration = Duration::from_std(start.elapsed())?;
     eprintln!(
