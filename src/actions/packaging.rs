@@ -42,7 +42,8 @@ fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
     let current = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
-    let path = Path::new("./TREE").join(format!("{}-{}.ciel-ckpt", last_package, current));
+    fs::create_dir_all("./STATES")?;
+    let path = Path::new("./STATES").join(format!("{}-{}.ciel-ckpt", last_package, current));
     let mut f = File::create(&path)?;
     f.write_all(&save_state)?;
     info!("Ciel created a check-point: {}", path.display());
