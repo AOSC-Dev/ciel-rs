@@ -41,6 +41,9 @@ _ciel() {
             build)
                 cmd+="__build"
                 ;;
+            clean)
+                cmd+="__clean"
+                ;;
             commit)
                 cmd+="__commit"
                 ;;
@@ -135,7 +138,7 @@ _ciel() {
 
     case "${cmd}" in
         ciel)
-            opts=" -b -h -V -C  --batch --help --version   version init load-os update-os load-tree new list add del shell run config commit doctor build rollback down stop mount farewell repo help  ls  rm  sh  exec  umount  harakiri  localrepo"
+            opts=" -b -h -V -C  --batch --help --version   version init load-os update-os load-tree new list add del shell run config commit doctor build rollback down stop mount farewell repo clean help  ls  rm  sh  exec  umount  harakiri  localrepo"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts} $(_ciel_list_plugins)" -- "${cur}") )
                 return 0
@@ -170,7 +173,7 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts=" -h -V -i  --help --version "
+            opts=" -g -x -h -V -i -c  --offline --stage-select --help --version --resume  <PACKAGES>... "
             source .env 2>/dev/null || true
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && ! ${CIEL_INST} ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -182,6 +185,29 @@ _ciel() {
                     COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     return 0
                     ;;
+                --resume)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                    -c)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        ciel__clean)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                
                 *)
                     COMPREPLY=()
                     ;;
@@ -341,7 +367,7 @@ _ciel() {
             return 0
             ;;
         ciel__init)
-            opts=" -h -V --upgrade --help --version  "
+            opts=" -h -V  --upgrade --help --version  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

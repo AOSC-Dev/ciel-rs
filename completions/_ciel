@@ -195,11 +195,17 @@ _arguments "${_arguments_options[@]}" \
 (build)
 _arguments "${_arguments_options[@]}" \
 '-i+[Instance to build in]' \
+'(--stage-select)-c+[Continue from a Ciel checkpoint]' \
+'(--stage-select)--resume=[Continue from a Ciel checkpoint]' \
+'-g[Fetch source packages only]' \
+'-x[Disable network in the container during the build]' \
+'--offline[Disable network in the container during the build]' \
+'--stage-select[Select the starting point for a build]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
 '--version[Prints version information]' \
-':PACKAGES:_files' \
+'::PACKAGES:_files' \
 && ret=0
 ;;
 (rollback)
@@ -367,6 +373,14 @@ _arguments "${_arguments_options[@]}" \
     ;;
 esac
 ;;
+(clean)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 '-h[Prints help information]' \
@@ -404,6 +418,7 @@ _ciel_commands() {
 "mount:Mount all or specified instance" \
 "farewell:Remove everything related to CIEL!" \
 "repo:Local repository operations" \
+"clean:Clean all the output directories" \
 "help:Prints this message or the help of the given subcommand(s)" \
     )
     _describe -t commands 'ciel commands' commands "$@"
@@ -421,6 +436,13 @@ _ciel__build_commands() {
         
     )
     _describe -t commands 'ciel build commands' commands "$@"
+}
+(( $+functions[_ciel__clean_commands] )) ||
+_ciel__clean_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'ciel clean commands' commands "$@"
 }
 (( $+functions[_ciel__commit_commands] )) ||
 _ciel__commit_commands() {
