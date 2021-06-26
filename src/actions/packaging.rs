@@ -38,6 +38,7 @@ fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
         .packages
         .get(checkpoint.progress)
         .map_or("unknown".to_string(), |x| x.to_owned());
+    let last_package = last_package.replace('/', "_");
     let current = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();

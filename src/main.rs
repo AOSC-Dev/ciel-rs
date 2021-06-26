@@ -205,6 +205,10 @@ fn main() -> Result<()> {
             let mut state = None;
             if let Some(cont) = args.value_of("CONTINUE") {
                 state = Some(actions::load_build_checkpoint(cont)?);
+                let empty: Vec<&str> = Vec::new();
+                let status = actions::package_build(&instance, empty.into_iter(), state, offline)?;
+                println!("\x07"); // bell character
+                process::exit(status);
             }
             let packages = args.values_of("PACKAGES");
             if packages.is_none() {
