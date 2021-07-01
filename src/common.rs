@@ -1,8 +1,9 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use progress_streams::ProgressReader;
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
+use std::os::unix::prelude::MetadataExt;
 use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -86,6 +87,26 @@ pub fn ciel_init() -> Result<()> {
     f.write_all(CURRENT_CIEL_VERSION_STR.as_bytes())?;
 
     Ok(())
+}
+
+/// Find the ciel directory
+pub fn find_ciel_dir<P: AsRef<Path>>(start: P) -> Result<PathBuf> {
+    let start_path = fs::metadata(start.as_ref())?;
+    let start_dev = start_path.dev();
+    let mut current_dir = start.as_ref().to_path_buf();
+    loop {
+        current_dir = current_dir.join("..");
+        if !current_dir.exists() {
+            return Err(anyhow!("Hit filesystem ceiling!"));
+        }
+        let current_dev = current_dir.metadata()?.dev();
+        if current_dev != start_dev {
+            return Err(anyhow!("Hit filesystem boundary!"));
+        }
+        if current_dir.join(".ciel").is_dir() {
+            return Ok(current_dir);
+        }
+    }
 }
 
 pub fn is_instance_exists(instance: &str) -> bool {

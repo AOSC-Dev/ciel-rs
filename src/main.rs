@@ -66,9 +66,20 @@ fn main() -> Result<()> {
         println!("Please run me as root!");
         process::exit(1);
     }
-    let directory = args.value_of("C").unwrap_or(".");
+    let directory = if let Some(p) = args.value_of("C") {
+        Path::new(p).to_path_buf()
+    } else {
+        let result = common::find_ciel_dir(".");
+        if let Err(e) = result {
+            error!("Not a Ciel directory (or any parent directory up to the root): {}", e);
+            process::exit(1);
+        }
+        let path = result.unwrap();
+        info!("Selected Ciel directory: {}", path.canonicalize()?.display());
+        path
+    };
     // Switch to the target directory
-    std::env::set_current_dir(directory).unwrap();
+    std::env::set_current_dir(&directory).unwrap();
     // source .env file, ignore errors
     dotenv().ok();
     // get subcommands from command line parser
@@ -81,7 +92,7 @@ fn main() -> Result<()> {
     // Switch table
     match subcmd {
         ("farewell", _) => {
-            actions::farewell(Path::new(directory)).unwrap();
+            actions::farewell(&directory).unwrap();
         }
         ("init", Some(args)) => {
             if args.is_present("upgrade") {
@@ -93,7 +104,7 @@ fn main() -> Result<()> {
                 warn!("... try `ciel new` instead.");
             }
             print_error!({ common::ciel_init() });
-            info!("Initialized working directory at {}", directory);
+            info!("Initialized working directory at {}", directory.display());
         }
         ("load-tree", Some(args)) => {
             info!("Cloning abbs tree...");
