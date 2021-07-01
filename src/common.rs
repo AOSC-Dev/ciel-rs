@@ -95,7 +95,6 @@ pub fn find_ciel_dir<P: AsRef<Path>>(start: P) -> Result<PathBuf> {
     let start_dev = start_path.dev();
     let mut current_dir = start.as_ref().to_path_buf();
     loop {
-        current_dir = current_dir.join("..");
         if !current_dir.exists() {
             return Err(anyhow!("Hit filesystem ceiling!"));
         }
@@ -106,6 +105,7 @@ pub fn find_ciel_dir<P: AsRef<Path>>(start: P) -> Result<PathBuf> {
         if current_dir.join(".ciel").is_dir() {
             return Ok(current_dir);
         }
+        current_dir = current_dir.join("..");
     }
 }
 
