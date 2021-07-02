@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::style;
+use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path};
 
@@ -26,9 +26,10 @@ pub fn onboarding() -> Result<()> {
     info!("Before continuing, I need to ask you a few questions:");
     let config = config::ask_for_config(None)?;
     let mut init_instance: Option<String> = None;
-    if Confirm::with_theme(&theme)
-        .with_prompt("Do you want to add a new instance now?")
-        .interact()?
+    if user_attended()
+        && Confirm::with_theme(&theme)
+            .with_prompt("Do you want to add a new instance now?")
+            .interact()?
     {
         let name: String = Input::with_theme(&theme)
             .with_prompt("Name of the instance")
