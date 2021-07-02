@@ -1,6 +1,6 @@
 [package]
 name = "ciel-rs"
-version = "3.0.7"
+version = "3.0.8-alpha.0"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 edition = "2018"
