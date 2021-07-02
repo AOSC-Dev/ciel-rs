@@ -66,29 +66,24 @@ fn main() -> Result<()> {
         println!("Please run me as root!");
         process::exit(1);
     }
-    let directory = if let Some(p) = args.value_of("C") {
-        Path::new(p).to_path_buf()
-    } else {
-        let result = common::find_ciel_dir(".");
-        if let Err(e) = result {
-            error!("Not a Ciel directory (or any parent directory up to the root): {}", e);
-            process::exit(1);
-        }
-        let path = result.unwrap();
-        info!("Selected Ciel directory: {}", path.canonicalize()?.display());
-        path
-    };
+    let mut directory = Path::new(args.value_of("C").unwrap_or(".")).to_path_buf();
     // Switch to the target directory
     std::env::set_current_dir(&directory).unwrap();
-    // source .env file, ignore errors
-    dotenv().ok();
     // get subcommands from command line parser
     let subcmd = args.subcommand();
     // check if the workspace exists, except when the command is `init` or `new`
     if !["init", "new", "version"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
-        error!("This directory does not look like a Ciel workspace");
-        process::exit(1);
+        if directory == Path::new(".") {
+            directory = common::find_ciel_dir(".")?;
+            std::env::set_current_dir(&directory).unwrap();
+            info!("Selected Ciel directory: {}", directory.canonicalize()?.display());
+        } else {
+            error!("This directory does not look like a Ciel workspace");
+            process::exit(1);
+        }
     }
+    // source .env file, ignore errors
+    dotenv().ok();
     // Switch table
     match subcmd {
         ("farewell", _) => {
