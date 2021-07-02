@@ -75,8 +75,11 @@ fn main() -> Result<()> {
     if !["init", "new", "version"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
         if directory == Path::new(".") {
             directory = common::find_ciel_dir(".")?;
+            info!(
+                "Selected Ciel directory: {}",
+                style(directory.canonicalize()?.display()).cyan()
+            );
             std::env::set_current_dir(&directory).unwrap();
-            info!("Selected Ciel directory: {}", directory.canonicalize()?.display());
         } else {
             error!("This directory does not look like a Ciel workspace");
             process::exit(1);
