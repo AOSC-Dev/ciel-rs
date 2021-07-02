@@ -274,6 +274,9 @@ pub fn cleanup_outputs() -> Result<()> {
             fs::remove_dir_all(entry.path())?;
         }
     }
+    if Path::new("./SRCS").is_dir() {
+        fs::remove_dir_all("./SRCS")?;
+    }
     spinner.finish_with_message("Done.");
 
     Ok(())

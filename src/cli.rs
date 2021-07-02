@@ -138,7 +138,7 @@ pub fn build_cli() -> App<'static, 'static> {
         )
         .subcommand(
             SubCommand::with_name("clean")
-                .about("Clean all the output directories")
+                .about("Clean all the output directories and source cache directories")
         )
         .subcommands({
             let plugins = list_helpers();
