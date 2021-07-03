@@ -56,7 +56,7 @@ impl Default for CielConfig {
             local_sources: true,
             extra_options: Vec::new(),
             sep_mount: true,
-            volatile_mount: true,
+            volatile_mount: false,
         }
     }
 }
