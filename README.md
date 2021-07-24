@@ -20,7 +20,7 @@ PREFIX=/usr/local ./install-assets.sh
 ## Dependencies
 
 Building:
-- Rust w/ Cargo
+- Rust w/ Cargo (Rust 1.51.0+)
 - C compiler
 - make (when GCC LTO is used, not needed for Clang)
 
