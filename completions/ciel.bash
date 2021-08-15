@@ -1,16 +1,26 @@
 _ciel_list_instances() {
-    [ -d .ciel/container/instances ] || return
-    find .ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
+    local workdir="$(_ciel_find_ciel_workdir)"
+    [ -d "$workdir/".ciel/container/instances ] || return
+    find "$workdir/".ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
+}
+
+_ciel_find_ciel_workdir() {
+    local cur="$PWD"
+    while [ "$cur" != '/' ]; do
+        [ -d "$cur/".ciel ] && echo "$cur" && break
+        cur="$(dirname "$cur")"
+    done
 }
 
 _ciel_list_packages() {
-    [ -d TREE ] || return
-    local PGROUPS="$(find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
+    local workdir="$(_ciel_find_ciel_workdir)"
+    [ -d "$workdir/TREE" ] || return
+    local PGROUPS="$(find "$workdir/TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
     COMPREPLY+=($(compgen -W "$PGROUPS" -- "${1}"))
     if [[ "$1" == *'/'* ]]; then
         return
     fi
-    COMPREPLY+=($(find "TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -name "${1}*" -printf '%f\n'))
+    COMPREPLY+=($(find "$workdir/TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -name "${1}*" -printf '%f\n'))
 }
 
 _ciel_list_plugins() {
@@ -173,7 +183,7 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts=" -g -x -h -V -i -c  --offline --stage-select --help --version --resume  <PACKAGES>... "
+            opts=" -g -x -h -V -i -c  --offline --stage-select --help --version --resume"
             source .env 2>/dev/null || true
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && ! ${CIEL_INST} ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -198,6 +208,7 @@ _ciel() {
                     ;;
             esac
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            _ciel_list_packages "$cur"
             return 0
             ;;
         ciel__clean)
@@ -212,7 +223,6 @@ _ciel() {
                     COMPREPLY=()
                     ;;
             esac
-            _ciel_list_packages "$cur"
             return 0
             ;;
         ciel__commit)
