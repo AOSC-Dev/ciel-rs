@@ -1,19 +1,32 @@
+function __ciel_find_ciel_workdir
+    set cur (readlink -f $PWD)
+    while test "$cur" != "/"
+        if test -d "$cur/.ciel"
+            echo "$cur"
+            break
+        end
+        set cur (dirname $cur)
+    end
+end
+
 function __ciel_list_instances
-    if ! test -d .ciel/container/instances
+    set workdir (__ciel_find_ciel_workdir)
+    if ! test -d "$workdir/".ciel/container/instances
         return
     end
-    find .ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\tInstance\n'
+    find "$workdir/".ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\tInstance\n'
 end
 
 function __ciel_list_packages
-    if ! test -d TREE
+    set workdir (__ciel_find_ciel_workdir)
+    if ! test -d "$workdir/"TREE
         return
     end
-    find "TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n'
+    find "$workdir/TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n'
     if string match -q -- "*/*" "$current"
         return
     end
-    find "TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -printf '%f\n'
+    find "$workdir/TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -printf '%f\n'
 end
 
 function __ciel_list_plugins
