@@ -23,8 +23,8 @@ git2 = "0.13"
 tar = "0.4"
 xz2 = "0.1"
 progress-streams = "1.1"
-libmount = { git = "https://github.com/liushuyu/libmount", rev = "21ec3bb5372b2c8d1922dd393f6be634f03b48c3" }
-nom = "6.1"
+libmount = { git = "https://github.com/liushuyu/libmount", rev = "d341f554fa11876b37dc0dc906e1a6b8b1010e37" }
+nom = "^7"
 libc = "0.2"
 adler32 = "1.2"
 rayon = "1.5"
@@ -43,7 +43,7 @@ chrono = "0.4"
 fs3 = "0.5"
 clap = "2.33"
 # repo scan
-ar = "0.8"
+ar = "0.9"
 faster-hex = "0.6"
 flate2 = "1.0"
 
