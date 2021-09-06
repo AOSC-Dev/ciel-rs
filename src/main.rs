@@ -11,6 +11,9 @@ mod network;
 mod overlayfs;
 mod repo;
 
+#[cfg(feature = "rpc")]
+mod rpc;
+
 use anyhow::{anyhow, Result};
 use clap::{crate_version, ArgMatches};
 use console::style;
@@ -279,6 +282,17 @@ fn main() -> Result<()> {
         }
         ("version", _) => {
             println!("{}", crate_version!());
+        }
+        ("rpc", Some(args)) => {
+            #[cfg(not(feature = "rpc"))]
+            {
+                error!("This version of CIEL! was not compiled with RPC feature!");
+                process::exit(1);
+            }
+            #[cfg(feature = "rpc")]
+            {
+                todo!("to be implemented")
+            }
         }
         // catch all other conditions
         (_, options) => {

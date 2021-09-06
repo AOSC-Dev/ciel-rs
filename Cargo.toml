@@ -46,6 +46,10 @@ clap = "2.33"
 ar = "0.9"
 faster-hex = "0.6"
 flate2 = "1.0"
+# rpc
+tarpc = { version = "0.26", features = ["serde1", "tokio1", "serde-transport"], optional = true }
+tokio = { version = "^1", features = ["rt", "net"], optional = true }
+tokio-serde = { version = "0.8", features = ["bincode"], optional = true }
 
 [build-dependencies]
 dbus-codegen = "0.9"
@@ -54,8 +58,8 @@ anyhow = "1.0"
 cc = "1.0"
 
 [features]
-default = []
-rpc = []
+default = ["rpc"]
+rpc = ["tarpc", "tokio", "tokio-serde"]
 
 [profile.release]
 lto = true

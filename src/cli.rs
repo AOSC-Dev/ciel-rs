@@ -140,6 +140,11 @@ pub fn build_cli() -> App<'static, 'static> {
             SubCommand::with_name("clean")
                 .about("Clean all the output directories and source cache directories")
         )
+        .subcommand(
+            SubCommand::with_name("rpc")
+                .arg(Arg::with_name("PATH").required(true).takes_value(true).help("Path to the RPC socket to bind to."))
+                .about("Remote controlling functions")
+        )
         .subcommands({
             let plugins = list_helpers();
             if let Ok(plugins) = plugins {
