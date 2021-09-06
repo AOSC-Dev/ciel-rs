@@ -12,6 +12,11 @@ _ciel_find_ciel_workdir() {
     done
 }
 
+_ciel_source_env() {
+    local workdir="$(_ciel_find_ciel_workdir)"
+    [ -d "$workdir/.env" ] && source "$workdir/.env"
+}
+
 _ciel_list_packages() {
     local workdir="$(_ciel_find_ciel_workdir)"
     [ -d "$workdir/TREE" ] || return
