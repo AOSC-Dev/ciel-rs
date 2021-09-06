@@ -189,7 +189,7 @@ _ciel() {
             ;;
         ciel__build)
             opts=" -g -x -h -V -i -c  --offline --stage-select --help --version --resume"
-            source .env 2>/dev/null || true
+            _ciel_source_env 2>/dev/null || true
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && ! ${CIEL_INST} ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
