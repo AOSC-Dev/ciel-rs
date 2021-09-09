@@ -22,6 +22,9 @@ WHITELIST="^/tree
     ALL_FILES="$(mktemp)"
     RM_FILES="$(mktemp)"
     PATTERN_FILES="$(mktemp)"
+    echo 'Un-mounting bind-mounts ...'
+    umount /debs || true
+    umount /var/cache/acbs/tarballs || true
     echo 'Listing dpkg packages ...'
     PACKAGES="$(dpkg-query --show --showformat="\${Package}\n")"
     echo 'Collecting files from dpkg ...'
