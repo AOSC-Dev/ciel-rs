@@ -150,15 +150,27 @@ pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     instance: &str,
     packages: K,
     offline: bool,
+    start_package: Option<&str>,
 ) -> Result<i32> {
     let packages = expand_package_list(packages);
-    eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .default(0)
-        .with_prompt("Choose one package to start building from")
-        .paged(true)
-        .items(&packages)
-        .interact()?;
+
+    let selection = if let Some(start_package) = start_package {
+        packages
+            .iter()
+            .position(|x| {
+                x == start_package || x.splitn(2, '/').next().unwrap_or("") == start_package
+            })
+            .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?
+    } else {
+        eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
+
+        Select::with_theme(&ColorfulTheme::default())
+            .default(0)
+            .with_prompt("Choose one package to start building from")
+            .paged(true)
+            .items(&packages)
+            .interact()?
+    };
     let empty: Vec<&str> = Vec::new();
 
     package_build(
