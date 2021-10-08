@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+info() {
+    echo -e "\e[1m\e[96m[factory-reset]:\e[0m\e[1m $1\e[0m"
+}
+
 remove_files () {
 WHITELIST="^/tree
 ^/dev
@@ -22,12 +26,12 @@ WHITELIST="^/tree
     ALL_FILES="$(mktemp)"
     RM_FILES="$(mktemp)"
     PATTERN_FILES="$(mktemp)"
-    echo 'Un-mounting bind-mounts ...'
+    info '[1/4] Un-mounting bind-mounts ...'
     umount /debs || true
     umount /var/cache/acbs/tarballs || true
-    echo 'Listing dpkg packages ...'
+    info '[2/4] Listing dpkg packages ...'
     PACKAGES="$(dpkg-query --show --showformat="\${Package}\n")"
-    echo 'Collecting files from dpkg ...'
+    info '[3/4] Collecting files from dpkg ...'
     find / -mindepth 2 >> "$ALL_FILES"
     for p in $PACKAGES; do
         dpkg-query --listfiles "$p" >> "$DPKG_FILES"
@@ -36,7 +40,7 @@ WHITELIST="^/tree
     grep -vEf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
     mv "${ALL_FILES}.new" "$ALL_FILES"
     grep -vxFf "$DPKG_FILES" < "$ALL_FILES" > "$RM_FILES"
-    echo 'Removing files ...'
+    info '[4/4] Removing files ...'
     xargs -L 1000 -a "$RM_FILES" rm -rfv
     rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
 }
