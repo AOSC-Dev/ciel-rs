@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use chrono::Duration;
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Select};
 use serde::{Deserialize, Serialize};
@@ -52,8 +51,7 @@ fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
 }
 
 #[inline]
-fn format_duration(duration: Duration) -> String {
-    let seconds = duration.num_seconds();
+fn format_duration(seconds: u64) -> String {
     format!(
         "{:02}:{:02}:{:02}",
         seconds / 3600,
@@ -265,7 +263,7 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
         dump_build_checkpoint(&checkpoint)?;
         return Ok(exit_status);
     }
-    let duration = Duration::from_std(start.elapsed())?;
+    let duration = start.elapsed().as_secs();
     eprintln!(
         "{} - {} packages in {}",
         style("BUILD SUCCESSFUL").bold().green(),
@@ -296,6 +294,6 @@ pub fn cleanup_outputs() -> Result<()> {
 
 #[test]
 fn test_time_format() {
-    let test_dur = Duration::seconds(3661);
+    let test_dur = 3661;
     assert_eq!(format_duration(test_dur), "01:01:01");
 }

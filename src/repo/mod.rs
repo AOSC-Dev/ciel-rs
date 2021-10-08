@@ -2,13 +2,16 @@
 
 use crate::info;
 use anyhow::Result;
-use chrono::prelude::*;
 use console::style;
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::{fs, io, path::Path};
+use time::{format_description::FormatItem, macros::format_description, OffsetDateTime};
 
 mod scan;
+
+/// Debian 822 date: "%a, %d %b %Y %H:%M:%S %z"
+const DEB822_DATE: &[FormatItem] = format_description!("[weekday repr:short], [day] [month repr:short] [year] [hour repr:24]:[minute]:[second] [offset_hour sign:mandatory][offset_minute]");
 
 fn generate_release(path: &Path) -> Result<String> {
     let mut f = fs::File::open(path.join("Packages"))?;
@@ -16,7 +19,7 @@ fn generate_release(path: &Path) -> Result<String> {
     io::copy(&mut f, &mut hasher)?;
     let result = hasher.finalize();
     let meta = f.metadata()?;
-    let timestamp = Utc::now().format("%a, %d %b %Y %X %z");
+    let timestamp = OffsetDateTime::now_utc().format(&DEB822_DATE)?;
 
     Ok(format!(
         "Date: {}\nSHA256:\n {:x} {} Packages\n",

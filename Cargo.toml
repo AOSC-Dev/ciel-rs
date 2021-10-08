@@ -6,14 +6,13 @@ authors = ["liushuyu <liushuyu011@gmail.com>"]
 resolver = "2"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 console = "0.14"
 dbus = "0.9"
 dialoguer = "0.8"
 indicatif = "0.16"
-nix = "0.22"
+nix = "0.23"
 lazy_static = "1.4"
 toml = "0.5"
 bincode = "1.3"
@@ -23,13 +22,11 @@ git2 = "0.13"
 tar = "0.4"
 xz2 = "0.1"
 progress-streams = "1.1"
-libmount = { git = "https://github.com/liushuyu/libmount", rev = "d341f554fa11876b37dc0dc906e1a6b8b1010e37" }
+libmount = { git = "https://github.com/liushuyu/libmount", rev = "a8ee44c5dc887ee42cbe18917f8aec2d627441bf" }
 nom = "^7"
 libc = "0.2"
 adler32 = "1.2"
 rayon = "1.5"
-termcolor = "1.1"
-terminal_size = "0.1"
 tempfile = "3.2"
 anyhow = "1.0"
 libsystemd-sys = "0.9"
@@ -39,7 +36,7 @@ rand = "0.8"
 dotenv = "0.15"
 which = "4.0"
 sha2 = "0.9"
-chrono = "0.4"
+time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
 clap = "2.33"
 # repo scan
