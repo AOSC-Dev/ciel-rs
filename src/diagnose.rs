@@ -133,7 +133,7 @@ pub fn run_diagnose() -> Result<()> {
                     lines.push(format!(
                         "{} {}",
                         style("!").yellow(),
-                        style(msg.strip_prefix("!").unwrap()).yellow().bold()
+                        style(msg.strip_prefix('!').unwrap()).yellow().bold()
                     ));
                     continue;
                 }

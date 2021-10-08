@@ -209,7 +209,7 @@ impl LayerManager for OverlayFS {
 
     /// is_mounted: check if a path is a mountpoint with corresponding fs_type
     fn is_mounted(&self, target: &Path) -> Result<bool> {
-        is_mounted(target, &OsStr::new("overlay"))
+        is_mounted(target, OsStr::new("overlay"))
     }
 
     fn rollback(&mut self) -> Result<()> {

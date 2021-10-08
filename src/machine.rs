@@ -300,7 +300,7 @@ pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<()> {
 /// Get the information of the container specified
 pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     let full_path = std::env::current_dir()?.join(name);
-    let mounted = is_mounted(&full_path, &OsStr::new("overlay"))?;
+    let mounted = is_mounted(&full_path, OsStr::new("overlay"))?;
     let conn = Connection::new_system()?;
     let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
     let path = proxy.get_machine(ns_name);

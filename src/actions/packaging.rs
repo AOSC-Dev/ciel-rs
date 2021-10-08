@@ -120,20 +120,20 @@ fn package_build_inner<P: AsRef<Path>>(
     root: P,
 ) -> Result<(i32, usize)> {
     let total = packages.len();
-    for (index, package) in packages.into_iter().enumerate() {
+    for (index, package) in packages.iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
         eprint!("\x1b]0;ciel: [{}/{}] {}\x07\r", index + 1, total, package);
         // hopefully the sequence gets flushed together with the `info!` below
         info!("[{}/{}] Building {}...", index + 1, total, package);
-        mount_fs(&instance)?;
+        mount_fs(instance)?;
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
-        let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+        let status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
         if status != 0 {
             error!("Failed to update the OS before building packages");
             return Ok((status, index));
         }
-        let status = run_in_container(instance, &["/bin/acbs-build", "--", &package])?;
+        let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
         if status != 0 {
             error!("Build failed with status: {}", status);
             return Ok((status, index));
@@ -199,7 +199,7 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
     rollback_container(instance)?;
 
     let mut cmd = vec!["/bin/acbs-build", "-g", "--"];
-    cmd.extend(packages.into_iter().map(|p| p.as_ref()));
+    cmd.extend(packages.iter().map(|p| p.as_ref()));
     let status = run_in_container(instance, &cmd)?;
 
     Ok(status)
@@ -232,7 +232,7 @@ pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
 
     if offline || std::env::var("CIEL_OFFLINE").is_ok() {
         info!("Preparing offline mode. Fetching source packages first ...");
-        package_fetch(&instance, &packages)?;
+        package_fetch(instance, &packages)?;
         std::env::set_var("CIEL_OFFLINE", "ON");
         // FIXME: does not work with current version of systemd
         info!("Running in offline mode. Network access disabled.");
