@@ -2,10 +2,10 @@
 # Usage: ciel-switchmirror <mirror name in apt-gen-list>
 
 export CIEL_INST="ciel--switchmirror--"
-export CIEL_BATCH_MODE="true"
 
 ciel add "$CIEL_INST"
-ciel shell "apt-gen-list m $1"
+echo -e "\e[1m\e[96m[switch-mirror]:\e[0m\e[1m Mirror set to '$1'\e[0m"
+ciel shell "apt-gen-list set-mirror $1"
 ciel factory-reset
 ciel commit
 ciel del "$CIEL_INST"
