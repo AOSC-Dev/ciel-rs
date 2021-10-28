@@ -165,7 +165,6 @@ pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
         Select::with_theme(&ColorfulTheme::default())
             .default(0)
             .with_prompt("Choose one package to start building from")
-            .paged(true)
             .items(&packages)
             .interact()?
     };
