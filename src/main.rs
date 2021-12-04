@@ -227,8 +227,13 @@ fn main() -> Result<()> {
             let packages = packages.unwrap();
             if args.is_present("SELECT") {
                 let start_package = args.value_of("SELECT");
-                let status =
-                    actions::packages_stage_select(&instance, packages, offline, start_package)?;
+                let status = actions::packages_stage_select(
+                    &instance,
+                    packages,
+                    offline,
+                    start_package,
+                    args.is_present("SELECT_NEXT"),
+                )?;
                 process::exit(status);
             }
             if args.is_present("FETCH") {

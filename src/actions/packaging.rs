@@ -149,16 +149,29 @@ pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     packages: K,
     offline: bool,
     start_package: Option<&str>,
+    is_next: bool,
 ) -> Result<i32> {
     let packages = expand_package_list(packages);
 
     let selection = if let Some(start_package) = start_package {
-        packages
+        let point = packages
             .iter()
             .position(|x| {
                 x == start_package || x.splitn(2, '/').next().unwrap_or("") == start_package
             })
-            .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?
+            .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?;
+
+        if is_next {
+            if point + 1 > packages.len() {
+                return Err(anyhow!(
+                    "The selected point is beyond the boundary of the list!"
+                ));
+            }
+
+            point + 1
+        } else {
+            point
+        }
     } else {
         eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
 

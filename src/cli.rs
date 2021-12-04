@@ -101,6 +101,7 @@ pub fn build_cli() -> App<'static, 'static> {
                 .arg(Arg::with_name("INSTANCE").short("i").takes_value(true).help("Instance to build in"))
                 .arg(Arg::with_name("CONTINUE").conflicts_with("SELECT").short("c").long("resume").alias("continue").takes_value(true).help("Continue from a Ciel checkpoint"))
                 .arg(Arg::with_name("SELECT").max_values(1).min_values(0).long("stage-select").help("Select the starting point for a build"))
+                .arg(Arg::with_name("SELECT_NEXT").long("next").requires("SELECT").help("Build from a point below the start point"))
                 .arg(Arg::with_name("PACKAGES").conflicts_with("CONTINUE").min_values(1))
                 .about("Build the packages using the specified instance"),
         )
