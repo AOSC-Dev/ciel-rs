@@ -35,7 +35,7 @@ xattr = "0.2"
 rand = "0.8"
 dotenv = "0.15"
 which = "4.0"
-sha2 = "0.9"
+sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
 clap = "2.33"

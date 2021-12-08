@@ -7,7 +7,8 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
     path::Path,
-    time::Instant,
+    thread::sleep,
+    time::{Duration, Instant},
 };
 use walkdir::WalkDir;
 
@@ -139,7 +140,17 @@ fn package_build_inner<P: AsRef<Path>>(
         mount_fs(instance)?;
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
-        let status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
+        let mut status = -1;
+        for i in 1..=5 {
+            status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT]).unwrap_or(-1);
+            if status == 0 {
+                break;
+            } else {
+                let interval = 3u64.pow(i);
+                warn!("Failed to update the OS, will retry in {} seconds ...", interval);
+                sleep(Duration::from_secs(interval));
+            }
+        }
         if status != 0 {
             error!("Failed to update the OS before building packages");
             return Ok((status, index));
