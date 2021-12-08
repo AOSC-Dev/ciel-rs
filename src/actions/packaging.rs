@@ -122,7 +122,8 @@ fn package_build_inner<P: AsRef<Path>>(
 ) -> Result<(i32, usize)> {
     let total = packages.len();
     let mut buf = [0u8; 64];
-    let hostname = gethostname(&mut buf)?.to_str()?;
+    let hostname = gethostname(&mut buf)
+        .map_or_else(|_| "unknown", |s| s.to_str().unwrap_or_else(|_| "unknown"));
     for (index, package) in packages.iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
         eprint!(
