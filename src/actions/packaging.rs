@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Select};
+use nix::unistd::gethostname;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, File},
@@ -120,9 +121,18 @@ fn package_build_inner<P: AsRef<Path>>(
     root: P,
 ) -> Result<(i32, usize)> {
     let total = packages.len();
+    let mut buf = [0u8; 64];
+    let hostname = gethostname(&mut buf)?.to_str()?;
     for (index, package) in packages.iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
-        eprint!("\x1b]0;ciel: [{}/{}] {}\x07\r", index + 1, total, package);
+        eprint!(
+            "\x1b]0;ciel: [{}/{}] {} ({}@{})\x07\r",
+            index + 1,
+            total,
+            package,
+            instance,
+            hostname
+        );
         // hopefully the sequence gets flushed together with the `info!` below
         info!("[{}/{}] Building {}...", index + 1, total, package);
         mount_fs(instance)?;
