@@ -12,7 +12,7 @@ mod overlayfs;
 mod repo;
 
 use anyhow::{anyhow, Result};
-use clap::{crate_version, ArgMatches};
+use clap::ArgMatches;
 use console::style;
 use dotenv::dotenv;
 use std::process;
@@ -71,6 +71,11 @@ fn main() -> Result<()> {
     std::env::set_current_dir(&directory).unwrap();
     // get subcommands from command line parser
     let subcmd = args.subcommand();
+    if subcmd.is_none() {
+        machine::print_instances()?;
+        return Ok(());
+    }
+    let subcmd = subcmd.unwrap();
     // check if the workspace exists, except when the command is `init` or `new`
     if !["init", "new", "version"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
         if directory == Path::new(".") {
@@ -92,7 +97,7 @@ fn main() -> Result<()> {
         ("farewell", _) => {
             actions::farewell(&directory).unwrap();
         }
-        ("init", Some(args)) => {
+        ("init", args) => {
             if args.is_present("upgrade") {
                 info!("Upgrading workspace...");
                 info!("First, shutting down all the instances...");
@@ -104,14 +109,14 @@ fn main() -> Result<()> {
             print_error!({ common::ciel_init() });
             info!("Initialized working directory at {}", directory.display());
         }
-        ("load-tree", Some(args)) => {
+        ("load-tree", args) => {
             info!("Cloning abbs tree...");
             network::download_git(
                 args.value_of("url").unwrap_or(network::GIT_TREE_URL),
                 Path::new("TREE"),
             )?;
         }
-        ("load-os", Some(args)) => {
+        ("load-os", args) => {
             let url = args.value_of("url");
             if let Some(url) = url {
                 // load from network using specified url
@@ -152,7 +157,7 @@ fn main() -> Result<()> {
         ("update-os", _) => {
             print_error!({ actions::update_os() });
         }
-        ("config", Some(args)) => {
+        ("config", args) => {
             if args.is_present("g") {
                 print_error!({ actions::config_os(None) });
                 return Ok(());
@@ -160,7 +165,7 @@ fn main() -> Result<()> {
             let instance = get_instance_option(args)?;
             print_error!({ actions::config_os(Some(&instance)) });
         }
-        ("mount", Some(args)) => {
+        ("mount", args) => {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });
         }
         ("new", _) => {
@@ -169,14 +174,14 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
         }
-        ("run", Some(args)) => {
+        ("run", args) => {
             let instance = get_instance_option(args)?;
             let cmd = args.values_of("COMMANDS").unwrap();
             let args: Vec<&str> = cmd.into_iter().collect();
             let status = actions::run_in_container(&instance, &args)?;
             process::exit(status);
         }
-        ("shell", Some(args)) => {
+        ("shell", args) => {
             let instance = get_instance_option(args)?;
             if let Some(cmd) = args.values_of("COMMANDS") {
                 let command = cmd.into_iter().collect::<Vec<&str>>().join(" ");
@@ -186,29 +191,29 @@ fn main() -> Result<()> {
             let status = actions::run_in_container(&instance, &["/bin/bash"])?;
             process::exit(status);
         }
-        ("stop", Some(args)) => {
+        ("stop", args) => {
             let instance = get_instance_option(args)?;
             print_error!({ actions::stop_container(&instance) });
         }
-        ("down", Some(args)) => {
+        ("down", args) => {
             print_error!({ one_or_all_instance!(args, &actions::container_down) });
         }
-        ("commit", Some(args)) => {
+        ("commit", args) => {
             let instance = get_instance_option(args)?;
             print_error!({ actions::commit_container(&instance) });
         }
-        ("rollback", Some(args)) => {
+        ("rollback", args) => {
             print_error!({ one_or_all_instance!(args, &actions::rollback_container) });
         }
-        ("del", Some(args)) => {
+        ("del", args) => {
             let instance = args.value_of("INSTANCE").unwrap();
             print_error!({ actions::remove_instance(instance) });
         }
-        ("add", Some(args)) => {
+        ("add", args) => {
             let instance = args.value_of("INSTANCE").unwrap();
             print_error!({ actions::add_instance(instance) });
         }
-        ("build", Some(args)) => {
+        ("build", args) => {
             let instance = get_instance_option(args)?;
             let offline = args.is_present("OFFLINE");
             let mut state = None;
@@ -248,15 +253,15 @@ fn main() -> Result<()> {
         ("doctor", _) => {
             print_error!({ diagnose::run_diagnose() });
         }
-        ("repo", Some(args)) => match args.subcommand() {
-            ("refresh", _) => {
+        ("repo", args) => match args.subcommand() {
+            Some(("refresh", _)) => {
                 info!("Refreshing repository...");
                 print_error!({
                     repo::refresh_repo(&std::env::current_dir().unwrap().join(get_output_dir()))
                 });
                 info!("Repository has been refreshed.");
             }
-            ("init", Some(args)) => {
+            Some(("init", args)) => {
                 info!("Initializing repository...");
                 let instance = get_instance_option(args)?;
                 let cwd = std::env::current_dir().unwrap();
@@ -264,7 +269,7 @@ fn main() -> Result<()> {
                 print_error!({ repo::init_repo(&cwd.join(get_output_dir()), &cwd.join(instance)) });
                 info!("Repository has been initialized and refreshed.");
             }
-            ("deinit", Some(args)) => {
+            Some(("deinit", args)) => {
                 info!("Disabling local repository...");
                 let instance = get_instance_option(args)?;
                 let cwd = std::env::current_dir().unwrap();
@@ -272,21 +277,19 @@ fn main() -> Result<()> {
                 print_error!({ repo::deinit_repo(&cwd.join(instance)) });
                 info!("Repository has been disabled.");
             }
-            _ => {
-                println!("{}", args.usage());
-            }
+            _ => unreachable!(),
         },
         ("clean", _) => {
             print_error!({ actions::cleanup_outputs() });
         }
         ("version", _) => {
-            println!("{}", crate_version!());
+            println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         }
         // catch all other conditions
         (_, options) => {
             let exe_dir = std::env::current_exe()?;
             let exe_dir = exe_dir.parent().expect("Where am I?");
-            let cmd = args.subcommand().0;
+            let cmd = args.subcommand().unwrap().0;
             let plugin = exe_dir
                 .join("../libexec/ciel-plugin/")
                 .join(format!("ciel-{}", cmd));
@@ -296,10 +299,8 @@ fn main() -> Result<()> {
             }
             info!("Executing plugin ciel-{}", cmd);
             let mut process = &mut Command::new(plugin);
-            if let Some(args) = options {
-                if let Some(args) = args.values_of("COMMANDS") {
-                    process = process.args(args.collect::<Vec<&str>>());
-                }
+            if let Some(args) = options.values_of("COMMANDS") {
+                process = process.args(args.collect::<Vec<&str>>());
             }
             process::exit(process.status().unwrap().code().unwrap());
         }

@@ -1,6 +1,7 @@
 [package]
 name = "ciel-rs"
 version = "3.0.15"
+description = "An nspawn container manager"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 resolver = "2"
@@ -38,7 +39,7 @@ which = "4.0"
 sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
-clap = "2.33"
+clap = { version = "^3", features = ["wrap_help"] }
 # repo scan
 ar = "0.9"
 faster-hex = "0.6"
@@ -46,7 +47,8 @@ flate2 = "1.0"
 
 [build-dependencies]
 dbus-codegen = "0.10"
-clap = "2.33"
+clap = "^3"
+clap_complete = "^3"
 anyhow = "1.0"
 cc = "1.0"
 
