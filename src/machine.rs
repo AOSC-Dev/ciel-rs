@@ -171,6 +171,7 @@ pub fn spawn_container<P: AsRef<Path>>(
         .args(DEFAULT_NSPAWN_OPTIONS)
         .args(extra_options)
         .args(&["-D", path, "-M", ns_name, "--"])
+        .env("SYSTEMD_NSPAWN_TMPFS_TMP", "0")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()?;
