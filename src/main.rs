@@ -297,12 +297,16 @@ fn main() -> Result<()> {
                 error!("Unknown command: `{}`.", cmd);
                 process::exit(1);
             }
-            info!("Executing plugin ciel-{}", cmd);
+            info!("Executing applet ciel-{}", cmd);
             let mut process = &mut Command::new(plugin);
             if let Some(args) = options.values_of("COMMANDS") {
                 process = process.args(args.collect::<Vec<&str>>());
             }
-            process::exit(process.status().unwrap().code().unwrap());
+            let status = process.status().unwrap().code().unwrap();
+            if status != 0 {
+                error!("Applet exited with error {}", status);
+            }
+            process::exit(status);
         }
     }
 

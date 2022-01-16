@@ -147,7 +147,10 @@ fn package_build_inner<P: AsRef<Path>>(
                 break;
             } else {
                 let interval = 3u64.pow(i);
-                warn!("Failed to update the OS, will retry in {} seconds ...", interval);
+                warn!(
+                    "Failed to update the OS, will retry in {} seconds ...",
+                    interval
+                );
                 sleep(Duration::from_secs(interval));
             }
         }

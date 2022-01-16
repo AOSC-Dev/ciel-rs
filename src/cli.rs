@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use clap::{App, Arg, AppSettings};
+use clap::{App, AppSettings, Arg};
 use std::ffi::OsStr;
 
 /// List all the available plugins/helper scripts
@@ -147,7 +147,7 @@ pub fn build_cli() -> App<'static> {
             if let Ok(plugins) = plugins {
                 plugins.iter().map(|plugin| {
                     App::new(plugin.strip_prefix("ciel-").unwrap_or("???"))
-                    .arg(Arg::new("COMMANDS").required(false).min_values(1).help("Plugin specific commands"))
+                    .arg(Arg::new("COMMANDS").required(false).min_values(1).help("Applet specific commands"))
                     .about("")
                 }).collect()
             } else {
