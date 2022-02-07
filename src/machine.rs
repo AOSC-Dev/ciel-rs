@@ -206,19 +206,6 @@ pub(crate) fn clean_child_process() {
     unsafe { waitpid(-1, &mut status, WNOHANG) };
 }
 
-fn poweroff_container(proxy: &Proxy<&Connection>) -> Result<()> {
-    // +4 for systemd poweroff signal
-    let poweroff;
-    // unsafe due to use of external functions
-    unsafe {
-        // only works with systemd
-        poweroff = SYS_SIGRTMIN() + 4;
-    }
-    proxy.kill("leader", poweroff)?;
-
-    Ok(())
-}
-
 fn kill_container(proxy: &Proxy<&Connection>) -> Result<()> {
     proxy.kill("all", libc::SIGKILL)?;
     proxy.terminate()?;
@@ -246,15 +233,13 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     Ok(false)
 }
 
-fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
-    if !is_booted(proxy)? {
-        // with normal container, just kill it
+fn terminate_container(ns_name: &str, proxy: &Proxy<&Connection>) -> Result<()> {
+    if !execute_container_command(ns_name, &["poweroff"]).is_err() {
+        // failed to power the container off gracefully, violently kill it
         kill_container(proxy)?;
         proxy.terminate()?;
     } else {
-        // with booted container, we want to power it off gracefully ...
-        poweroff_container(proxy)?;
-
+        // Wait whether the container is properly shut down
         for _ in 0..10 {
             if proxy.state().is_err() {
                 // machine object no longer exists
@@ -289,7 +274,7 @@ pub fn terminate_container_by_name(ns_name: &str) -> Result<()> {
     let path = proxy.get_machine(ns_name)?;
     let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
 
-    terminate_container(&proxy)
+    terminate_container(ns_name, &proxy)
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name
