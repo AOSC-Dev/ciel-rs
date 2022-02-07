@@ -36,8 +36,6 @@ fn main() {
     let machine1_machine = fs::read_to_string(MACHINE1_MACHINE_DEF).expect("");
     generate_dbus_binding(machine1, "dbus_machine1.rs");
     generate_dbus_binding(machine1_machine, "dbus_machine1_machine.rs");
-    cc::Build::new().file("src/syscall.c").compile("ciel-c");
-    println!("cargo:rerun-if-changed=src/syscall.c");
     println!("cargo:rerun-if-changed=dbus-xml/org.freedesktop.machine1.xml");
     println!("cargo:rerun-if-changed=dbus-xml/org.freedesktop.machine1-machine.xml");
     println!("cargo:rerun-if-env-changed=CIEL_GEN_COMPLETIONS");
