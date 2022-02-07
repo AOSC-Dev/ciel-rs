@@ -181,7 +181,8 @@ pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
         packages
             .iter()
             .position(|x| {
-                x == start_package || x.splitn(2, '/').next().unwrap_or("") == start_package
+                x == start_package
+                    || x.splitn(2, '/').nth(1) == Some(&start_package)
             })
             .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?
     } else {
