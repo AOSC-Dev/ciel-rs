@@ -249,29 +249,34 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
 fn terminate_container(proxy: &Proxy<&Connection>) -> Result<()> {
     if !is_booted(proxy)? {
         // with normal container, just kill it
+        kill_container(proxy)?;
         proxy.terminate()?;
-        return Ok(());
-    }
+    } else {
+        // with booted container, we want to power it off gracefully ...
+        poweroff_container(proxy)?;
 
-    // with booted container, we want to power it off gracefully ...
-    poweroff_container(proxy)?;
+        for _ in 0..10 {
+            if proxy.state().is_err() {
+                // machine object no longer exists
+                return Ok(());
+            }
+            sleep(Duration::from_secs(1));
+        }
+        // still did not poweroff?
+        warn!("Container did not respond to the poweroff command correctly...");
+        warn!("Killing the container by sending SIGKILL...");
+        // okay then, as you wish, there goes the nuke
+        kill_container(proxy)?;
+        proxy.terminate().ok();
+     }
+
+    // status re-check, in the event of I/O problems, the container may still be running (stuck)
     for _ in 0..10 {
         if proxy.state().is_err() {
             // machine object no longer exists
             return Ok(());
         }
         sleep(Duration::from_secs(1));
-    }
-    // still did not poweroff?
-    warn!("Container did not respond to the poweroff command correctly...");
-    warn!("Killing the container by sending SIGKILL...");
-    // okay then, as you wish, there goes the nuke
-    kill_container(proxy)?;
-    proxy.terminate().ok();
-    // status re-check, in the event of I/O problems, the container may still be running (stuck)
-    if proxy.state().is_err() {
-        // machine object no longer exists
-        return Ok(());
     }
 
     Err(anyhow!("Failed to kill the container! This may indicate a problem with your I/O, see dmesg or journalctl for more details."))
