@@ -11,7 +11,7 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Result, Context};
 use clap::ArgMatches;
 use console::style;
 use dotenv::dotenv;
@@ -71,25 +71,30 @@ fn main() -> Result<()> {
     std::env::set_current_dir(&directory).unwrap();
     // get subcommands from command line parser
     let subcmd = args.subcommand();
+    // check if the workspace exists, except when the command is `init` or `new`
+    match subcmd {
+        Some(("init", _)) | Some(("new", _)) | Some(("version", _)) => (),
+        _ if !Path::new("./.ciel").is_dir() => {
+            if directory == Path::new(".") {
+                directory = common::find_ciel_dir(".").context("Error finding ciel workspace directory")?;
+                info!(
+                    "Selected Ciel directory: {}",
+                    style(directory.canonicalize()?.display()).cyan()
+                );
+                std::env::set_current_dir(&directory).unwrap();
+            } else {
+                error!("This directory does not look like a Ciel workspace");
+                process::exit(1);
+            }
+        }
+        _ => (),
+    }
+    // list instances if no command is specified
     if subcmd.is_none() {
         machine::print_instances()?;
         return Ok(());
     }
     let subcmd = subcmd.unwrap();
-    // check if the workspace exists, except when the command is `init` or `new`
-    if !["init", "new", "version"].contains(&subcmd.0) && !Path::new("./.ciel").is_dir() {
-        if directory == Path::new(".") {
-            directory = common::find_ciel_dir(".")?;
-            info!(
-                "Selected Ciel directory: {}",
-                style(directory.canonicalize()?.display()).cyan()
-            );
-            std::env::set_current_dir(&directory).unwrap();
-        } else {
-            error!("This directory does not look like a Ciel workspace");
-            process::exit(1);
-        }
-    }
     // source .env file, ignore errors
     dotenv().ok();
     // Switch table
