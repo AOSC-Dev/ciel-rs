@@ -33,7 +33,7 @@ const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
 pub struct CielInstance {
     name: String,
     // namespace name (in the form of `$name-$id`)
-    ns_name: String,
+    pub ns_name: String,
     pub mounted: bool,
     running: bool,
     pub started: bool,

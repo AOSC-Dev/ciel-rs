@@ -1,5 +1,5 @@
 use crate::common;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Result, bail};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::fs;
@@ -101,8 +101,11 @@ impl OverlayFS {
                 // Deal with dirs
                 let opaque = xattr::get(&path, "trusted.overlay.opaque")?;
                 let redirect = xattr::get(&path, "trusted.overlay.redirect")?;
-                // let metacopy = xattr::get(&path, "trusted.overlay.metacopy")?;
+                let metacopy = xattr::get(&path, "trusted.overlay.metacopy")?;
 
+                if let Some(_data) = metacopy {
+                    bail!("Unsupported filesystem feature: metacopy");
+                }
                 if let Some(text) = opaque {
                     // the new dir (completely) replace the old one
                     if text == b"y" {
