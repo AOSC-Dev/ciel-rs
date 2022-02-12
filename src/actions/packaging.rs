@@ -180,10 +180,7 @@ pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
     let selection = if let Some(start_package) = start_package {
         packages
             .iter()
-            .position(|x| {
-                x == start_package
-                    || x.splitn(2, '/').nth(1) == Some(&start_package)
-            })
+            .position(|x| x == start_package || x.splitn(2, '/').nth(1) == Some(&start_package))
             .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?
     } else {
         eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
@@ -311,6 +308,9 @@ pub fn cleanup_outputs() -> Result<()> {
     }
     if Path::new("./SRCS").is_dir() {
         fs::remove_dir_all("./SRCS")?;
+    }
+    if Path::new("./STATES").is_dir() {
+        fs::remove_dir_all("./STATES")?;
     }
     spinner.finish_with_message("Done.");
 
