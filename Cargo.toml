@@ -10,8 +10,8 @@ edition = "2018"
 
 [dependencies]
 console = "0.15"
-dbus = "0.9"
-dialoguer = "0.9"
+zbus = "^2"
+dialoguer = "0.10"
 indicatif = "0.16"
 nix = "0.23"
 lazy_static = "1.4"
@@ -46,7 +46,6 @@ faster-hex = "0.6"
 flate2 = "1.0"
 
 [build-dependencies]
-dbus-codegen = "0.10"
 clap = "^3"
 clap_complete = "^3"
 anyhow = "1.0"

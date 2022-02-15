@@ -1,7 +1,5 @@
 use anyhow::{anyhow, Result};
 use console::style;
-use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
-use dbus::blocking::Connection;
 use fs3::statvfs;
 use indicatif::HumanBytes;
 use std::sync::mpsc::channel;
@@ -12,12 +10,11 @@ use std::{
 };
 use tempfile::tempfile_in;
 use which::which;
+use zbus::blocking::Connection;
+use zbus::dbus_proxy;
 
 use crate::error;
 
-const SYSTEMD1_PATH: &str = "/org/freedesktop/systemd1";
-const SYSTEMD1_DEST: &str = "org.freedesktop.systemd1";
-const SYSTEMD1_OBJ: &str = "org.freedesktop.systemd1.Manager";
 const TEST_TEXT: &[u8] = b"An-An was born a rabbit, but found herself a girl with bunny ears and tails when she woke up one day. She couldn't seem to remember why.";
 const TEST_PROGRAMS: &[&str] = &["systemd-nspawn", "systemd-run"];
 const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
@@ -30,10 +27,25 @@ const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_disk_space,
 ];
 
+#[dbus_proxy(
+    interface = "org.freedesktop.systemd1.Manager",
+    default_service = "org.freedesktop.systemd1",
+    default_path = "/org/freedesktop/systemd1"
+)]
+trait Systemd1Manager {
+    /// Version property
+    #[dbus_proxy(property)]
+    fn version(&self) -> zbus::Result<String>;
+
+    /// Virtualization property
+    #[dbus_proxy(property)]
+    fn virtualization(&self) -> zbus::Result<String>;    
+}
+
 fn test_sd_bus() -> Result<String> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(SYSTEMD1_DEST, SYSTEMD1_PATH, Duration::from_secs(10));
-    let version: String = proxy.get(SYSTEMD1_OBJ, "Version")?;
+    let conn = Connection::system()?;
+    let proxy = Systemd1ManagerProxyBlocking::new(&conn)?;
+    let version: String = proxy.version()?;
     Ok(format!(
         "Systemd D-Bus (systemd {}) seems to be working",
         version
@@ -73,9 +85,9 @@ fn test_fs_support() -> Result<String> {
 }
 
 fn test_vm_container() -> Result<String> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(SYSTEMD1_DEST, SYSTEMD1_PATH, Duration::from_secs(10));
-    let virt: String = proxy.get(SYSTEMD1_OBJ, "Virtualization")?;
+    let conn = Connection::system()?;
+    let proxy = Systemd1ManagerProxyBlocking::new(&conn)?;
+    let virt: String = proxy.virtualization()?;
     if virt == "wsl" {
         return Ok("!WSL is not supported".to_string());
     }

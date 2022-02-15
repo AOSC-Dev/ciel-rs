@@ -1,14 +1,13 @@
 //! This module contains systemd machined related APIs
 
 use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
-use crate::dbus_machine1::OrgFreedesktopMachine1Manager;
-use crate::dbus_machine1_machine::OrgFreedesktopMachine1Machine;
+use crate::dbus_machine1::ManagerProxyBlocking;
+use crate::dbus_machine1_machine::MachineProxyBlocking;
 use crate::overlayfs::is_mounted;
 use crate::{color_bool, info, overlayfs::LayerManager, warn};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
-use dbus::blocking::{Connection, Proxy};
 use libc::{c_char, ftok, waitpid, WNOHANG};
 use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
 use std::{
@@ -19,9 +18,8 @@ use std::{
 use std::{fs, time::Duration};
 use std::{os::unix::ffi::OsStrExt, process::Child};
 use std::{path::Path, process::Stdio, thread::sleep};
+use zbus::blocking::Connection;
 
-const MACHINE1_PATH: &str = "/org/freedesktop/machine1";
-const MACHINE1_DEST: &str = "org.freedesktop.machine1";
 const DEFAULT_NSPAWN_OPTIONS: &[&str] = &[
     "-qb",
     "--capability=CAP_IPC_LOCK",
@@ -123,8 +121,8 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
 
 /// Setting up cross-namespace bind-mounts for the container using systemd
 fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
+    let conn = Connection::system()?;
+    let proxy = ManagerProxyBlocking::new(&conn)?;
     for mount in mounts {
         fs::create_dir_all(&mount.0)?;
         let source_path = fs::canonicalize(&mount.0)?;
@@ -203,14 +201,14 @@ pub(crate) fn clean_child_process() {
     unsafe { waitpid(-1, &mut status, WNOHANG) };
 }
 
-fn kill_container(proxy: &Proxy<&Connection>) -> Result<()> {
+fn kill_container(proxy: &MachineProxyBlocking) -> Result<()> {
     proxy.kill("all", libc::SIGKILL)?;
     proxy.terminate()?;
 
     Ok(())
 }
 
-fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
+fn is_booted(proxy: &MachineProxyBlocking) -> Result<bool> {
     let leader_pid = proxy.leader()?;
     // let's inspect the cmdline of the PID 1 in the container
     let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
@@ -230,7 +228,7 @@ fn is_booted(proxy: &Proxy<&Connection>) -> Result<bool> {
     Ok(false)
 }
 
-fn terminate_container(ns_name: &str, proxy: &Proxy<&Connection>) -> Result<()> {
+fn terminate_container(ns_name: &str, proxy: &MachineProxyBlocking) -> Result<()> {
     if !execute_container_command(ns_name, &["poweroff"]).is_err() {
         // Successfully passed poweroff command to the container, wait for it
         for _ in 0..10 {
@@ -263,10 +261,10 @@ fn terminate_container(ns_name: &str, proxy: &Proxy<&Connection>) -> Result<()> 
 
 /// Terminate the container (Use graceful method if possible)
 pub fn terminate_container_by_name(ns_name: &str) -> Result<()> {
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
+    let conn = Connection::system()?;
+    let proxy = ManagerProxyBlocking::new(&conn)?;
     let path = proxy.get_machine(ns_name)?;
-    let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
+    let proxy = MachineProxyBlocking::builder(&conn).path(&path)?.build()?;
 
     terminate_container(ns_name, &proxy)
 }
@@ -286,26 +284,27 @@ pub fn mount_layers(manager: &mut dyn LayerManager, name: &str) -> Result<()> {
 pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     let full_path = std::env::current_dir()?.join(name);
     let mounted = is_mounted(&full_path, OsStr::new("overlay"))?;
-    let conn = Connection::new_system()?;
-    let proxy = conn.with_proxy(MACHINE1_DEST, MACHINE1_PATH, Duration::from_secs(10));
+    let conn = Connection::system()?;
+    let proxy = ManagerProxyBlocking::new(&conn)?;
     let path = proxy.get_machine(ns_name);
     if let Err(e) = path {
-        let err_name = e.name().ok_or_else(|| anyhow!("{}", e))?;
-        if err_name == "org.freedesktop.machine1.NoSuchMachine" {
-            return Ok(CielInstance {
-                name: name.to_owned(),
-                ns_name: ns_name.to_owned(),
-                started: false,
-                running: false,
-                mounted,
-                booted: None,
-            });
+        if let zbus::Error::MethodError(ref err_name , _, _) = e {
+            if err_name.as_ref() == "org.freedesktop.machine1.NoSuchMachine" {
+                return Ok(CielInstance {
+                    name: name.to_owned(),
+                    ns_name: ns_name.to_owned(),
+                    started: false,
+                    running: false,
+                    mounted,
+                    booted: None,
+                });
+        }
         }
         // For all other errors, just return the original error object
         return Err(anyhow!("{}", e));
     }
     let path = path?;
-    let proxy = conn.with_proxy(MACHINE1_DEST, path, Duration::from_secs(10));
+    let proxy = MachineProxyBlocking::builder(&conn).path(&path)?.build()?;
     let state = proxy.state()?;
     // Sometimes the system in the container is misconfigured, so we also accept "degraded" status as "running"
     let running = state == "running" || state == "degraded";
