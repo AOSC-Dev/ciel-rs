@@ -1,5 +1,5 @@
 use crate::common;
-use anyhow::{anyhow, Result, bail};
+use anyhow::{anyhow, bail, Result};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::fs;

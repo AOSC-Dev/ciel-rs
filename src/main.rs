@@ -11,7 +11,7 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use anyhow::{anyhow, Result, Context};
+use anyhow::{anyhow, Context, Result};
 use clap::ArgMatches;
 use console::style;
 use dotenv::dotenv;
@@ -76,7 +76,8 @@ fn main() -> Result<()> {
         Some(("init", _)) | Some(("new", _)) | Some(("version", _)) => (),
         _ if !Path::new("./.ciel").is_dir() => {
             if directory == Path::new(".") {
-                directory = common::find_ciel_dir(".").context("Error finding ciel workspace directory")?;
+                directory =
+                    common::find_ciel_dir(".").context("Error finding ciel workspace directory")?;
                 info!(
                     "Selected Ciel directory: {}",
                     style(directory.canonicalize()?.display()).cyan()
