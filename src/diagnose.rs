@@ -39,7 +39,7 @@ trait Systemd1Manager {
 
     /// Virtualization property
     #[dbus_proxy(property)]
-    fn virtualization(&self) -> zbus::Result<String>;    
+    fn virtualization(&self) -> zbus::Result<String>;
 }
 
 fn test_sd_bus() -> Result<String> {

@@ -208,6 +208,37 @@ fn kill_container(proxy: &MachineProxyBlocking) -> Result<()> {
     Ok(())
 }
 
+fn execute_poweroff(ns_name: &str) -> Result<()> {
+    // TODO: maybe replace with systemd API cross-namespace call?
+    let exit_code = Command::new("systemd-run")
+        .args(&["-M", ns_name, "-q", "--no-block", "--", "poweroff"])
+        .spawn()?
+        .wait()?
+        .code()
+        .unwrap_or(127);
+
+    if exit_code != 0 {
+        return Err(anyhow!("Could not execute shutdown command: {}", exit_code));
+    } else {
+        Ok(())
+    }
+}
+
+fn wait_for_poweroff(proxy: &MachineProxyBlocking) -> Result<()> {
+    let ns_name = proxy.name()?;
+    let conn = proxy.connection();
+    let proxy = ManagerProxyBlocking::new(conn)?;
+    for _ in 0..10 {
+        if proxy.get_machine(&ns_name).is_err() {
+            // machine object no longer exists
+            return Ok(());
+        }
+        sleep(Duration::from_secs(1));
+    }
+
+    Err(anyhow!("shutdown failed"))
+}
+
 fn is_booted(proxy: &MachineProxyBlocking) -> Result<bool> {
     let leader_pid = proxy.leader()?;
     // let's inspect the cmdline of the PID 1 in the container
@@ -228,15 +259,13 @@ fn is_booted(proxy: &MachineProxyBlocking) -> Result<bool> {
     Ok(false)
 }
 
-fn terminate_container(ns_name: &str, proxy: &MachineProxyBlocking) -> Result<()> {
-    if !execute_container_command(ns_name, &["poweroff"]).is_err() {
+fn terminate_container(proxy: &MachineProxyBlocking) -> Result<()> {
+    let ns_name = proxy.name()?;
+    let _ = proxy.receive_state_changed();
+    if execute_poweroff(&ns_name).is_ok() {
         // Successfully passed poweroff command to the container, wait for it
-        for _ in 0..10 {
-            if proxy.state().is_err() {
-                // machine object no longer exists
-                return Ok(());
-            }
-            sleep(Duration::from_secs(1));
+        if wait_for_poweroff(proxy).is_ok() {
+            return Ok(());
         }
         // still did not poweroff?
         warn!("Container did not respond to the poweroff command correctly...");
@@ -248,12 +277,8 @@ fn terminate_container(ns_name: &str, proxy: &MachineProxyBlocking) -> Result<()
     kill_container(proxy)?;
     proxy.terminate().ok();
     // status re-check, in the event of I/O problems, the container may still be running (stuck)
-    for _ in 0..10 {
-        if proxy.state().is_err() {
-            // machine object no longer exists
-            return Ok(());
-        }
-        sleep(Duration::from_secs(1));
+    if wait_for_poweroff(proxy).is_ok() {
+        return Ok(());
     }
 
     Err(anyhow!("Failed to kill the container! This may indicate a problem with your I/O, see dmesg or journalctl for more details."))
@@ -266,7 +291,7 @@ pub fn terminate_container_by_name(ns_name: &str) -> Result<()> {
     let path = proxy.get_machine(ns_name)?;
     let proxy = MachineProxyBlocking::builder(&conn).path(&path)?.build()?;
 
-    terminate_container(ns_name, &proxy)
+    terminate_container(&proxy)
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name
@@ -288,7 +313,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
     let proxy = ManagerProxyBlocking::new(&conn)?;
     let path = proxy.get_machine(ns_name);
     if let Err(e) = path {
-        if let zbus::Error::MethodError(ref err_name , _, _) = e {
+        if let zbus::Error::MethodError(ref err_name, _, _) = e {
             if err_name.as_ref() == "org.freedesktop.machine1.NoSuchMachine" {
                 return Ok(CielInstance {
                     name: name.to_owned(),
@@ -298,7 +323,7 @@ pub fn inspect_instance(name: &str, ns_name: &str) -> Result<CielInstance> {
                     mounted,
                     booted: None,
                 });
-        }
+            }
         }
         // For all other errors, just return the original error object
         return Err(anyhow!("{}", e));
