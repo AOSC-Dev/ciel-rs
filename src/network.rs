@@ -214,3 +214,79 @@ pub fn download_git(uri: &str, root: &Path) -> Result<()> {
 
     Ok(())
 }
+
+// other Git operations
+fn find_branch<'a>(repo: &'a git2::Repository, name: &str) -> Result<git2::Branch<'a>> {
+    let branch = repo.find_branch(name, git2::BranchType::Local);
+    if let Ok(branch) = branch {
+        return Ok(branch);
+    }
+    let remote_branch = repo.find_branch(&format!("origin/{}", name), git2::BranchType::Remote);
+    if let Ok(branch) = remote_branch {
+        let target_commit = branch.get().peel_to_commit()?;
+        let branch = repo.branch(name, &target_commit, false)?;
+        return Ok(branch);
+    }
+
+    Err(anyhow!("Could not find branch `{}'", name))
+}
+
+pub fn fetch_repo<P: AsRef<Path>>(path: P) -> Result<git2::Repository> {
+    let repo = git2::Repository::open(path.as_ref())?;
+    let mut remote = repo.find_remote("origin")?;
+    let refs = remote.fetch_refspecs()?;
+    let refspecs = refs.into_iter().filter_map(|x| x).collect::<Vec<_>>();
+    let mut opts = git2::FetchOptions::new();
+    opts.prune(git2::FetchPrune::On);
+    remote.fetch(&refspecs, Some(&mut opts), None)?;
+    drop(remote); // dis-own the variable `repo`
+
+    Ok(repo)
+}
+
+pub fn git_switch_branch(
+    repo: &mut git2::Repository,
+    branch: &str,
+    rebase_from: Option<&str>,
+) -> Result<bool> {
+    let target_branch = find_branch(repo, branch).unwrap();
+    let branch_ref = target_branch.into_reference();
+    let branch_refname = branch_ref.name().unwrap().to_string();
+    drop(branch_ref);
+    let stasher = git2::Signature::now("ciel", "bot@aosc.io")?;
+    let repo_statuses = repo.statuses(None)?;
+    let is_tree_dirty = repo_statuses.len() > 0;
+    drop(repo_statuses);
+    if is_tree_dirty {
+        repo.stash_save(
+            &stasher,
+            "ciel auto save",
+            Some(git2::StashFlags::INCLUDE_UNTRACKED),
+        )?;
+    }
+    repo.set_head(&branch_refname)?;
+    let mut opts = git2::build::CheckoutBuilder::new();
+    repo.checkout_head(Some(opts.force()))?;
+    repo.cleanup_state()?;
+    if is_tree_dirty && rebase_from.is_none() {
+        repo.stash_pop(0, None)?;
+    }
+    if let Some(rebase_upstream) = rebase_from {
+        // attempt rebase
+        let status = std::process::Command::new("git")
+            .args(["rebase", &rebase_upstream])
+            .current_dir(repo.workdir().unwrap())
+            .spawn()?
+            .wait()?;
+        if !status.success() {
+            return Err(anyhow!("Error performing rebase"));
+        }
+        repo.cleanup_state()?;
+        if is_tree_dirty {
+            repo.stash_pop(0, None)?;
+        }
+    }
+
+    // returns whether a stash was made
+    Ok(is_tree_dirty)
+}

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use clap::{Command, Arg};
+use clap::{Arg, Command};
 use std::ffi::OsStr;
 
 /// List all the available plugins/helper scripts
@@ -46,6 +46,12 @@ pub fn build_cli() -> Command<'static> {
             Command::new("load-tree")
                 .arg(Arg::new("url").help("URL to the git repository"))
                 .about("Clone package tree from the link provided or AOSC OS ABBS main repository"),
+        )
+        .subcommand(
+            Command::new("update-tree")
+                .arg(Arg::new("rebase").takes_value(true).short('r').long("rebase").help("Rebase the specified branch from the updated upstream"))
+                .arg(Arg::new("branch").help("Branch to switch to"))
+                .about("Update the existing ABBS tree (fetch only) and optionally switch to a different branch")
         )
         .subcommand(
             Command::new("new").about("Create a new CIEL workspace")

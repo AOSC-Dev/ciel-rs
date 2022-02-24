@@ -11,7 +11,7 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
 use console::style;
 use dotenv::dotenv;
@@ -58,6 +58,29 @@ fn get_instance_option(args: &ArgMatches) -> Result<String> {
 #[inline]
 fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
+}
+
+fn update_tree(path: &Path, branch: Option<&str>, rebase_from: Option<&str>) -> Result<()> {
+    let mut repo = network::fetch_repo(path)?;
+    if let Some(branch) = branch {
+        if repo.state() != git2::RepositoryState::Clean {
+            bail!(
+                "Cannot switch branches, because your tree seems to have an operation in progress."
+            );
+        }
+        let result = network::git_switch_branch(&mut repo, &branch, rebase_from);
+        if let Err(e) = result {
+            bail!("Failed to switch branches: {}\nNote that you can still use `git stash pop` to retrieve your previous changes.`", e);
+        }
+        info!("Successfully updated the tree and switched to {}.", branch);
+    } else {
+        if rebase_from.is_some() {
+            bail!("You need to specify a branch to switch to when requesting a rebase.");
+        }
+        info!("Successfully fetched new changes from remote.");
+    }
+
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -121,6 +144,11 @@ fn main() -> Result<()> {
                 args.value_of("url").unwrap_or(network::GIT_TREE_URL),
                 Path::new("TREE"),
             )?;
+        }
+        ("update-tree", args) => {
+            let tree = Path::new("TREE");
+            info!("Updating tree...");
+            print_error!({ update_tree(tree, args.value_of("branch"), args.value_of("rebase")) });
         }
         ("load-os", args) => {
             let url = args.value_of("url");
