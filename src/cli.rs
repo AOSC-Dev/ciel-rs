@@ -73,6 +73,11 @@ pub fn build_cli() -> Command<'static> {
                 .about("Remove an instance"),
         )
         .subcommand(
+            Command::new("delall")
+                .alias("rma")
+                .about("Remove all instances"),
+        )
+        .subcommand(
             Command::new("shell")
                 .alias("sh")
                 .arg(Arg::new("INSTANCE").short('i').takes_value(true).help("Instance to be used"))
