@@ -79,6 +79,10 @@ fn read_package_list<P: AsRef<Path>>(filename: P, depth: usize) -> Result<Vec<St
         }
         // trim whitespace
         let trimmed = line.trim();
+        // skip empty line
+        if trimmed.is_empty() {
+            continue;
+        }
         // process nested groups
         if trimmed.starts_with("groups/") {
             let path = Path::new("./TREE").join(trimmed);
