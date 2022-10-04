@@ -30,6 +30,11 @@ fn list_helpers() -> Result<Vec<String>> {
 
 /// Build the CLI instance
 pub fn build_cli() -> Command {
+    let instance_arg = Arg::new("INSTANCE")
+        .short('i')
+        .num_args(1)
+        .env("CIEL_INST")
+        .action(clap::ArgAction::Set);
     Command::new("CIEL!")
         .version(env!("CARGO_PKG_VERSION"))
         .about("CIEL! is a nspawn container manager")
@@ -77,26 +82,26 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("shell")
                 .alias("sh")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be used"))
+                .arg(instance_arg.clone().help("Instance to be used"))
                 .arg(Arg::new("COMMANDS").required(false).num_args(1..))
                 .about("Start an interactive shell"),
         )
         .subcommand(
             Command::new("run")
                 .alias("exec")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to run command in"))
+                .arg(instance_arg.clone().help("Instance to run command in"))
                 .arg(Arg::new("COMMANDS").required(true).num_args(1..))
                 .about("Lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
         )
         .subcommand(
             Command::new("config")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be configured"))
+                .arg(instance_arg.clone().help("Instance to be configured"))
                 .arg(Arg::new("g").short('g').action(clap::ArgAction::SetTrue).conflicts_with("INSTANCE").help("Configure base system instead of an instance"))
                 .about("Configure system and toolchain for building interactively"),
         )
         .subcommand(
             Command::new("commit")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be committed"))
+                .arg(instance_arg.clone().help("Instance to be committed"))
                 .about("Commit changes onto the shared underlying OS"),
         )
         .subcommand(
@@ -107,7 +112,7 @@ pub fn build_cli() -> Command {
             Command::new("build")
                 .arg(Arg::new("FETCH").short('g').action(clap::ArgAction::SetTrue).help("Fetch source packages only"))
                 .arg(Arg::new("OFFLINE").short('x').long("offline").action(clap::ArgAction::SetTrue).help("Disable network in the container during the build"))
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to build in"))
+                .arg(instance_arg.clone().help("Instance to build in"))
                 .arg(Arg::new("CONTINUE").conflicts_with("SELECT").short('c').long("resume").alias("continue").num_args(1).help("Continue from a Ciel checkpoint"))
                 .arg(Arg::new("SELECT").num_args(0..=1).long("stage-select").help("Select the starting point for a build"))
                 .arg(Arg::new("PACKAGES").conflicts_with("CONTINUE").num_args(1..))
@@ -115,23 +120,23 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("rollback")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be rolled back"))
+                .arg(instance_arg.clone().help("Instance to be rolled back"))
                 .about("Rollback all or specified instance"),
         )
         .subcommand(
             Command::new("down")
                 .alias("umount")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be un-mounted"))
+                .arg(instance_arg.clone().help("Instance to be un-mounted"))
                 .about("Shutdown and unmount all or one instance"),
         )
         .subcommand(
             Command::new("stop")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be stopped"))
+                .arg(instance_arg.clone().help("Instance to be stopped"))
                 .about("Shuts down an instance"),
         )
         .subcommand(
             Command::new("mount")
-                .arg(Arg::new("INSTANCE").short('i').num_args(1).help("Instance to be mounted"))
+                .arg(instance_arg.clone().help("Instance to be mounted"))
                 .about("Mount all or specified instance"),
         )
         .subcommand(

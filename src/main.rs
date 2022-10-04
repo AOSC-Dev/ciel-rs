@@ -46,13 +46,12 @@ fn get_output_dir() -> String {
 
 #[inline]
 fn get_instance_option(args: &ArgMatches) -> Result<String> {
-    let default_instance = std::env::var("CIEL_INST");
     let option_instance = args.get_one::<String>("INSTANCE");
-    if default_instance.is_err() && option_instance.is_none() {
+    if option_instance.is_none() {
         return Err(anyhow!("No instance specified!"));
     }
 
-    Ok(option_instance.map_or_else(|| default_instance.expect("Internal error"), String::from))
+    Ok(option_instance.expect("Internal error").to_string())
 }
 
 #[inline]
