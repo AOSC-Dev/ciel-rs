@@ -15,7 +15,6 @@ use std::{
     time::Duration,
 };
 
-pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
 
 #[derive(Deserialize, Debug, Clone)]
@@ -41,7 +40,8 @@ pub struct Recipe {
 
 lazy_static! {
     static ref GIT_PROGRESS: indicatif::ProgressStyle = indicatif::ProgressStyle::default_bar()
-        .template("[{bar:25.cyan/blue}] {pos}/{len} {msg} ({eta})");
+        .template("[{bar:25.cyan/blue}] {pos}/{len} {msg} ({eta})")
+        .unwrap();
 }
 
 /// Download a file from the web
@@ -67,9 +67,10 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(
         indicatif::ProgressStyle::default_bar()
-            .template(make_progress_bar!("{bytes}/{total_bytes}")),
+            .template(make_progress_bar!("{bytes}/{total_bytes}"))
+            .unwrap(),
     );
-    progress_bar.enable_steady_tick(500);
+    progress_bar.enable_steady_tick(Duration::from_millis(500));
     let mut reader = ProgressReader::new(&mut resp, |progress: usize| {
         progress_bar.inc(progress as u64);
     });

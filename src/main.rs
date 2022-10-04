@@ -47,7 +47,7 @@ fn get_output_dir() -> String {
 #[inline]
 fn get_instance_option(args: &ArgMatches) -> Result<String> {
     let default_instance = std::env::var("CIEL_INST");
-    let option_instance = args.value_of("INSTANCE");
+    let option_instance = args.get_one::<String>("INSTANCE");
     if default_instance.is_err() && option_instance.is_none() {
         return Err(anyhow!("No instance specified!"));
     }
@@ -60,7 +60,7 @@ fn is_root() -> bool {
     nix::unistd::geteuid().is_root()
 }
 
-fn update_tree(path: &Path, branch: Option<&str>, rebase_from: Option<&str>) -> Result<()> {
+fn update_tree(path: &Path, branch: Option<&String>, rebase_from: Option<&String>) -> Result<()> {
     let mut repo = network::fetch_repo(path)?;
     if let Some(branch) = branch {
         if repo.state() != git2::RepositoryState::Clean {
@@ -68,7 +68,8 @@ fn update_tree(path: &Path, branch: Option<&str>, rebase_from: Option<&str>) -> 
                 "Cannot switch branches, because your tree seems to have an operation in progress."
             );
         }
-        let result = network::git_switch_branch(&mut repo, &branch, rebase_from);
+        let result =
+            network::git_switch_branch(&mut repo, &branch, rebase_from.map(|x| x.as_str()));
         if let Err(e) = result {
             bail!("Failed to switch branches: {}\nNote that you can still use `git stash pop` to retrieve your previous changes.`", e);
         }
@@ -84,12 +85,14 @@ fn update_tree(path: &Path, branch: Option<&str>, rebase_from: Option<&str>) -> 
 }
 
 fn main() -> Result<()> {
-    let args = cli::build_cli().get_matches();
+    let build_cli = cli::build_cli();
+    let version_string = build_cli.render_version();
+    let args = build_cli.get_matches();
     if !is_root() {
         println!("Please run me as root!");
         process::exit(1);
     }
-    let mut directory = Path::new(args.value_of("C").unwrap_or(".")).to_path_buf();
+    let mut directory = Path::new(args.get_one::<String>("C").unwrap()).to_path_buf();
     // Switch to the target directory
     std::env::set_current_dir(&directory).unwrap();
     // get subcommands from command line parser
@@ -127,7 +130,7 @@ fn main() -> Result<()> {
             actions::farewell(&directory).unwrap();
         }
         ("init", args) => {
-            if args.is_present("upgrade") {
+            if args.get_flag("upgrade") {
                 info!("Upgrading workspace...");
                 info!("First, shutting down all the instances...");
                 print_error!({ actions::for_each_instance(&actions::container_down) });
@@ -140,18 +143,15 @@ fn main() -> Result<()> {
         }
         ("load-tree", args) => {
             info!("Cloning abbs tree...");
-            network::download_git(
-                args.value_of("url").unwrap_or(network::GIT_TREE_URL),
-                Path::new("TREE"),
-            )?;
+            network::download_git(args.get_one::<String>("url").unwrap(), Path::new("TREE"))?;
         }
         ("update-tree", args) => {
             let tree = Path::new("TREE");
             info!("Updating tree...");
-            print_error!({ update_tree(tree, args.value_of("branch"), args.value_of("rebase")) });
+            print_error!({ update_tree(tree, args.get_one("branch"), args.get_one("rebase")) });
         }
         ("load-os", args) => {
-            let url = args.value_of("url");
+            let url = args.get_one::<String>("url");
             if let Some(url) = url {
                 // load from network using specified url
                 if url.starts_with("https://") || url.starts_with("http://") {
@@ -192,7 +192,7 @@ fn main() -> Result<()> {
             print_error!({ actions::update_os() });
         }
         ("config", args) => {
-            if args.is_present("g") {
+            if args.get_flag("g") {
                 print_error!({ actions::config_os(None) });
                 return Ok(());
             }
@@ -210,15 +210,17 @@ fn main() -> Result<()> {
         }
         ("run", args) => {
             let instance = get_instance_option(args)?;
-            let cmd = args.values_of("COMMANDS").unwrap();
-            let args: Vec<&str> = cmd.into_iter().collect();
-            let status = actions::run_in_container(&instance, &args)?;
+            let args = args.get_many::<String>("COMMANDS").unwrap();
+            let status =
+                actions::run_in_container(&instance, &args.into_iter().collect::<Vec<_>>())?;
             process::exit(status);
         }
         ("shell", args) => {
             let instance = get_instance_option(args)?;
-            if let Some(cmd) = args.values_of("COMMANDS") {
-                let command = cmd.into_iter().collect::<Vec<&str>>().join(" ");
+            if let Some(cmd) = args.get_many::<String>("COMMANDS") {
+                let command = cmd
+                    .into_iter()
+                    .fold(String::with_capacity(1024), |acc, x| acc + " " + x);
                 let status = actions::run_in_container(&instance, &["/bin/bash", "-ec", &command])?;
                 process::exit(status);
             }
@@ -240,41 +242,42 @@ fn main() -> Result<()> {
             print_error!({ one_or_all_instance!(args, &actions::rollback_container) });
         }
         ("del", args) => {
-            let instance = args.value_of("INSTANCE").unwrap();
+            let instance = args.get_one::<String>("INSTANCE").unwrap();
             print_error!({ actions::remove_instance(instance) });
         }
         ("add", args) => {
-            let instance = args.value_of("INSTANCE").unwrap();
+            let instance = args.get_one::<String>("INSTANCE").unwrap();
             print_error!({ actions::add_instance(instance) });
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
-            let offline = args.is_present("OFFLINE");
+            let offline = args.get_flag("OFFLINE");
             let mut state = None;
-            if let Some(cont) = args.value_of("CONTINUE") {
+            if let Some(cont) = args.get_one::<String>("CONTINUE") {
                 state = Some(actions::load_build_checkpoint(cont)?);
                 let empty: Vec<&str> = Vec::new();
                 let status = actions::package_build(&instance, empty.into_iter(), state, offline)?;
                 println!("\x07"); // bell character
                 process::exit(status);
             }
-            let packages = args.values_of("PACKAGES");
+            let packages = args.get_many::<String>("PACKAGES");
             if packages.is_none() {
                 error!("Please specify a list of packages to build!");
                 process::exit(1);
             }
             let packages = packages.unwrap();
-            if args.is_present("SELECT") {
-                let start_package = args.value_of("SELECT");
+            if args.get_flag("SELECT") {
+                let start_package = args.get_one::<String>("SELECT");
                 let status =
                     actions::packages_stage_select(&instance, packages, offline, start_package)?;
                 process::exit(status);
             }
-            if args.is_present("FETCH") {
-                let status = actions::package_fetch(&instance, &packages.collect::<Vec<&str>>())?;
+            if args.get_flag("FETCH") {
+                let packages = packages.into_iter().collect::<Vec<_>>();
+                let status = actions::package_fetch(&instance, &packages)?;
                 process::exit(status);
             }
-            let status = actions::package_build(&instance, packages, state, offline)?;
+            let status = actions::package_build(&instance, packages.into_iter(), state, offline)?;
             println!("\x07"); // bell character
             process::exit(status);
         }
@@ -317,7 +320,7 @@ fn main() -> Result<()> {
             print_error!({ actions::cleanup_outputs() });
         }
         ("version", _) => {
-            println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+            println!("{}", version_string);
         }
         // catch all other conditions
         (_, options) => {
@@ -333,8 +336,8 @@ fn main() -> Result<()> {
             }
             info!("Executing applet ciel-{}", cmd);
             let mut process = &mut Command::new(plugin);
-            if let Some(args) = options.values_of("COMMANDS") {
-                process = process.args(args.collect::<Vec<&str>>());
+            if let Some(args) = options.get_many::<String>("COMMANDS") {
+                process = process.args(args);
             }
             let status = process.status().unwrap().code().unwrap();
             if status != 0 {

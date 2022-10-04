@@ -10,10 +10,10 @@ edition = "2018"
 
 [dependencies]
 console = "0.15"
-zbus = "^2"
+zbus = "^3"
 dialoguer = "0.10"
 indicatif = "0.17"
-nix = "0.24"
+nix = "0.25"
 lazy_static = "1.4"
 toml = "0.5"
 bincode = "1.3"
@@ -23,7 +23,7 @@ git2 = "0.15"
 tar = "0.4"
 xz2 = "0.1"
 progress-streams = "1.1"
-libmount = { git = "https://github.com/liushuyu/libmount", rev = "ac3b841f77da74f7e1ec373376bc409a8a01eebf" }
+libmount = { git = "https://github.com/liushuyu/libmount", rev = "3ce416457b590daeccacc43b76b706149c594a9f" }
 nom = "^7"
 libc = "0.2"
 adler32 = "1.2"
@@ -39,16 +39,16 @@ which = "4.0"
 sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
-clap = { version = "^3", features = ["wrap_help"] }
+clap = { version = "^4", features = ["wrap_help", "string", "env"] }
 # repo scan
 ar = "0.9"
 faster-hex = "0.6"
 flate2 = "1.0"
 
 [build-dependencies]
-clap = "^3"
-clap_complete = "^3"
-anyhow = "1.0"
+clap = { version = "^4", features = ["string"] }
+clap_complete = "^4"
+anyhow = "^1"
 
 [profile.release]
 lto = true

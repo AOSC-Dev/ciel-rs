@@ -4,9 +4,10 @@ use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path};
 
 use crate::{
+    cli::GIT_TREE_URL,
     common::*,
     config, error, info,
-    network::{download_git, pick_latest_tarball, GIT_TREE_URL},
+    network::{download_git, pick_latest_tarball},
     overlayfs::create_new_instance_fs,
     repo::{init_repo, refresh_repo},
     warn,

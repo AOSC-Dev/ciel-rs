@@ -7,6 +7,7 @@ use std::os::unix::prelude::MetadataExt;
 use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 pub const CURRENT_CIEL_VERSION: usize = 3;
@@ -20,7 +21,8 @@ lazy_static! {
     static ref SPINNER_STYLE: indicatif::ProgressStyle =
         indicatif::ProgressStyle::default_spinner()
             .tick_chars("⠋⠙⠸⠴⠦⠇ ")
-            .template("{spinner:.green} {wide_msg}");
+            .template("{spinner:.green} {wide_msg}")
+            .unwrap();
 }
 
 #[macro_export]
@@ -38,7 +40,7 @@ macro_rules! make_progress_bar {
 pub fn create_spinner(msg: &'static str, tick_rate: u64) -> indicatif::ProgressBar {
     let spinner = indicatif::ProgressBar::new_spinner().with_style(SPINNER_STYLE.clone());
     spinner.set_message(msg);
-    spinner.enable_steady_tick(tick_rate);
+    spinner.enable_steady_tick(Duration::from_millis(tick_rate));
 
     spinner
 }
@@ -67,9 +69,10 @@ pub fn extract_system_tarball(path: &Path, total: u64) -> Result<()> {
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(
         indicatif::ProgressStyle::default_bar()
-            .template(make_progress_bar!("Extracting tarball...")),
+            .template(make_progress_bar!("Extracting tarball..."))
+            .unwrap(),
     );
-    progress_bar.enable_steady_tick(500);
+    progress_bar.enable_steady_tick(Duration::from_millis(500));
     let reader = ProgressReader::new(&mut f, |progress: usize| {
         progress_bar.inc(progress as u64);
     });

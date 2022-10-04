@@ -97,9 +97,10 @@ fn read_package_list<P: AsRef<Path>>(filename: P, depth: usize) -> Result<Vec<St
 }
 
 /// Expand the packages list to an array of packages
-fn expand_package_list<'a, I: IntoIterator<Item = &'a str>>(packages: I) -> Vec<String> {
+fn expand_package_list<'a, S: AsRef<str>, I: IntoIterator<Item = S>>(packages: I) -> Vec<String> {
     let mut expanded = Vec::new();
     for package in packages {
+        let package = package.as_ref();
         if !package.starts_with("groups/") {
             expanded.push(package.to_string());
             continue;
@@ -126,9 +127,10 @@ fn package_build_inner<P: AsRef<Path>>(
     root: P,
 ) -> Result<(i32, usize)> {
     let total = packages.len();
-    let mut buf = [0u8; 64];
-    let hostname = gethostname(&mut buf)
-        .map_or_else(|_| "unknown", |s| s.to_str().unwrap_or_else(|_| "unknown"));
+    let hostname = gethostname().map_or_else(
+        |_| "unknown".to_string(),
+        |s| s.into_string().unwrap_or_else(|_| "unknown".to_string()),
+    );
     for (index, package) in packages.iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
         eprint!(
@@ -173,11 +175,11 @@ fn package_build_inner<P: AsRef<Path>>(
     Ok((0, 0))
 }
 
-pub fn packages_stage_select<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
+pub fn packages_stage_select<'a, S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
     offline: bool,
-    start_package: Option<&str>,
+    start_package: Option<&String>,
 ) -> Result<i32> {
     let packages = expand_package_list(packages);
 
@@ -232,7 +234,7 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
 }
 
 /// Build packages in the container
-pub fn package_build<'a, K: Clone + ExactSizeIterator<Item = &'a str>>(
+pub fn package_build<'a, S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
     state: Option<BuildCheckPoint>,
