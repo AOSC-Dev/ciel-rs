@@ -244,7 +244,6 @@ dependencies = [
  "libsystemd-sys",
  "nix 0.25.0",
  "nom",
- "progress-streams",
  "rand",
  "rayon",
  "reqwest",
@@ -1290,12 +1289,6 @@ checksum = "94e2ef8dbfc347b10c094890f778ee2e36ca9bb4262e86dc99cd217e35f3470b"
 dependencies = [
  "unicode-ident",
 ]
-
-[[package]]
-name = "progress-streams"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e965d96c8162c607b0cd8d66047ad3c9fd35273c134d994327882c6e47f986a7"
 
 [[package]]
 name = "quick-error"

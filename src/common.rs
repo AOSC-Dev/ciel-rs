@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
-use progress_streams::ProgressReader;
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::os::unix::prelude::MetadataExt;
@@ -65,17 +64,15 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &Path) -> Result<()> {
 }
 
 pub fn extract_system_tarball(path: &Path, total: u64) -> Result<()> {
-    let mut f = File::open(path)?;
+    let f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
     progress_bar.set_style(
         indicatif::ProgressStyle::default_bar()
             .template(make_progress_bar!("Extracting tarball..."))
             .unwrap(),
     );
-    progress_bar.enable_steady_tick(Duration::from_millis(500));
-    let reader = ProgressReader::new(&mut f, |progress: usize| {
-        progress_bar.inc(progress as u64);
-    });
+    progress_bar.enable_steady_tick(Duration::from_millis(100));
+    let reader = progress_bar.wrap_read(f);
     extract_tar_xz(reader, &PathBuf::from(CIEL_DIST_DIR))?;
     progress_bar.finish_and_clear();
 

@@ -22,7 +22,6 @@ reqwest = { version = "0.11", features = ["blocking", "json"] }
 git2 = "0.15"
 tar = "0.4"
 xz2 = "0.1"
-progress-streams = "1.1"
 libmount = { git = "https://github.com/liushuyu/libmount", rev = "3ce416457b590daeccacc43b76b706149c594a9f" }
 nom = "^7"
 libc = "0.2"

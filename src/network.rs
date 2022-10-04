@@ -2,7 +2,6 @@ use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
 use fs3::FileExt;
 use lazy_static::lazy_static;
-use progress_streams::ProgressReader;
 use reqwest::blocking::{Client, Response};
 use serde::Deserialize;
 use std::{env::consts::ARCH, path::Path};
@@ -54,7 +53,7 @@ pub fn download_file(url: &str) -> Result<Response> {
 /// Download a file with progress indicator
 pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let mut output = std::fs::File::create(file)?;
-    let mut resp = download_file(url)?;
+    let resp = download_file(url)?;
     let mut total: u64 = 0;
     if let Some(length) = resp.headers().get("content-length") {
         total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
@@ -70,10 +69,8 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
             .template(make_progress_bar!("{bytes}/{total_bytes}"))
             .unwrap(),
     );
-    progress_bar.enable_steady_tick(Duration::from_millis(500));
-    let mut reader = ProgressReader::new(&mut resp, |progress: usize| {
-        progress_bar.inc(progress as u64);
-    });
+    progress_bar.enable_steady_tick(Duration::from_millis(100));
+    let mut reader = progress_bar.wrap_read(resp);
     std::io::copy(&mut reader, &mut output)?;
     progress_bar.finish_and_clear();
 
