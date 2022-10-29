@@ -97,7 +97,7 @@ fn read_package_list<P: AsRef<Path>>(filename: P, depth: usize) -> Result<Vec<St
 }
 
 /// Expand the packages list to an array of packages
-fn expand_package_list<'a, S: AsRef<str>, I: IntoIterator<Item = S>>(packages: I) -> Vec<String> {
+fn expand_package_list<S: AsRef<str>, I: IntoIterator<Item = S>>(packages: I) -> Vec<String> {
     let mut expanded = Vec::new();
     for package in packages {
         let package = package.as_ref();
@@ -175,7 +175,7 @@ fn package_build_inner<P: AsRef<Path>>(
     Ok((0, 0))
 }
 
-pub fn packages_stage_select<'a, S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
+pub fn packages_stage_select<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
     offline: bool,
@@ -186,7 +186,9 @@ pub fn packages_stage_select<'a, S: AsRef<str>, K: Clone + ExactSizeIterator<Ite
     let selection = if let Some(start_package) = start_package {
         packages
             .iter()
-            .position(|x| x == start_package || x.splitn(2, '/').nth(1) == Some(&start_package))
+            .position(|x| {
+                x == start_package || x.split_once('/').map(|x| x.1) == Some(start_package)
+            })
             .ok_or_else(|| anyhow!("Can not find the specified package in the list!"))?
     } else {
         eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
@@ -234,7 +236,7 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
 }
 
 /// Build packages in the container
-pub fn package_build<'a, S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
+pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
     state: Option<BuildCheckPoint>,

@@ -229,7 +229,7 @@ pub fn fetch_repo<P: AsRef<Path>>(path: P) -> Result<git2::Repository> {
     let repo = git2::Repository::open(path.as_ref())?;
     let mut remote = repo.find_remote("origin")?;
     let refs = remote.fetch_refspecs()?;
-    let refspecs = refs.into_iter().filter_map(|x| x).collect::<Vec<_>>();
+    let refspecs = refs.into_iter().flatten().collect::<Vec<_>>();
     let mut opts = git2::FetchOptions::new();
     opts.prune(git2::FetchPrune::On);
     remote.fetch(&refspecs, Some(&mut opts), None)?;
@@ -249,7 +249,7 @@ pub fn git_switch_branch(
     drop(branch_ref);
     let stasher = git2::Signature::now("ciel", "bot@aosc.io")?;
     let repo_statuses = repo.statuses(None)?;
-    let is_tree_dirty = repo_statuses.len() > 0;
+    let is_tree_dirty = !repo_statuses.is_empty();
     drop(repo_statuses);
     if is_tree_dirty {
         repo.stash_save(
@@ -268,7 +268,7 @@ pub fn git_switch_branch(
     if let Some(rebase_upstream) = rebase_from {
         // attempt rebase
         let status = std::process::Command::new("git")
-            .args(["rebase", &rebase_upstream])
+            .args(["rebase", rebase_upstream])
             .current_dir(repo.workdir().unwrap())
             .spawn()?
             .wait()?;

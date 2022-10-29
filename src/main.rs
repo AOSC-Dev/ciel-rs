@@ -67,8 +67,7 @@ fn update_tree(path: &Path, branch: Option<&String>, rebase_from: Option<&String
                 "Cannot switch branches, because your tree seems to have an operation in progress."
             );
         }
-        let result =
-            network::git_switch_branch(&mut repo, &branch, rebase_from.map(|x| x.as_str()));
+        let result = network::git_switch_branch(&mut repo, branch, rebase_from.map(|x| x.as_str()));
         if let Err(e) = result {
             bail!("Failed to switch branches: {}\nNote that you can still use `git stash pop` to retrieve your previous changes.`", e);
         }
@@ -164,10 +163,7 @@ fn main() -> Result<()> {
                     process::exit(1);
                 }
                 print_error!({
-                    common::extract_system_tarball(
-                        &tarball.to_path_buf(),
-                        tarball.metadata()?.len(),
-                    )
+                    common::extract_system_tarball(tarball, tarball.metadata()?.len())
                 });
 
                 return Ok(());
@@ -276,7 +272,7 @@ fn main() -> Result<()> {
                 let status = actions::package_fetch(&instance, &packages)?;
                 process::exit(status);
             }
-            let status = actions::package_build(&instance, packages.into_iter(), state, offline)?;
+            let status = actions::package_build(&instance, packages, state, offline)?;
             println!("\x07"); // bell character
             process::exit(status);
         }

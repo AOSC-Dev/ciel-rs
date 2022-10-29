@@ -218,7 +218,7 @@ fn execute_poweroff(ns_name: &str) -> Result<()> {
         .unwrap_or(127);
 
     if exit_code != 0 {
-        return Err(anyhow!("Could not execute shutdown command: {}", exit_code));
+        Err(anyhow!("Could not execute shutdown command: {}", exit_code))
     } else {
         Ok(())
     }

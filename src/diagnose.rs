@@ -91,12 +91,11 @@ fn test_vm_container() -> Result<String> {
     if virt == "wsl" {
         return Ok("!WSL is not supported".to_string());
     }
-    let virt_msg;
-    if virt.is_empty() {
-        virt_msg = String::new();
+    let virt_msg = if virt.is_empty() {
+        String::new()
     } else {
-        virt_msg = format!("(running in {})", virt);
-    }
+        format!("(running in {})", virt)
+    };
     Ok(format!("Environment seems sane {}", virt_msg))
 }
 

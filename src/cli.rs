@@ -136,7 +136,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("mount")
-                .arg(instance_arg.clone().help("Instance to be mounted"))
+                .arg(instance_arg.help("Instance to be mounted"))
                 .about("Mount all or specified instance"),
         )
         .subcommand(

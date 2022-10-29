@@ -122,13 +122,12 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
         .ok_or_else(|| anyhow!("Unable to convert path to string"))?
         .to_str()
         .ok_or_else(|| anyhow!("Unable to decode path string"))?;
-    let total;
-    if !Path::new(path).is_file() {
-        total = download_file_progress(url, path)?;
+    let total = if !Path::new(path).is_file() {
+        download_file_progress(url, path)?
     } else {
         let tarball = fs::File::open(path)?;
-        total = tarball.metadata()?.len();
-    }
+        tarball.metadata()?.len()
+    };
     if let Some(sha256) = sha256 {
         info!("Verifying tarball checksum...");
         let tarball = fs::File::open(path)?;
