@@ -188,14 +188,10 @@ pub fn download_git(uri: &str, root: &Path) -> Result<()> {
                 0 => {
                     let human_bytes =
                         indicatif::HumanBytes(cur_bytes.load(Ordering::SeqCst) as u64);
-                    progress.set_message(format!("{}", human_bytes));
+                    progress.set_message(human_bytes.to_string());
                 }
-                1 => {
-                    progress.set_message("Resolving deltas...");
-                }
-                2 => {
-                    progress.set_message("Checking out files...");
-                }
+                1 => progress.set_message("Resolving deltas..."),
+                2 => progress.set_message("Checking out files..."),
                 _ => break,
             }
             sleep(Duration::from_millis(100));
