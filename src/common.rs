@@ -71,7 +71,7 @@ pub fn extract_system_tarball(path: &Path, total: u64) -> Result<()> {
             .template(make_progress_bar!("Extracting tarball..."))
             .unwrap(),
     );
-    progress_bar.enable_steady_tick(Duration::from_millis(100));
+    progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stderr_with_hz(5));
     let reader = progress_bar.wrap_read(f);
     extract_tar_xz(reader, &PathBuf::from(CIEL_DIST_DIR))?;
     progress_bar.finish_and_clear();

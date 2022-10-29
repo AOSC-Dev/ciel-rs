@@ -69,7 +69,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
             .template(make_progress_bar!("{bytes}/{total_bytes}"))
             .unwrap(),
     );
-    progress_bar.enable_steady_tick(Duration::from_millis(100));
+    progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stderr_with_hz(5));
     let mut reader = progress_bar.wrap_read(resp);
     std::io::copy(&mut reader, &mut output)?;
     progress_bar.finish_and_clear();
@@ -82,10 +82,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
 #[inline]
 fn get_arch_name() -> Option<&'static str> {
     let mut endian: libc::c_int = -1;
-    let result;
-    unsafe {
-        result = libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int);
-    }
+    let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
     if result < 0 {
         return None;
     }
