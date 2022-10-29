@@ -61,7 +61,9 @@ pub fn build_cli() -> Command {
                 .about("Update the existing ABBS tree (fetch only) and optionally switch to a different branch")
         )
         .subcommand(
-            Command::new("new").about("Create a new CIEL workspace")
+            Command::new("new")
+            .arg(Arg::new("tarball").num_args(1).long("from-tarball").help("Create a new workspace from the specified tarball"))
+            .about("Create a new CIEL workspace")
         )
         .subcommand(
             Command::new("list")

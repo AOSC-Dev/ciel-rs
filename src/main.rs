@@ -197,8 +197,9 @@ fn main() -> Result<()> {
         ("mount", args) => {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });
         }
-        ("new", _) => {
-            if let Err(e) = actions::onboarding() {
+        ("new", args) => {
+            let tarball = args.get_one::<String>("tarball");
+            if let Err(e) = actions::onboarding(tarball) {
                 error!("{}", e);
                 process::exit(1);
             }

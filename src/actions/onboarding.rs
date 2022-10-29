@@ -16,7 +16,7 @@ use crate::{
 use super::{load_os, mount_fs};
 
 /// Show interactive onboarding guide, triggered by issuing `ciel new`
-pub fn onboarding() -> Result<()> {
+pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
     let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
@@ -47,25 +47,16 @@ pub fn onboarding() -> Result<()> {
     info!("Initializing workspace...");
     ciel_init()?;
     info!("Initializing container OS...");
-    let tarball_url;
-    let tarball_sha256;
-    info!("Searching for latest AOSC OS buildkit release...");
-    if let Ok(tarball) = pick_latest_tarball() {
-        info!(
-            "Ciel has picked buildkit for {}, released on {}",
-            tarball.arch, tarball.date
-        );
-        tarball_sha256 = Some(tarball.sha256sum);
-        tarball_url = format!("https://releases.aosc.io/{}", tarball.path);
-    } else {
-        warn!(
-            "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
-        );
-        tarball_sha256 = None;
-        tarball_url = Input::<String>::with_theme(&theme)
-            .with_prompt("Tarball URL")
-            .interact()?;
-    }
+    let (tarball_url, tarball_sha256) = match custom_tarball {
+        Some(tarball) => {
+            info!("Using custom tarball from {}", tarball);
+            (tarball.clone(), None)
+        }
+        None => {
+            info!("Searching for latest AOSC OS buildkit release...");
+            auto_pick_tarball(&theme)?
+        }
+    };
     load_os(&tarball_url, tarball_sha256)?;
     info!("Initializing ABBS tree...");
     if Path::new("TREE").is_dir() {
@@ -99,4 +90,26 @@ pub fn onboarding() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[inline]
+fn auto_pick_tarball(theme: &dyn dialoguer::theme::Theme) -> Result<(String, Option<String>)> {
+    if let Ok(tarball) = pick_latest_tarball() {
+        info!(
+            "Ciel has picked buildkit for {}, released on {}",
+            tarball.arch, tarball.date
+        );
+        Ok((
+            format!("https://releases.aosc.io/{}", tarball.path),
+            Some(tarball.sha256sum),
+        ))
+    } else {
+        warn!(
+            "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
+        );
+        let tarball_url = Input::<String>::with_theme(theme)
+            .with_prompt("Tarball URL")
+            .interact()?;
+        Ok((tarball_url, None))
+    }
 }

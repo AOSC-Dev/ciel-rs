@@ -150,9 +150,9 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
 /// Ask user for the configuration and then apply it
 pub fn config_os(instance: Option<&str>) -> Result<()> {
     let config;
-    let mut prev_voltile = None;
+    let mut prev_volatile = None;
     if let Ok(c) = config::read_config() {
-        prev_voltile = Some(c.volatile_mount);
+        prev_volatile = Some(c.volatile_mount);
         config = config::ask_for_config(Some(c));
     } else {
         config = config::ask_for_config(None);
@@ -178,7 +178,7 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
             c.save_config()?,
         )?;
         info!("Configurations applied.");
-        let volatile_changed = if let Some(prev_voltile) = prev_voltile {
+        let volatile_changed = if let Some(prev_voltile) = prev_volatile {
             prev_voltile != c.volatile_mount
         } else {
             false
