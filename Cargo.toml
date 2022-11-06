@@ -43,6 +43,7 @@ clap = { version = "^4", features = ["wrap_help", "string", "env"] }
 ar = "0.9"
 faster-hex = "0.6"
 flate2 = "1.0"
+tabwriter = { version = "^1", features = ["ansi_formatting"] }
 
 [build-dependencies]
 clap = { version = "^4", features = ["string", "env"] }

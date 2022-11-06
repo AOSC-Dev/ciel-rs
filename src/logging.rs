@@ -22,13 +22,11 @@ macro_rules! error {
     };
 }
 
-#[macro_export]
-macro_rules! color_bool {
-    ($x:expr) => {
-        if $x {
-            style("Yes").green().bold()
-        } else {
-            style("No").cyan()
-        }
-    };
+#[inline]
+pub fn color_bool(pred: bool) -> &'static str {
+    if pred {
+        "\x1b[1m\x1b[32mYes\x1b[0m"
+    } else {
+        "\x1b[34mNo\x1b[0m"
+    }
 }

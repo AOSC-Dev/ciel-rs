@@ -4,7 +4,7 @@ use crate::common::{is_legacy_workspace, CIEL_INST_DIR};
 use crate::dbus_machine1::ManagerProxyBlocking;
 use crate::dbus_machine1_machine::MachineProxyBlocking;
 use crate::overlayfs::is_mounted;
-use crate::{color_bool, info, overlayfs::LayerManager, warn};
+use crate::{info, overlayfs::LayerManager, warn};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
 use console::style;
@@ -375,23 +375,31 @@ pub fn list_instances_simple() -> Result<Vec<String>> {
 
 /// Print all the instances under the current directory
 pub fn print_instances() -> Result<()> {
+    use std::io::Write;
+    use tabwriter::TabWriter;
+    use crate::logging::color_bool;
+
     let instances = list_instances()?;
-    eprintln!("NAME\t\tMOUNTED\t\tRUNNING\t\tBOOTED");
+    let mut formatter = TabWriter::new(std::io::stderr());
+    writeln!(&mut formatter, "NAME\tMOUNTED\tRUNNING\tBOOTED")?;
     for instance in instances {
-        let mounted = color_bool!(instance.mounted);
-        let running = color_bool!(instance.running);
+        let mounted = color_bool(instance.mounted);
+        let running = color_bool(instance.running);
         let booted = {
             if let Some(booted) = instance.booted {
-                color_bool!(booted)
+                color_bool(booted)
             } else {
-                style("-").dim()
+                // dim
+                "\x1b[2m-\x1b[0m"
             }
         };
-        eprintln!(
-            "{}\t\t{}\t\t{}\t\t{}",
+        writeln!(
+            &mut formatter,
+            "{}\t{}\t{}\t{}",
             instance.name, mounted, running, booted
-        );
+        )?;
     }
+    formatter.flush()?;
 
     Ok(())
 }
