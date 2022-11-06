@@ -268,7 +268,7 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
             let packages = packages.unwrap();
-            if args.get_flag("SELECT") {
+            if args.contains_id("SELECT") {
                 let start_package = args.get_one::<String>("SELECT");
                 let status =
                     actions::packages_stage_select(&instance, packages, settings, start_package)?;
