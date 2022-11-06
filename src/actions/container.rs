@@ -285,9 +285,6 @@ pub fn start_container(instance: &str) -> Result<String> {
         extra_options.push("--private-network".to_string());
         info!("{}: network disconnected.", instance);
     }
-    if std::env::var("CIEL_STAGE2").is_ok() {
-        extra_options.push("--setenv=ABSTAGE2=1".to_string());
-    }
     if !inst.mounted {
         mount_fs(instance)?;
     }

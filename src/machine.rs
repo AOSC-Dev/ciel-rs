@@ -183,8 +183,13 @@ pub fn spawn_container<P: AsRef<Path>>(
 
 /// Execute a command in the container
 pub fn execute_container_command<S: AsRef<OsStr>>(ns_name: &str, args: &[S]) -> Result<i32> {
+    let mut extra_options = Vec::new();
+    if std::env::var("CIEL_STAGE2").is_ok() {
+        extra_options.push("--setenv=ABSTAGE2=1".to_string());
+    }
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
+        .args(extra_options)
         .args(&["-M", ns_name, "-qt", "--"])
         .args(args)
         .spawn()?
