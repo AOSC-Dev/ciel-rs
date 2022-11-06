@@ -20,34 +20,33 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
 const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt clean"#;
 
 /// Ensure that the directories exist and mounted
-#[macro_export]
-macro_rules! ensure_host_sanity {
-    () => {{
-        let mut extra_options = Vec::new();
-        let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
-            .into_iter()
-            .map(|x| (x.0.to_string(), x.1))
-            .collect();
-        if let Ok(c) = config::read_config() {
-            extra_options = c.extra_options;
-            if !c.local_sources {
-                // remove SRCS
-                mounts.swap_remove(2);
-            }
-            if c.sep_mount {
-                mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
-                mounts.swap_remove(0);
-            }
-        } else {
-            warn!("This workspace is not yet configured, default settings are used.");
-        }
+pub fn ensure_host_sanity() -> Result<(Vec<String>, Vec<(String, &'static str)>), std::io::Error> {
+    use crate::warn;
 
-        for mount in &mounts {
-            fs::create_dir_all(&mount.0)?;
+    let mut extra_options = Vec::new();
+    let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
+        .into_iter()
+        .map(|x| (x.0.to_string(), x.1))
+        .collect();
+    if let Ok(c) = crate::config::read_config() {
+        extra_options = c.extra_options;
+        if !c.local_sources {
+            // remove SRCS
+            mounts.swap_remove(2);
         }
+        if c.sep_mount {
+            mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
+            mounts.swap_remove(0);
+        }
+    } else {
+        warn!("This workspace is not yet configured, default settings are used.");
+    }
 
-        (extra_options, mounts)
-    }};
+    for mount in &mounts {
+        std::fs::create_dir_all(&mount.0)?;
+    }
+
+    Ok((extra_options, mounts))
 }
 
 /// A convenience function for iterating over all the instances while executing the actions

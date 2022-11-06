@@ -12,13 +12,14 @@ use std::{
 
 use crate::{
     common::*,
-    config, ensure_host_sanity, error, info,
+    config, error, info,
     machine::{self, get_container_ns_name, inspect_instance, spawn_container},
     network::download_file_progress,
     overlayfs, warn,
+    actions::ensure_host_sanity,
 };
 
-use super::{for_each_instance, DEFAULT_MOUNTS, UPDATE_SCRIPT};
+use super::{for_each_instance, UPDATE_SCRIPT};
 
 /// Get the branch name of the workspace TREE repository
 #[inline]
@@ -277,7 +278,7 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
 pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
-    let (mut extra_options, mounts) = ensure_host_sanity!();
+    let (mut extra_options, mounts) = ensure_host_sanity()?;
     if std::env::var("CIEL_OFFLINE").is_ok() {
         // FIXME: does not work with current version of systemd
         // add the offline option (private-network means don't share the host network)
