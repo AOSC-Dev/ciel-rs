@@ -18,6 +18,8 @@ use dotenv::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
 
+use crate::actions::BuildSettings;
+
 macro_rules! print_error {
     ($input:block) => {
         if let Err(e) = $input {
@@ -83,6 +85,9 @@ fn update_tree(path: &Path, branch: Option<&String>, rebase_from: Option<&String
 }
 
 fn main() -> Result<()> {
+    // source .env file, ignore errors
+    dotenv().ok();
+
     let build_cli = cli::build_cli();
     let version_string = build_cli.render_version();
     let args = build_cli.get_matches();
@@ -120,8 +125,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let subcmd = subcmd.unwrap();
-    // source .env file, ignore errors
-    dotenv().ok();
     // Switch table
     match subcmd {
         ("farewell", _) => {
@@ -247,12 +250,15 @@ fn main() -> Result<()> {
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
-            let offline = args.get_flag("OFFLINE");
+            let settings = BuildSettings {
+                offline: args.get_flag("OFFLINE"),
+                stage2: args.get_flag("STAGE2"),
+            };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {
                 state = Some(actions::load_build_checkpoint(cont)?);
                 let empty: Vec<&str> = Vec::new();
-                let status = actions::package_build(&instance, empty.into_iter(), state, offline)?;
+                let status = actions::package_build(&instance, empty.into_iter(), state, settings)?;
                 println!("\x07"); // bell character
                 process::exit(status);
             }
@@ -265,7 +271,7 @@ fn main() -> Result<()> {
             if args.get_flag("SELECT") {
                 let start_package = args.get_one::<String>("SELECT");
                 let status =
-                    actions::packages_stage_select(&instance, packages, offline, start_package)?;
+                    actions::packages_stage_select(&instance, packages, settings, start_package)?;
                 process::exit(status);
             }
             if args.get_flag("FETCH") {
@@ -273,7 +279,7 @@ fn main() -> Result<()> {
                 let status = actions::package_fetch(&instance, &packages)?;
                 process::exit(status);
             }
-            let status = actions::package_build(&instance, packages, state, offline)?;
+            let status = actions::package_build(&instance, packages, state, settings)?;
             println!("\x07"); // bell character
             process::exit(status);
         }

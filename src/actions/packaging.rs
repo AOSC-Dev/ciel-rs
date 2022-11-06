@@ -27,6 +27,12 @@ pub struct BuildCheckPoint {
     attempts: usize,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct BuildSettings {
+    pub offline: bool,
+    pub stage2: bool,
+}
+
 pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
     let f = File::open(path)?;
 
@@ -178,7 +184,7 @@ fn package_build_inner<P: AsRef<Path>>(
 pub fn packages_stage_select<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
-    offline: bool,
+    settings: BuildSettings,
     start_package: Option<&String>,
 ) -> Result<i32> {
     let packages = expand_package_list(packages);
@@ -210,7 +216,7 @@ pub fn packages_stage_select<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = 
             time_elapsed: 0,
             attempts: 1,
         }),
-        offline,
+        settings,
     )
 }
 
@@ -240,7 +246,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
     packages: K,
     state: Option<BuildCheckPoint>,
-    offline: bool,
+    settings: BuildSettings,
 ) -> Result<i32> {
     let conf = config::read_config();
     if conf.is_err() {
@@ -260,12 +266,17 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
         expand_package_list(packages)
     };
 
-    if offline || std::env::var("CIEL_OFFLINE").is_ok() {
+    if settings.offline || std::env::var("CIEL_OFFLINE").is_ok() {
         info!("Preparing offline mode. Fetching source packages first ...");
         package_fetch(instance, &packages)?;
         std::env::set_var("CIEL_OFFLINE", "ON");
         // FIXME: does not work with current version of systemd
         info!("Running in offline mode. Network access disabled.");
+    }
+
+    if settings.stage2 {
+        std::env::set_var("CIEL_STAGE2", "ON");
+        info!("Running in stage 2 mode. ACBS and autobuild3 may behave differently.");
     }
 
     mount_fs(instance)?;
