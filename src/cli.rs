@@ -41,7 +41,7 @@ pub fn build_cli() -> Command {
         .allow_external_subcommands(true)
         .subcommand(Command::new("version").about("Display the version of CIEL!"))
         .subcommand(Command::new("init")
-            .arg(Arg::new("upgrade").long("upgrade").help("Upgrade Ciel workspace from an older version"))
+            .arg(Arg::new("upgrade").long("upgrade").action(clap::ArgAction::SetTrue).help("Upgrade Ciel workspace from an older version"))
             .about("Initialize the work directory"))
         .subcommand(
             Command::new("load-os")
