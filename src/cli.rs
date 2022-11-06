@@ -35,7 +35,7 @@ pub fn build_cli() -> Command {
         .num_args(1)
         .env("CIEL_INST")
         .action(clap::ArgAction::Set);
-    Command::new("CIEL!")
+    Command::new("ciel")
         .version(env!("CARGO_PKG_VERSION"))
         .about("CIEL! is a nspawn container manager")
         .allow_external_subcommands(true)
