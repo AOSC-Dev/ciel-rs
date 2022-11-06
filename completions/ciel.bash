@@ -348,15 +348,15 @@ _ciel() {
             ;;
         ciel__del)
             opts="-h --help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            if [[ ${cur} == -* ]] ; then
                 return 0
             fi
             case "${prev}" in
                 *)
                     ;;
             esac
-            COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+            COMPREPLY+=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
             return 0
             ;;
         ciel__doctor)
@@ -905,8 +905,8 @@ _ciel() {
             ;;
         ciel__repo__deinit)
             opts="-h --help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            if [[ ${cur} == -* ]] ; then
                 return 0
             fi
             case "${prev}" in
@@ -914,7 +914,7 @@ _ciel() {
                     COMPREPLY=()
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY+=( $(compgen -W "$(_ciel_list_instances)" -- "$cur") )
             return 0
             ;;
         ciel__repo__help)
@@ -989,8 +989,8 @@ _ciel() {
             ;;
         ciel__repo__init)
             opts="-h --help"
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            if [[ ${cur} == -* ]] ; then
                 return 0
             fi
             case "${prev}" in
@@ -998,7 +998,7 @@ _ciel() {
                     COMPREPLY=()
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY+=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
             return 0
             ;;
         ciel__repo__refresh)
