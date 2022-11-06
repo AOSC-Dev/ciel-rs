@@ -354,10 +354,9 @@ _ciel() {
             fi
             case "${prev}" in
                 *)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
             return 0
             ;;
         ciel__doctor)
