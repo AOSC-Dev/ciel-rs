@@ -1,5 +1,5 @@
 use crate::common;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use libmount::{mountinfo::Parser, Overlay};
 use nix::mount::{umount2, MntFlags};
 use std::fs;
@@ -139,6 +139,9 @@ impl OverlayFS {
                 if file_type.is_char_device() && meta.rdev() == 0 {
                     // Whiteout file!
                     mods.push(Diff::WhiteoutFile(rel_path.clone()));
+                } else if lower_path.is_dir() {
+                    // A new file overrides an old directory
+                    mods.push(Diff::OverrideDir(rel_path.clone()));
                 } else {
                     mods.push(Diff::File(rel_path.clone()));
                 }
@@ -242,7 +245,8 @@ impl LayerManager for OverlayFS {
         for i in mods.iter() {
             match i {
                 Diff::WhiteoutFile(_) => continue,
-                _ => overlay_exec_action(i, self)?,
+                _ => overlay_exec_action(i, self)
+                    .with_context(|| format!("when processing {:?}", i))?,
             }
         }
         // clear all the remnant items in the upper layer
@@ -363,6 +367,9 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             if lower_path.is_dir() {
                 // If exists and was not removed already, then remove it
                 fs::remove_dir_all(&lower_path)?;
+            } else if lower_path.is_file() {
+                // If it's a file, then remove it as well
+                fs::remove_file(&lower_path)?;
             }
             fs::rename(&upper_path, &lower_path)?;
         }
