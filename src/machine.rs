@@ -380,9 +380,9 @@ pub fn list_instances_simple() -> Result<Vec<String>> {
 
 /// Print all the instances under the current directory
 pub fn print_instances() -> Result<()> {
+    use crate::logging::color_bool;
     use std::io::Write;
     use tabwriter::TabWriter;
-    use crate::logging::color_bool;
 
     let instances = list_instances()?;
     let mut formatter = TabWriter::new(std::io::stderr());

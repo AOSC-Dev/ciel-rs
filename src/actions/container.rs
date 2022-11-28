@@ -11,12 +11,12 @@ use std::{
 };
 
 use crate::{
+    actions::ensure_host_sanity,
     common::*,
     config, error, info,
     machine::{self, get_container_ns_name, inspect_instance, spawn_container},
     network::download_file_progress,
     overlayfs, warn,
-    actions::ensure_host_sanity,
 };
 
 use super::{for_each_instance, UPDATE_SCRIPT};
