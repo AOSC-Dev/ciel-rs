@@ -148,7 +148,7 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         .with_prompt("Maintainer Information")
         .default(config.maintainer)
         .validate_with(validate_maintainer)
-        .interact()?;
+        .interact_text()?;
     config.dnssec = Confirm::with_theme(&theme)
         .with_prompt("Enable DNSSEC")
         .default(config.dnssec)
