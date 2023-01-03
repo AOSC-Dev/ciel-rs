@@ -34,7 +34,7 @@ pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
     {
         let name: String = Input::with_theme(&theme)
             .with_prompt("Name of the instance")
-            .interact()?;
+            .interact_text()?;
         init_instance = Some(name.clone());
         info!(
             "Understood. `{}` will be created after initialization is finished.",
@@ -109,7 +109,7 @@ fn auto_pick_tarball(theme: &dyn dialoguer::theme::Theme) -> Result<(String, Opt
         );
         let tarball_url = Input::<String>::with_theme(theme)
             .with_prompt("Tarball URL")
-            .interact()?;
+            .interact_text()?;
         Ok((tarball_url, None))
     }
 }
