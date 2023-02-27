@@ -23,21 +23,23 @@ pushd "$OS_PATH" || exit $?
 
 _ciel_tarball() {
 	# Make a tarball
-	tar cf - * | $COMPRESSOR > "$WORKDIR/$TARBALL" || exit $?
+	tar cf - -- * | $COMPRESSOR > "$WORKDIR/$TARBALL" || exit $?
 	# Generate SHA256 checksum.
 	sha256sum "$WORKDIR/$TARBALL" > "$WORKDIR/$TARBALL".sha256sum || exit $?
 }
 
 if [[ ! "$COMPRESSOR" ]]; then
 	if [ -z "$2" ]; then
-		echo "Usage: ciel release <variant> <threads>"
-		echo ""
-		echo "<threads> not defined or not a natural integer!"
-		echo "Defaulting to 0, using as many threads as possible!"
-		echo "This could result in out-of-memory conditions"
-		echo ""
-		echo "Please declare a natural integer for XZ thread count."
-		echo "The higher the thread count, the higher the memory requirement."
+		cat << EOF
+Usage: ciel release <variant> <threads>
+
+<threads> not defined or not a natural integer!
+Defaulting to 0, using as many threads as possible!
+This could result in out-of-memory conditions
+
+Please declare a natural integer for XZ thread count.
+The higher the thread count, the higher the memory requirement.
+EOF
 		export XZ_THREADS=0
 	else
 		export XZ_THREADS=$2
