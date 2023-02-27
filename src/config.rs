@@ -40,8 +40,8 @@ impl CielConfig {
         Ok(toml::to_string(self)?)
     }
 
-    pub fn load_config(data: &[u8]) -> Result<CielConfig> {
-        Ok(toml::from_slice(data)?)
+    pub fn load_config(data: &str) -> Result<CielConfig> {
+        Ok(toml::from_str(data)?)
     }
 }
 
@@ -191,10 +191,10 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
 /// Reads the configuration file from the current workspace
 pub fn read_config() -> Result<CielConfig> {
     let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
-    let mut data: Vec<u8> = Vec::new();
-    f.read_to_end(&mut data)?;
+    let mut data = String::new();
+    f.read_to_string(&mut data)?;
 
-    CielConfig::load_config(data.as_slice())
+    CielConfig::load_config(&data)
 }
 
 /// Applies the given configuration (th configuration itself will not be saved to the disk)
