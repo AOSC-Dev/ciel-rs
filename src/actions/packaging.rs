@@ -201,7 +201,9 @@ pub fn packages_stage_select<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = 
 
         Select::with_theme(&ColorfulTheme::default())
             .default(0)
-            .with_prompt("Choose a package to start building from (left/right arrow keys to change pages)")
+            .with_prompt(
+                "Choose a package to start building from (left/right arrow keys to change pages)",
+            )
             .items(&packages)
             .interact()?
     };
