@@ -22,6 +22,8 @@ WHITELIST="^/tree
 ^/proc
 ^/sys
 /\.updated$"
+    local DPKG_FILES ALL_FILES RM_FILES PATTERN_FILES
+    local FIND_PID
     DPKG_FILES="$(mktemp)"
     ALL_FILES="$(mktemp)"
     RM_FILES="$(mktemp)"
@@ -29,13 +31,12 @@ WHITELIST="^/tree
     info '[1/4] Un-mounting bind-mounts ...'
     umount /debs || true
     umount /var/cache/acbs/tarballs || true
-    info '[2/4] Listing dpkg packages ...'
-    PACKAGES="$(dpkg-query --show --showformat="\${Package}\n")"
-    info '[3/4] Collecting files from dpkg ...'
-    find / -mindepth 2 >> "$ALL_FILES"
-    for p in $PACKAGES; do
-        dpkg-query --listfiles "$p" >> "$DPKG_FILES"
-    done
+    info '[2/4] Collecting files from dpkg ...'
+    find / -mindepth 2 >> "$ALL_FILES" &
+    FIND_PID="$!"
+    cat /var/lib/dpkg/info/*.list > "$DPKG_FILES"
+    waitpid "$FIND_PID"
+    info '[3/4] Calculating changes ...'
     echo "$WHITELIST" > "$PATTERN_FILES"
     grep -vEf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
     mv "${ALL_FILES}.new" "$ALL_FILES"
