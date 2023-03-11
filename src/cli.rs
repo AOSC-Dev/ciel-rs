@@ -6,7 +6,7 @@ pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 
 /// List all the available plugins/helper scripts
 fn list_helpers() -> Result<Vec<String>> {
-    let exe_dir = std::env::current_exe()?;
+    let exe_dir = std::env::current_exe().and_then(std::fs::canonicalize)?;
     let exe_dir = exe_dir.parent().ok_or_else(|| anyhow!("Where am I?"))?;
     let plugins_dir = exe_dir.join("../libexec/ciel-plugin/").read_dir()?;
     let plugins = plugins_dir
