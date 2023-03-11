@@ -30,7 +30,7 @@ function __ciel_list_packages
 end
 
 function __ciel_list_plugins
-    set ciel_path (command -v ciel)
+    set ciel_path (readlink -f (command -v ciel))
     set ciel_plugin_dir (dirname $ciel_path)"/../libexec/ciel-plugin"
     find "$ciel_plugin_dir" -maxdepth 1 -mindepth 1 -type f -printf '%f\t-Ciel plugin-\n' | cut -d'-' -f2-
 end
