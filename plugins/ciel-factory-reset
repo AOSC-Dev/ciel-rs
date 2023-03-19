@@ -42,7 +42,7 @@ WHITELIST="^/tree
     mv "${ALL_FILES}.new" "$ALL_FILES"
     grep -vxFf "$DPKG_FILES" < "$ALL_FILES" > "$RM_FILES"
     log_info '[4/4] Removing files ...'
-    xargs -n 500 -a "$RM_FILES" rm -rfv
+    xargs -a "$RM_FILES" rm -rfv
     rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
 }
 
