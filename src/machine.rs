@@ -183,7 +183,7 @@ pub fn spawn_container<P: AsRef<Path>>(
 
 /// Execute a command in the container
 pub fn execute_container_command<S: AsRef<OsStr>>(ns_name: &str, args: &[S]) -> Result<i32> {
-    let mut extra_options = Vec::new();
+    let mut extra_options = vec!["--setenv=HOME=/root".to_string()];
     if std::env::var("CIEL_STAGE2").is_ok() {
         extra_options.push("--setenv=ABSTAGE2=1".to_string());
     }
