@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-info() {
+log_info() {
     echo -e "\e[1m\e[96m[factory-reset]:\e[0m\e[1m $1\e[0m"
 }
 
@@ -28,21 +28,21 @@ WHITELIST="^/tree
     ALL_FILES="$(mktemp)"
     RM_FILES="$(mktemp)"
     PATTERN_FILES="$(mktemp)"
-    info '[1/4] Un-mounting bind-mounts ...'
+    log_info '[1/4] Un-mounting bind-mounts ...'
     umount /debs || true
     umount /var/cache/acbs/tarballs || true
-    info '[2/4] Collecting files from dpkg ...'
+    log_info '[2/4] Collecting files from dpkg ...'
     find / -mindepth 2 >> "$ALL_FILES" &
     FIND_PID="$!"
     cat /var/lib/dpkg/info/*.list > "$DPKG_FILES"
-    waitpid "$FIND_PID"
-    info '[3/4] Calculating changes ...'
+    wait "$FIND_PID"
+    log_info '[3/4] Calculating changes ...'
     echo "$WHITELIST" > "$PATTERN_FILES"
     grep -vEf "$PATTERN_FILES" < "$ALL_FILES" > "${ALL_FILES}.new"
     mv "${ALL_FILES}.new" "$ALL_FILES"
     grep -vxFf "$DPKG_FILES" < "$ALL_FILES" > "$RM_FILES"
-    info '[4/4] Removing files ...'
-    xargs -L 1000 -a "$RM_FILES" rm -rfv
+    log_info '[4/4] Removing files ...'
+    xargs -n 500 -a "$RM_FILES" rm -rfv
     rm -fv "$ALL_FILES" "$DPKG_FILES" "$RM_FILES"
 }
 
@@ -50,7 +50,7 @@ CIEL_INST="${1:-$CIEL_INST}"
 [ -z "$CIEL_INST" ] && ( echo "No instance specified" && exit 1 )
 ciel down -i "$CIEL_INST"
 ciel mount -i "$CIEL_INST"
-declare -f remove_files > "$CIEL_INST/rm-script"
+declare -f log_info remove_files > "$CIEL_INST/rm-script"
 echo "remove_files; rm -fv '/rm-script'" >> "$CIEL_INST/rm-script"
 chmod a+x "$CIEL_INST/rm-script"
 ciel shell -i "$CIEL_INST" "/rm-script"
