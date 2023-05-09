@@ -14,7 +14,7 @@ mod repo;
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
 use console::style;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
 
