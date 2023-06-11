@@ -26,7 +26,7 @@ libmount = { git = "https://github.com/liushuyu/libmount", rev = "163b2a70d10a4b
 libc = "0.2"
 adler32 = "1.2"
 rayon = "1.7"
-tempfile = "3.5"
+tempfile = "3.6"
 anyhow = "1.0"
 libsystemd-sys = "0.9"
 walkdir = "2"
