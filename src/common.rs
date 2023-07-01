@@ -1,6 +1,9 @@
 use anyhow::{anyhow, Result};
+use console::user_attended;
+use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
+use std::env::consts::ARCH;
 use std::fs::{self, File};
 use std::os::unix::prelude::MetadataExt;
 use std::{
@@ -15,6 +18,8 @@ pub const CIEL_DIST_DIR: &str = ".ciel/container/dist";
 pub const CIEL_INST_DIR: &str = ".ciel/container/instances";
 pub const CIEL_DATA_DIR: &str = ".ciel/data";
 const SKELETON_DIRS: &[&str] = &[CIEL_DIST_DIR, CIEL_INST_DIR, CIEL_DATA_DIR];
+pub const CIEL_MAINLINE_ARCHS: &[&str] = &["amd64", "arm64", "ppc64el", "mips64r6el", "riscv64"];
+pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
 
 lazy_static! {
     static ref SPINNER_STYLE: indicatif::ProgressStyle =
@@ -42,6 +47,52 @@ pub fn create_spinner(msg: &'static str, tick_rate: u64) -> indicatif::ProgressB
     spinner.enable_steady_tick(Duration::from_millis(tick_rate));
 
     spinner
+}
+
+#[inline]
+pub fn check_arch_name(arch: &str) -> bool {
+    CIEL_MAINLINE_ARCHS.contains(&arch) || CIEL_RETRO_ARCHS.contains(&arch)
+}
+
+//// Workaround for mips64r6el
+#[cfg(feature = "mips64r6")]
+#[inline]
+pub fn get_arch_name() -> Option<&'static str> {
+    Some("mips64r6el")
+}
+
+/// AOSC OS specific architecture mapping for ppc64
+#[cfg(target_arch = "powerpc64")]
+#[inline]
+pub fn get_arch_name() -> Option<&'static str> {
+    let mut endian: libc::c_int = -1;
+    let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
+    if result < 0 {
+        return None;
+    }
+    match endian {
+        libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
+        libc::PR_ENDIAN_BIG => Some("ppc64"),
+        _ => None,
+    }
+}
+
+/// AOSC OS specific architecture mapping table
+#[cfg(not(target_arch = "powerpc64"))]
+#[cfg(not(feature = "mips64r6"))]
+#[inline]
+pub fn get_host_arch_name() -> Result<&'static str> {
+    match ARCH {
+        "x86_64" => Ok("amd64"),
+        "x86" => Ok("i486"),
+        "powerpc" => Ok("powerpc"),
+        "aarch64" => Ok("arm64"),
+        "mips64" => Ok("loongson3"),
+        "riscv64" => Ok("riscv64"),
+        _ => Err(anyhow!(
+            "Current host architecture {ARCH} is not supported by Ciel."
+        )),
+    }
 }
 
 /// Calculate the Sha256 checksum of the given stream
@@ -125,4 +176,32 @@ pub fn is_legacy_workspace() -> Result<bool> {
     f.read_exact(&mut buf)?;
 
     Ok(buf[0] < CURRENT_CIEL_VERSION_STR.as_bytes()[0])
+}
+
+pub fn ask_for_target_arch() -> Option<&'static str> {
+    // Collect all supported architectures
+    let host_arch = get_host_arch_name().unwrap();
+    if !user_attended() {
+        return Some(host_arch);
+    }
+    let mut all_archs: Vec<&'static str> = CIEL_MAINLINE_ARCHS.into();
+    all_archs.append(&mut CIEL_RETRO_ARCHS.into());
+    let default_arch_index = all_archs
+        .iter()
+        .position(|a| a.to_owned() == host_arch)
+        .unwrap();
+    // Setup Dialoguer
+    let theme = ColorfulTheme::default();
+    let prefixed_archs = CIEL_MAINLINE_ARCHS
+        .iter()
+        .map(|x| format!("mainline: {x}"))
+        .chain(CIEL_RETRO_ARCHS.iter().map(|x| format!("retro: {x}")))
+        .collect::<Vec<_>>();
+    let chosen_index = FuzzySelect::with_theme(&theme)
+        .with_prompt("Target Architecture")
+        .default(default_arch_index)
+        .items(&prefixed_archs.as_slice())
+        .interact()
+        .unwrap_or_default();
+    Some(all_archs[chosen_index])
 }

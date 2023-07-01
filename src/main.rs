@@ -13,12 +13,14 @@ mod repo;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
-use console::style;
+use common::{check_arch_name, get_host_arch_name};
+use console::{style, user_attended};
 use dotenvy::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
 
 use crate::actions::BuildSettings;
+use crate::common::{ask_for_target_arch, CIEL_MAINLINE_ARCHS, CIEL_RETRO_ARCHS};
 
 macro_rules! print_error {
     ($input:block) => {
@@ -37,6 +39,20 @@ macro_rules! one_or_all_instance {
             actions::for_each_instance($func)
         }
     }};
+}
+
+macro_rules! unsupported_target_architecture {
+    ($arch:ident) => {
+        error!("Unknown target architecture {}", $arch);
+        error!("Supported target architectures: {:?}",
+            CIEL_MAINLINE_ARCHS.iter().map(|x| {
+                format!("{x}")
+            }).chain(CIEL_RETRO_ARCHS.iter().map(|x| {
+                format!("{x}")
+            })).collect::<Vec<_>>());
+        error!("If you do want to load an OS unsupported by Ciel, specify a tarball to initialize this workspace.");
+        process::exit(1);
+    };
 }
 
 fn get_output_dir() -> String {
@@ -96,6 +112,7 @@ fn main() -> Result<()> {
         process::exit(1);
     }
     let mut directory = Path::new(args.get_one::<String>("C").unwrap()).to_path_buf();
+    let host_arch = get_host_arch_name()?;
     // Switch to the target directory
     std::env::set_current_dir(&directory).unwrap();
     // get subcommands from command line parser
@@ -172,8 +189,27 @@ fn main() -> Result<()> {
                 return Ok(());
             }
             // load from network using auto picked url
+            let specified_arch = args.get_one::<String>("arch");
+            if specified_arch.is_some() {
+                let unwrapped_arch = specified_arch.unwrap();
+                if !check_arch_name(unwrapped_arch.as_str()) {
+                    unsupported_target_architecture!(unwrapped_arch);
+                }
+            }
+            let arch = {
+                if specified_arch.is_none() {
+                    if !user_attended() {
+                        host_arch
+                    } else {
+                        ask_for_target_arch().unwrap()
+                    }
+                } else {
+                    specified_arch.unwrap().as_str()
+                }
+            };
             info!("No URL specified. Ciel will automatically pick one.");
-            let tarball = network::pick_latest_tarball();
+            info!("Picking OS tarball for architecture {}", arch);
+            let tarball = network::pick_latest_tarball(arch);
             if let Err(e) = tarball {
                 error!("Unable to determine the latest tarball: {}", e);
                 process::exit(1);
@@ -201,8 +237,14 @@ fn main() -> Result<()> {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });
         }
         ("new", args) => {
+            let arch = args.get_one::<String>("arch").and_then(|val| {
+                if !check_arch_name(val) {
+                    unsupported_target_architecture!(val);
+                }
+                Some(val.as_str())
+            });
             let tarball = args.get_one::<String>("tarball");
-            if let Err(e) = actions::onboarding(tarball) {
+            if let Err(e) = actions::onboarding(tarball, arch) {
                 error!("{}", e);
                 process::exit(1);
             }

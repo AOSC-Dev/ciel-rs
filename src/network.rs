@@ -4,7 +4,7 @@ use fs3::FileExt;
 use lazy_static::lazy_static;
 use reqwest::blocking::{Client, Response};
 use serde::Deserialize;
-use std::{env::consts::ARCH, path::Path};
+use std::path::Path;
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -77,40 +77,8 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     Ok(total)
 }
 
-/// AOSC OS specific architecture mapping for ppc64
-#[cfg(target_arch = "powerpc64")]
-#[inline]
-fn get_arch_name() -> Option<&'static str> {
-    let mut endian: libc::c_int = -1;
-    let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
-    if result < 0 {
-        return None;
-    }
-    match endian {
-        libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
-        libc::PR_ENDIAN_BIG => Some("ppc64"),
-        _ => None,
-    }
-}
-
-/// AOSC OS specific architecture mapping table
-#[cfg(not(target_arch = "powerpc64"))]
-#[inline]
-fn get_arch_name() -> Option<&'static str> {
-    match ARCH {
-        "x86_64" => Some("amd64"),
-        "x86" => Some("i486"),
-        "powerpc" => Some("powerpc"),
-        "aarch64" => Some("arm64"),
-        "mips64" => Some("loongson3"),
-        "riscv64" => Some("riscv64"),
-        _ => None,
-    }
-}
-
 /// Pick the latest buildkit tarball according to the recipe
-pub fn pick_latest_tarball() -> Result<Tarball> {
-    let arch = get_arch_name().ok_or_else(|| anyhow!("Unsupported architecture"))?;
+pub fn pick_latest_tarball(arch: &str) -> Result<Tarball> {
     let resp = Client::new().get(MANIFEST_URL).send()?;
     let recipe: Recipe = resp.json()?;
     let buildkit = recipe

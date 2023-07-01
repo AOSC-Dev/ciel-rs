@@ -46,6 +46,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("load-os")
                 .arg(Arg::new("url").help("URL or path to the tarball"))
+                .arg(Arg::new("arch").short('a').long("arch").help("Specify the target architecture for fetching OS tarball"))
                 .about("Unpack OS tarball or fetch the latest BuildKit from the repository"),
         )
         .subcommand(Command::new("update-os").about("Update the OS in the container"))
@@ -63,6 +64,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("new")
             .arg(Arg::new("tarball").num_args(1).long("from-tarball").help("Create a new workspace from the specified tarball"))
+            .arg(Arg::new("arch").num_args(1).short('a').long("arch").help("Create a new workspace for specified architecture"))
             .about("Create a new CIEL workspace")
         )
         .subcommand(
