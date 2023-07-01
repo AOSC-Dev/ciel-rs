@@ -16,7 +16,7 @@ use crate::{
 use super::{load_os, mount_fs};
 
 /// Show interactive onboarding guide, triggered by issuing `ciel new`
-pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
+pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result<()> {
     let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
@@ -25,6 +25,17 @@ pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
         return Err(anyhow!("Unable to create a ciel workspace."));
     }
     info!("Before continuing, I need to ask you a few questions:");
+    let real_arch = {
+        if arch.is_none() {
+            if custom_tarball.is_none() {
+                ask_for_target_arch().unwrap()
+            } else {
+                get_host_arch_name().unwrap()
+            }
+        } else {
+            arch.unwrap()
+        }
+    };
     let config = config::ask_for_config(None)?;
     let mut init_instance: Option<String> = None;
     if user_attended()
@@ -54,7 +65,7 @@ pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
         }
         None => {
             info!("Searching for latest AOSC OS buildkit release...");
-            auto_pick_tarball(&theme)?
+            auto_pick_tarball(&theme, real_arch)?
         }
     };
     load_os(&tarball_url, tarball_sha256)?;
@@ -93,8 +104,11 @@ pub fn onboarding(custom_tarball: Option<&String>) -> Result<()> {
 }
 
 #[inline]
-fn auto_pick_tarball(theme: &dyn dialoguer::theme::Theme) -> Result<(String, Option<String>)> {
-    if let Ok(tarball) = pick_latest_tarball() {
+fn auto_pick_tarball(
+    theme: &dyn dialoguer::theme::Theme,
+    arch: &str,
+) -> Result<(String, Option<String>)> {
+    if let Ok(tarball) = pick_latest_tarball(arch) {
         info!(
             "Ciel has picked buildkit for {}, released on {}",
             tarball.arch, tarball.date
