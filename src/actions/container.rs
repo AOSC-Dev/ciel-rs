@@ -118,13 +118,15 @@ pub fn farewell(path: &Path) -> Result<()> {
 /// Download the OS tarball and then extract it for use as the base layer
 pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
     info!("Downloading base OS tarball...");
-    let path = Path::new(url)
+    let path = Path::new(url);
+    let filename = path
         .file_name()
         .ok_or_else(|| anyhow!("Unable to convert path to string"))?
         .to_str()
         .ok_or_else(|| anyhow!("Unable to decode path string"))?;
-    let total = if !Path::new(path).is_file() {
-        download_file_progress(url, path)?
+    let is_local_file = path.is_file();
+    let total = if !is_local_file {
+        download_file_progress(url, filename)?
     } else {
         let tarball = fs::File::open(path)?;
         tarball.metadata()?.len()
@@ -143,7 +145,11 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
             ));
         }
     }
-    extract_system_tarball(&PathBuf::from(path), total)?;
+    if is_local_file {
+        extract_system_tarball(&PathBuf::from(path), total)?;
+    } else {
+        extract_system_tarball(Path::new(filename), total)?;
+    }
 
     Ok(())
 }
