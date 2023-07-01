@@ -11,7 +11,7 @@ edition = "2018"
 [dependencies]
 console = "0.15"
 zbus = "^3"
-dialoguer = "0.10"
+dialoguer = { version = "0.10", features = ["fuzzy-select"] }
 indicatif = "0.17"
 nix = "0.26"
 lazy_static = "1.4"
