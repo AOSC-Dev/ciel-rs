@@ -133,7 +133,7 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
     };
     if let Some(sha256) = sha256 {
         info!("Verifying tarball checksum...");
-        let tarball = fs::File::open(path)?;
+        let tarball = fs::File::open(Path::new(filename))?;
         let checksum = sha256sum(tarball)?;
         if sha256 == checksum {
             info!("Checksum verified.");
