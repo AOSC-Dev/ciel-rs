@@ -17,7 +17,7 @@ use std::{
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Tarball {
+pub struct RootFs {
     pub arch: String,
     pub date: String,
     pub path: String,
@@ -27,7 +27,7 @@ pub struct Tarball {
 #[derive(Deserialize)]
 pub struct Variant {
     name: String,
-    tarballs: Vec<Tarball>,
+    squashfs: Vec<RootFs>,
 }
 
 /// AOSC OS Tarball Recipe structure
@@ -77,8 +77,8 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     Ok(total)
 }
 
-/// Pick the latest buildkit tarball according to the recipe
-pub fn pick_latest_tarball(arch: &str) -> Result<Tarball> {
+/// Pick the latest buildkit rootfs according to the recipe
+pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
     let resp = Client::new().get(MANIFEST_URL).send()?;
     let recipe: Recipe = resp.json()?;
     let buildkit = recipe
@@ -86,17 +86,18 @@ pub fn pick_latest_tarball(arch: &str) -> Result<Tarball> {
         .into_iter()
         .find(|v| v.name == "BuildKit")
         .ok_or_else(|| anyhow!("Unable to find buildkit variant"))?;
-    let mut tarballs: Vec<Tarball> = buildkit
-        .tarballs
-        .into_iter()
-        .filter(|tarball| tarball.arch == arch)
-        .collect();
-    if tarballs.is_empty() {
-        return Err(anyhow!("No suitable tarball was found"));
-    }
-    tarballs.sort_unstable_by_key(|x| x.date.clone());
 
-    Ok(tarballs.last().unwrap().to_owned())
+    let mut rootfs: Vec<RootFs> = buildkit.squashfs
+        .into_iter()
+        .filter(|rootfs| rootfs.arch == arch)
+        .collect();
+
+    if rootfs.is_empty() {
+        return Err(anyhow!("No suitable squashfs was found"));
+    }
+    rootfs.sort_unstable_by_key(|x| x.date.clone());
+
+    Ok(rootfs.last().unwrap().to_owned())
 }
 
 /// Clone the Git repository to `root`

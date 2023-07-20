@@ -43,6 +43,7 @@ ar = "0.9"
 faster-hex = "0.6"
 flate2 = "1.0"
 tabwriter = { version = "^1", features = ["ansi_formatting"] }
+unsquashfs-wrapper = "0.1"
 
 [build-dependencies]
 clap = { version = "^4", features = ["string", "env"] }
