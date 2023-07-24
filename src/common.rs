@@ -55,8 +55,6 @@ pub fn check_arch_name(arch: &str) -> bool {
 }
 
 /// AOSC OS specific architecture mapping table
-#[cfg(not(target_arch = "powerpc64"))]
-#[cfg(not(feature = "mips64r6"))]
 #[inline]
 pub fn get_host_arch_name() -> Option<&'static str> {
     #[cfg(all(not(target_arch = "powerpc64"), not(feature = "mips64r6")))]
@@ -173,15 +171,21 @@ pub fn is_legacy_workspace() -> Result<bool> {
     Ok(buf[0] < CURRENT_CIEL_VERSION_STR.as_bytes()[0])
 }
 
-pub fn ask_for_target_arch() -> Option<&'static str> {
+pub fn ask_for_target_arch() -> Result<&'static str> {
     // Collect all supported architectures
-    let host_arch = get_host_arch_name().unwrap();
+    let host_arch = get_host_arch_name();
     if !user_attended() {
-        return Some(host_arch);
+        return match host_arch {
+            Some(v) => Ok(v),
+            None => Err(anyhow!("Could not determine host architecture")),
+        };
     }
     let mut all_archs: Vec<&'static str> = CIEL_MAINLINE_ARCHS.into();
     all_archs.append(&mut CIEL_RETRO_ARCHS.into());
-    let default_arch_index = all_archs.iter().position(|a| *a == host_arch).unwrap();
+    let default_arch_index = match host_arch {
+        Some(host_arch) => all_archs.iter().position(|a| *a == host_arch).unwrap(),
+        None => 0,
+    };
     // Setup Dialoguer
     let theme = ColorfulTheme::default();
     let prefixed_archs = CIEL_MAINLINE_ARCHS
@@ -193,7 +197,7 @@ pub fn ask_for_target_arch() -> Option<&'static str> {
         .with_prompt("Target Architecture")
         .default(default_arch_index)
         .items(prefixed_archs.as_slice())
-        .interact()
-        .unwrap_or_default();
-    Some(all_archs[chosen_index])
+        .interact()?;
+
+    Ok(all_archs[chosen_index])
 }

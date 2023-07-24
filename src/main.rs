@@ -109,7 +109,7 @@ fn main() -> Result<()> {
         process::exit(1);
     }
     let mut directory = Path::new(args.get_one::<String>("C").unwrap()).to_path_buf();
-    let host_arch = get_host_arch_name()?;
+    let host_arch = get_host_arch_name();
     // Switch to the target directory
     std::env::set_current_dir(&directory).unwrap();
     // get subcommands from command line parser
@@ -194,6 +194,8 @@ fn main() -> Result<()> {
                 specified_arch
             } else if !user_attended() {
                 host_arch
+                    .ok_or_else(|| anyhow!("Ciel does not support this CPU architecture."))
+                    .unwrap()
             } else {
                 ask_for_target_arch().unwrap()
             };

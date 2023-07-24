@@ -27,10 +27,10 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     info!("Before continuing, I need to ask you a few questions:");
     let real_arch = if let Some(arch) = arch {
         arch
-    } else if let Some(_custom_tarball) = custom_tarball {
-        get_host_arch_name().unwrap()
+    } else if custom_tarball.is_some() {
+        "custom"
     } else {
-        ask_for_target_arch().unwrap()
+        ask_for_target_arch()?
     };
     let config = config::ask_for_config(None)?;
     let mut init_instance: Option<String> = None;
