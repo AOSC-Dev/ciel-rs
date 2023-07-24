@@ -41,9 +41,8 @@ macro_rules! one_or_all_instance {
     }};
 }
 
-macro_rules! unsupported_target_architecture {
-    ($arch:ident) => {
-        error!("Unknown target architecture {}", $arch);
+fn unsupported_target_architecture(arch: &str) {
+        error!("Unknown target architecture {}", arch);
         error!("Supported target architectures: {:?}",
             CIEL_MAINLINE_ARCHS.iter().map(|x| {
                 format!("{x}")
@@ -52,7 +51,6 @@ macro_rules! unsupported_target_architecture {
             })).collect::<Vec<_>>());
         error!("If you do want to load an OS unsupported by Ciel, specify a tarball to initialize this workspace.");
         process::exit(1);
-    };
 }
 
 fn get_output_dir() -> String {
@@ -239,7 +237,7 @@ fn main() -> Result<()> {
         ("new", args) => {
             let arch = args.get_one::<String>("arch").and_then(|val| {
                 if !check_arch_name(val) {
-                    unsupported_target_architecture!(val);
+                    unsupported_target_architecture(val.as_str());
                 }
                 Some(val.as_str())
             });
