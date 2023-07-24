@@ -12,14 +12,14 @@ use std::{
     time::Duration,
 };
 
+pub const CIEL_MAINLINE_ARCHS: &[&str] = &["amd64", "arm64", "ppc64el", "mips64r6el", "riscv64"];
+pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
 pub const CURRENT_CIEL_VERSION: usize = 3;
 const CURRENT_CIEL_VERSION_STR: &str = "3";
 pub const CIEL_DIST_DIR: &str = ".ciel/container/dist";
 pub const CIEL_INST_DIR: &str = ".ciel/container/instances";
 pub const CIEL_DATA_DIR: &str = ".ciel/data";
 const SKELETON_DIRS: &[&str] = &[CIEL_DIST_DIR, CIEL_INST_DIR, CIEL_DATA_DIR];
-pub const CIEL_MAINLINE_ARCHS: &[&str] = &["amd64", "arm64", "ppc64el", "mips64r6el", "riscv64"];
-pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
 
 lazy_static! {
     static ref SPINNER_STYLE: indicatif::ProgressStyle =
@@ -54,44 +54,39 @@ pub fn check_arch_name(arch: &str) -> bool {
     CIEL_MAINLINE_ARCHS.contains(&arch) || CIEL_RETRO_ARCHS.contains(&arch)
 }
 
-//// Workaround for mips64r6el
-#[cfg(feature = "mips64r6")]
-#[inline]
-pub fn get_arch_name() -> Option<&'static str> {
-    Some("mips64r6el")
-}
-
-/// AOSC OS specific architecture mapping for ppc64
-#[cfg(target_arch = "powerpc64")]
-#[inline]
-pub fn get_arch_name() -> Option<&'static str> {
-    let mut endian: libc::c_int = -1;
-    let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
-    if result < 0 {
-        return None;
-    }
-    match endian {
-        libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
-        libc::PR_ENDIAN_BIG => Some("ppc64"),
-        _ => None,
-    }
-}
-
 /// AOSC OS specific architecture mapping table
 #[cfg(not(target_arch = "powerpc64"))]
 #[cfg(not(feature = "mips64r6"))]
 #[inline]
-pub fn get_host_arch_name() -> Result<&'static str> {
+pub fn get_host_arch_name() -> Option<&'static str> {
+    #[cfg(all(not(target_arch = "powerpc64"), not(feature = "mips64r6")))]
     match ARCH {
-        "x86_64" => Ok("amd64"),
-        "x86" => Ok("i486"),
-        "powerpc" => Ok("powerpc"),
-        "aarch64" => Ok("arm64"),
-        "mips64" => Ok("loongson3"),
-        "riscv64" => Ok("riscv64"),
-        _ => Err(anyhow!(
-            "Current host architecture {ARCH} is not supported by Ciel."
-        )),
+        "x86_64" => Some("amd64"),
+        "x86" => Some("i486"),
+        "powerpc" => Some("powerpc"),
+        "aarch64" => Some("arm64"),
+        "mips64" => Some("loongson3"),
+        "riscv64" => Some("riscv64"),
+        _ => None,
+    }
+
+    #[cfg(target_arch = "powerpc64")]
+    {
+        let mut endian: libc::c_int = -1;
+        let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
+        if result < 0 {
+            return None;
+        }
+        match endian {
+            libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
+            libc::PR_ENDIAN_BIG => Some("ppc64"),
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "mips64r6")]
+    {
+        Some("mips64r6el")
     }
 }
 
