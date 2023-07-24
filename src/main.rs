@@ -13,14 +13,13 @@ mod repo;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
-use common::{check_arch_name, get_host_arch_name};
 use console::{style, user_attended};
 use dotenvy::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
 
 use crate::actions::BuildSettings;
-use crate::common::{ask_for_target_arch, CIEL_MAINLINE_ARCHS};
+use crate::common::*;
 
 macro_rules! print_error {
     ($input:block) => {
