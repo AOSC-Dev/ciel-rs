@@ -25,7 +25,7 @@ pub fn ensure_host_sanity() -> Result<(Vec<String>, Vec<(String, &'static str)>)
 
     let mut extra_options = Vec::new();
     let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
-        .into_iter()
+        .iter()
         .map(|x| (x.0.to_string(), x.1))
         .collect();
     if let Ok(c) = crate::config::read_config() {

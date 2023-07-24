@@ -111,7 +111,7 @@ fn expand_package_list<S: AsRef<str>, I: IntoIterator<Item = S>>(packages: I) ->
             expanded.push(package.to_string());
             continue;
         }
-        let list_file = Path::new("./TREE").join(&package);
+        let list_file = Path::new("./TREE").join(package);
         match read_package_list(list_file, 0) {
             Ok(list) => {
                 info!("Read {} packages from {}", list.len(), package);

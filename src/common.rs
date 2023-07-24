@@ -186,10 +186,7 @@ pub fn ask_for_target_arch() -> Option<&'static str> {
     }
     let mut all_archs: Vec<&'static str> = CIEL_MAINLINE_ARCHS.into();
     all_archs.append(&mut CIEL_RETRO_ARCHS.into());
-    let default_arch_index = all_archs
-        .iter()
-        .position(|a| a.to_owned() == host_arch)
-        .unwrap();
+    let default_arch_index = all_archs.iter().position(|a| *a == host_arch).unwrap();
     // Setup Dialoguer
     let theme = ColorfulTheme::default();
     let prefixed_archs = CIEL_MAINLINE_ARCHS
@@ -200,7 +197,7 @@ pub fn ask_for_target_arch() -> Option<&'static str> {
     let chosen_index = FuzzySelect::with_theme(&theme)
         .with_prompt("Target Architecture")
         .default(default_arch_index)
-        .items(&prefixed_archs.as_slice())
+        .items(prefixed_archs.as_slice())
         .interact()
         .unwrap_or_default();
     Some(all_archs[chosen_index])

@@ -60,7 +60,7 @@ struct OverlayFS {
 /// Create a new overlay filesystem on the host system
 pub fn create_new_instance_fs<P: AsRef<Path>>(inst_path: P, inst_name: P) -> Result<()> {
     let inst = inst_path.as_ref().join(inst_name.as_ref());
-    fs::create_dir_all(&inst)?;
+    fs::create_dir_all(inst)?;
     Ok(())
 }
 
@@ -355,14 +355,14 @@ fn sync_permission(from: &Path, to: &Path) -> Result<()> {
 fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
     match action {
         Diff::Symlink(path) => {
-            let upper_path = overlay.upper.join(&path);
-            let lower_path = overlay.base.join(&path);
+            let upper_path = overlay.upper.join(path);
+            let lower_path = overlay.base.join(path);
             // Replace lower dir with upper
-            fs::rename(&upper_path, &lower_path)?;
+            fs::rename(upper_path, lower_path)?;
         }
         Diff::OverrideDir(path) => {
-            let upper_path = overlay.upper.join(&path);
-            let lower_path = overlay.base.join(&path);
+            let upper_path = overlay.upper.join(path);
+            let lower_path = overlay.base.join(path);
             // Replace lower dir with upper
             if lower_path.is_dir() {
                 // If exists and was not removed already, then remove it
@@ -371,31 +371,31 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
                 // If it's a file, then remove it as well
                 fs::remove_file(&lower_path)?;
             }
-            fs::rename(&upper_path, &lower_path)?;
+            fs::rename(upper_path, &lower_path)?;
         }
         Diff::RenamedDir(from, to) => {
             // TODO: Implement copy down
             // Such dir will include diff files, so this
             // section need more testing
-            let from_path = overlay.base.join(&from);
-            let to_path = overlay.base.join(&to);
+            let from_path = overlay.base.join(from);
+            let to_path = overlay.base.join(to);
             // TODO: Merge files from upper to lower
             // Replace lower dir with upper
-            fs::rename(&from_path, &to_path)?;
+            fs::rename(from_path, to_path)?;
         }
         Diff::NewDir(path) => {
-            let lower_path = overlay.base.join(&path);
+            let lower_path = overlay.base.join(path);
             // Construct lower path
-            fs::create_dir_all(&lower_path)?;
+            fs::create_dir_all(lower_path)?;
         }
         Diff::ModifiedDir(path) => {
             // Do nothing, just sync permission
-            let upper_path = overlay.upper.join(&path);
-            let lower_path = overlay.base.join(&path);
+            let upper_path = overlay.upper.join(path);
+            let lower_path = overlay.base.join(path);
             sync_permission(&upper_path, &lower_path)?;
         }
         Diff::WhiteoutFile(path) => {
-            let lower_path = overlay.base.join(&path);
+            let lower_path = overlay.base.join(path);
             if lower_path.is_dir() {
                 fs::remove_dir_all(&lower_path)?;
             } else if lower_path.is_file() {
@@ -405,10 +405,10 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             fs::remove_file(overlay.upper.join(path))?;
         }
         Diff::File(path) => {
-            let upper_path = overlay.upper.join(&path);
-            let lower_path = overlay.base.join(&path);
+            let upper_path = overlay.upper.join(path);
+            let lower_path = overlay.base.join(path);
             // Move upper file to overwrite the lower
-            fs::rename(&upper_path, &lower_path)?;
+            fs::rename(upper_path, lower_path)?;
         }
     }
 

@@ -20,7 +20,7 @@ use std::process;
 use std::{path::Path, process::Command};
 
 use crate::actions::BuildSettings;
-use crate::common::{ask_for_target_arch, CIEL_MAINLINE_ARCHS, CIEL_RETRO_ARCHS};
+use crate::common::{ask_for_target_arch, CIEL_MAINLINE_ARCHS};
 
 macro_rules! print_error {
     ($input:block) => {
@@ -193,12 +193,10 @@ fn main() -> Result<()> {
                     unsupported_target_architecture(specified_arch.as_str());
                 }
                 specified_arch
+            } else if !user_attended() {
+                host_arch
             } else {
-                if !user_attended() {
-                    host_arch
-                } else {
-                    ask_for_target_arch().unwrap()
-                }
+                ask_for_target_arch().unwrap()
             };
             info!("No URL specified. Ciel will automatically pick one.");
             info!("Picking OS tarball for architecture {}", arch);
@@ -230,11 +228,11 @@ fn main() -> Result<()> {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });
         }
         ("new", args) => {
-            let arch = args.get_one::<String>("arch").and_then(|val| {
+            let arch = args.get_one::<String>("arch").map(|val| {
                 if !check_arch_name(val) {
                     unsupported_target_architecture(val.as_str());
                 }
-                Some(val.as_str())
+                val.as_str()
             });
             let tarball = args.get_one::<String>("tarball");
             if let Err(e) = actions::onboarding(tarball, arch) {

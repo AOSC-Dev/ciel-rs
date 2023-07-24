@@ -74,7 +74,7 @@ fn open_deb_simple<R: Read>(reader: R) -> Result<Vec<u8>> {
 fn scan_single_deb_simple<P: AsRef<Path>>(path: P, root: P) -> Result<Vec<u8>> {
     let mut f = File::open(path.as_ref())?;
     let sha256 = sha256sum(&mut f)?;
-    let actual_size = f.seek(SeekFrom::Current(0))?;
+    let actual_size = f.stream_position()?;
     f.seek(SeekFrom::Start(0))?;
     let mut control = open_deb_simple(f)?;
     control.reserve(128);

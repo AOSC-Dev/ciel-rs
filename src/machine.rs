@@ -165,7 +165,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     let mut child = Command::new("systemd-nspawn")
         .args(DEFAULT_NSPAWN_OPTIONS)
         .args(extra_options)
-        .args(&["-D", path, "-M", ns_name, "--"])
+        .args(["-D", path, "-M", ns_name, "--"])
         .env("SYSTEMD_NSPAWN_TMPFS_TMP", "0")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -190,7 +190,7 @@ pub fn execute_container_command<S: AsRef<OsStr>>(ns_name: &str, args: &[S]) -> 
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
         .args(extra_options)
-        .args(&["-M", ns_name, "-qt", "--"])
+        .args(["-M", ns_name, "-qt", "--"])
         .args(args)
         .spawn()?
         .wait()?
@@ -216,7 +216,7 @@ fn kill_container(proxy: &MachineProxyBlocking) -> Result<()> {
 fn execute_poweroff(ns_name: &str) -> Result<()> {
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
-        .args(&["-M", ns_name, "-q", "--no-block", "--", "poweroff"])
+        .args(["-M", ns_name, "-q", "--no-block", "--", "poweroff"])
         .spawn()?
         .wait()?
         .code()
@@ -247,7 +247,7 @@ fn wait_for_poweroff(proxy: &MachineProxyBlocking) -> Result<()> {
 fn is_booted(proxy: &MachineProxyBlocking) -> Result<bool> {
     let leader_pid = proxy.leader()?;
     // let's inspect the cmdline of the PID 1 in the container
-    let f = std::fs::read(&format!("/proc/{}/cmdline", leader_pid))?;
+    let f = std::fs::read(format!("/proc/{}/cmdline", leader_pid))?;
     // take until the first null byte
     let pos: usize = f
         .iter()
