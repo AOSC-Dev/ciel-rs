@@ -25,15 +25,13 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
         return Err(anyhow!("Unable to create a ciel workspace."));
     }
     info!("Before continuing, I need to ask you a few questions:");
-    let real_arch = {
-        if arch.is_none() {
-            if custom_tarball.is_none() {
-                ask_for_target_arch().unwrap()
-            } else {
-                get_host_arch_name().unwrap()
-            }
+    let real_arch = if let Some(arch) = arch {
+        arch
+    } else {
+        if let Some(_custom_tarball) = custom_tarball {
+            get_host_arch_name().unwrap()
         } else {
-            arch.unwrap()
+            ask_for_target_arch().unwrap()
         }
     };
     let config = config::ask_for_config(None)?;

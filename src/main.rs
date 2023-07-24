@@ -188,21 +188,16 @@ fn main() -> Result<()> {
             }
             // load from network using auto picked url
             let specified_arch = args.get_one::<String>("arch");
-            if specified_arch.is_some() {
-                let unwrapped_arch = specified_arch.unwrap();
-                if !check_arch_name(unwrapped_arch.as_str()) {
-                    unsupported_target_architecture!(unwrapped_arch);
+            let arch = if let Some(specified_arch) = specified_arch {
+                if !check_arch_name(specified_arch.as_str()) {
+                    unsupported_target_architecture(specified_arch.as_str());
                 }
-            }
-            let arch = {
-                if specified_arch.is_none() {
-                    if !user_attended() {
-                        host_arch
-                    } else {
-                        ask_for_target_arch().unwrap()
-                    }
+                specified_arch
+            } else {
+                if !user_attended() {
+                    host_arch
                 } else {
-                    specified_arch.unwrap().as_str()
+                    ask_for_target_arch().unwrap()
                 }
             };
             info!("No URL specified. Ciel will automatically pick one.");
