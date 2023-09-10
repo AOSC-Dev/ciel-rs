@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-pub const CIEL_MAINLINE_ARCHS: &[&str] = &["amd64", "arm64", "ppc64el", "mips64r6el", "riscv64"];
+pub const CIEL_MAINLINE_ARCHS: &[&str] = &["amd64", "arm64", "ppc64el", "mips64r6el", "riscv64", "loongarch64"];
 pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
 pub const CURRENT_CIEL_VERSION: usize = 3;
 const CURRENT_CIEL_VERSION_STR: &str = "3";
@@ -65,6 +65,7 @@ pub fn get_host_arch_name() -> Option<&'static str> {
         "aarch64" => Some("arm64"),
         "mips64" => Some("loongson3"),
         "riscv64" => Some("riscv64"),
+        "loongarch64" => Some("loongarch64"),
         _ => None,
     }
 
