@@ -16,7 +16,7 @@ use zbus::dbus_proxy;
 use crate::error;
 
 const TEST_TEXT: &[u8] = b"An-An was born a rabbit, but found herself a girl with bunny ears and tails when she woke up one day. She couldn't seem to remember why.";
-const TEST_PROGRAMS: &[&str] = &["systemd-nspawn", "systemd-run"];
+const TEST_PROGRAMS: &[&str] = &["systemd-nspawn", "systemd-run", "unsquashfs"];
 const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_sd_bus,
     &test_io_simple,

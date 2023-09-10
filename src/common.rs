@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use indicatif::ProgressBar;
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::env::consts::ARCH;
@@ -108,22 +109,39 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn extract_system_tarball(path: &Path, total: u64) -> Result<()> {
+/// Extract the given .squashfs
+pub fn extract_squashfs(path: &Path, dist_dir: &Path, pb: &ProgressBar, total: u64) -> Result<()> {
+    unsquashfs_wrapper::extract(path, dist_dir, None, |c| {
+        pb.set_position(total * c as u64 / 100);
+    })?;
+
+    Ok(())
+}
+
+pub fn extract_system_rootfs(path: &Path, total: u64, use_tarball: bool) -> Result<()> {
     let f = File::open(path)?;
     let progress_bar = indicatif::ProgressBar::new(total);
+
     progress_bar.set_style(
         indicatif::ProgressStyle::default_bar()
-            .template(make_progress_bar!("Extracting tarball..."))
+            .template(make_progress_bar!("Extracting rootfs ..."))
             .unwrap(),
     );
+
     progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stderr_with_hz(5));
-    let reader = progress_bar.wrap_read(f);
+
     let dist_dir = PathBuf::from(CIEL_DIST_DIR);
     if dist_dir.exists() {
         fs::remove_dir_all(&dist_dir).ok();
         fs::create_dir_all(&dist_dir)?;
     }
-    extract_tar_xz(reader, &dist_dir)?;
+
+    if use_tarball {
+        extract_tar_xz(progress_bar.wrap_read(f), &dist_dir)?;
+    } else {
+        extract_squashfs(path, &dist_dir, &progress_bar, total)?;
+    }
+
     progress_bar.finish_and_clear();
 
     Ok(())

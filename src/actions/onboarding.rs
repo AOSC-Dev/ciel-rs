@@ -7,7 +7,7 @@ use crate::{
     cli::GIT_TREE_URL,
     common::*,
     config, error, info,
-    network::{download_git, pick_latest_tarball},
+    network::{download_git, pick_latest_rootfs},
     overlayfs::create_new_instance_fs,
     repo::{init_repo, refresh_repo},
     warn,
@@ -54,17 +54,22 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     info!("Initializing workspace...");
     ciel_init()?;
     info!("Initializing container OS...");
-    let (tarball_url, tarball_sha256) = match custom_tarball {
-        Some(tarball) => {
-            info!("Using custom tarball from {}", tarball);
-            (tarball.clone(), None)
+    let (rootfs_url, rootfs_sha256, use_tarball) = match custom_tarball {
+        Some(rootfs) => {
+            let use_tarball = !rootfs.ends_with(".squashfs");
+            info!(
+                "Using custom {} from {}",
+                if use_tarball { "tarball" } else { "squashfs" },
+                rootfs
+            );
+            (rootfs.clone(), None, use_tarball)
         }
         None => {
             info!("Searching for latest AOSC OS buildkit release...");
-            auto_pick_tarball(&theme, real_arch)?
+            auto_pick_rootfs(&theme, real_arch)?
         }
     };
-    load_os(&tarball_url, tarball_sha256)?;
+    load_os(&rootfs_url, rootfs_sha256, use_tarball)?;
     info!("Initializing ABBS tree...");
     if Path::new("TREE").is_dir() {
         warn!("TREE already exists, skipping this step...");
@@ -100,26 +105,32 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
 }
 
 #[inline]
-fn auto_pick_tarball(
+fn auto_pick_rootfs(
     theme: &dyn dialoguer::theme::Theme,
-    arch: &str,
-) -> Result<(String, Option<String>)> {
-    if let Ok(tarball) = pick_latest_tarball(arch) {
+    arch: &str
+) -> Result<(String, Option<String>, bool)> {
+    let root = pick_latest_rootfs(arch);
+
+    if let Ok(rootfs) = root {
         info!(
             "Ciel has picked buildkit for {}, released on {}",
-            tarball.arch, tarball.date
+            rootfs.arch, rootfs.date
         );
         Ok((
-            format!("https://releases.aosc.io/{}", tarball.path),
-            Some(tarball.sha256sum),
+            format!("https://releases.aosc.io/{}", rootfs.path),
+            Some(rootfs.sha256sum),
+            false
         ))
     } else {
         warn!(
             "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
         );
-        let tarball_url = Input::<String>::with_theme(theme)
-            .with_prompt("Tarball URL")
+        let rootfs_url = Input::<String>::with_theme(theme)
+            .with_prompt("Rootfs URL")
             .interact_text()?;
-        Ok((tarball_url, None))
+
+        let use_tarball = !rootfs_url.ends_with(".squashfs");
+
+        Ok((rootfs_url, None, use_tarball))
     }
 }

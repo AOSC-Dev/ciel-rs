@@ -366,6 +366,7 @@ dependencies = [
  "tempfile",
  "time",
  "toml",
+ "unsquashfs-wrapper",
  "walkdir",
  "which",
  "xattr",
@@ -2105,6 +2106,17 @@ name = "unicode-width"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
+
+[[package]]
+name = "unsquashfs-wrapper"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53a68574c5c8a2cda2e93780d5d4f5642b0ec5f17aacfa1c0cd0fc782c66cd93"
+dependencies = [
+ "libc",
+ "log",
+ "which",
+]
 
 [[package]]
 name = "url"

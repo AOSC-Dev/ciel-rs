@@ -168,9 +168,10 @@ fn main() -> Result<()> {
         ("load-os", args) => {
             let url = args.get_one::<String>("url");
             if let Some(url) = url {
+                let use_tarball = !url.ends_with(".squashfs");
                 // load from network using specified url
                 if url.starts_with("https://") || url.starts_with("http://") {
-                    print_error!({ actions::load_os(url, None) });
+                    print_error!({ actions::load_os(url, None, use_tarball) });
                     return Ok(());
                 }
                 // load from file
@@ -179,9 +180,7 @@ fn main() -> Result<()> {
                     error!("{:?} is not a file", url);
                     process::exit(1);
                 }
-                print_error!({
-                    common::extract_system_tarball(tarball, tarball.metadata()?.len())
-                });
+                print_error!({ common::extract_system_rootfs(tarball, tarball.metadata()?.len(), use_tarball) });
 
                 return Ok(());
             }
@@ -199,18 +198,20 @@ fn main() -> Result<()> {
             } else {
                 ask_for_target_arch().unwrap()
             };
-            info!("No URL specified. Ciel will automatically pick one.");
             info!("Picking OS tarball for architecture {}", arch);
-            let tarball = network::pick_latest_tarball(arch);
-            if let Err(e) = tarball {
+            let rootfs = network::pick_latest_rootfs(arch);
+
+            if let Err(e) = rootfs {
                 error!("Unable to determine the latest tarball: {}", e);
                 process::exit(1);
             }
-            let tarball = tarball.unwrap();
+
+            let rootfs = rootfs.unwrap();
             print_error!({
                 actions::load_os(
-                    &format!("https://releases.aosc.io/{}", tarball.path),
-                    Some(tarball.sha256sum),
+                    &format!("https://releases.aosc.io/{}", rootfs.path),
+                    Some(rootfs.sha256sum),
+                    false,
                 )
             });
         }

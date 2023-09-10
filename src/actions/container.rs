@@ -116,8 +116,8 @@ pub fn farewell(path: &Path) -> Result<()> {
 }
 
 /// Download the OS tarball and then extract it for use as the base layer
-pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
-    info!("Downloading base OS tarball...");
+pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
+    info!("Downloading base OS rootfs...");
     let path = Path::new(url);
     let filename = path
         .file_name()
@@ -145,10 +145,11 @@ pub fn load_os(url: &str, sha256: Option<String>) -> Result<()> {
             ));
         }
     }
+
     if is_local_file {
-        extract_system_tarball(&PathBuf::from(path), total)?;
+        extract_system_rootfs(&PathBuf::from(path), total, tarball)?;
     } else {
-        extract_system_tarball(Path::new(filename), total)?;
+        extract_system_rootfs(Path::new(filename), total, tarball)?;
     }
 
     Ok(())
