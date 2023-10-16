@@ -107,7 +107,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
 #[inline]
 fn auto_pick_rootfs(
     theme: &dyn dialoguer::theme::Theme,
-    arch: &str
+    arch: &str,
 ) -> Result<(String, Option<String>, bool)> {
     let root = pick_latest_rootfs(arch);
 
@@ -119,7 +119,7 @@ fn auto_pick_rootfs(
         Ok((
             format!("https://releases.aosc.io/{}", rootfs.path),
             Some(rootfs.sha256sum),
-            false
+            false,
         ))
     } else {
         warn!(

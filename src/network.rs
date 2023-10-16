@@ -87,7 +87,8 @@ pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
         .find(|v| v.name == "BuildKit")
         .ok_or_else(|| anyhow!("Unable to find buildkit variant"))?;
 
-    let mut rootfs: Vec<RootFs> = buildkit.squashfs
+    let mut rootfs: Vec<RootFs> = buildkit
+        .squashfs
         .into_iter()
         .filter(|rootfs| rootfs.arch == arch)
         .collect();

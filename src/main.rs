@@ -180,7 +180,9 @@ fn main() -> Result<()> {
                     error!("{:?} is not a file", url);
                     process::exit(1);
                 }
-                print_error!({ common::extract_system_rootfs(tarball, tarball.metadata()?.len(), use_tarball) });
+                print_error!({
+                    common::extract_system_rootfs(tarball, tarball.metadata()?.len(), use_tarball)
+                });
 
                 return Ok(());
             }

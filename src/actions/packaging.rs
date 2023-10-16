@@ -286,7 +286,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
 
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build".to_string(), "--".to_string()];
-        cmd.extend(packages.into_iter());
+        cmd.extend(packages);
         let status = run_in_container(instance, &cmd)?;
         return Ok(status);
     }

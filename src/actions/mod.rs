@@ -19,8 +19,9 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
 ];
 const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt clean"#;
 
+type MountOptions = (Vec<String>, Vec<(String, &'static str)>);
 /// Ensure that the directories exist and mounted
-pub fn ensure_host_sanity() -> Result<(Vec<String>, Vec<(String, &'static str)>), std::io::Error> {
+pub fn ensure_host_sanity() -> Result<MountOptions, std::io::Error> {
     use crate::warn;
 
     let mut extra_options = Vec::new();
