@@ -14,7 +14,7 @@ use std::{
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
 const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
-const DEFAULT_AB3_CONFIG_LOCATION: &str = "usr/lib/autobuild3/etc/autobuild/ab3cfg.sh";
+const DEFAULT_AB4_CONFIG_LOCATION: &str = "etc/autobuild/ab4cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
@@ -202,7 +202,7 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
     // write maintainer information
     let rootfs = root.as_ref();
     let mut config_path = rootfs.to_owned();
-    config_path.push(DEFAULT_AB3_CONFIG_LOCATION);
+    config_path.push(DEFAULT_AB4_CONFIG_LOCATION);
     create_parent_dir(&config_path)?;
     let mut f = std::fs::File::create(config_path)?;
     f.write_all(
