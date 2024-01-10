@@ -26,22 +26,22 @@ xz2 = "0.1"
 libmount = { git = "https://github.com/liushuyu/libmount", rev = "6fe8dba03a6404dfe1013995dd17af1c4e21c97b" }
 libc = "0.2"
 adler32 = "1.2"
-rayon = "1.7"
-tempfile = "3.8"
+rayon = "1.8"
+tempfile = "3.9"
 anyhow = "1.0"
 libsystemd-sys = "0.9"
 walkdir = "2"
 xattr = "^1"
 rand = "0.8"
 dotenvy = "0.15"
-which = "4.4"
+which = "5.0"
 sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
 clap = { version = "^4", features = ["wrap_help", "string", "env"] }
 # repo scan
 ar = "0.9"
-faster-hex = "0.8"
+faster-hex = "0.9"
 flate2 = "1.0"
 tabwriter = { version = "^1", features = ["ansi_formatting"] }
 unsquashfs-wrapper = "0.1"
