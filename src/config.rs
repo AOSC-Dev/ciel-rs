@@ -14,6 +14,7 @@ use std::{
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
 const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
+const DEFAULT_AB3_CONFIG_FILE: &str = "ab3cfg.sh";
 const DEFAULT_AB4_CONFIG_LOCATION: &str = "etc/autobuild/ab4cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
@@ -204,7 +205,7 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
     let mut config_path = rootfs.to_owned();
     config_path.push(DEFAULT_AB4_CONFIG_LOCATION);
     create_parent_dir(&config_path)?;
-    let mut f = std::fs::File::create(config_path)?;
+    let mut f = std::fs::File::create(&config_path)?;
     f.write_all(
         format!(
             "#!/bin/bash\nABMPM=dpkg\nABAPMS=\nABINSTALL=dpkg\nMTER=\"{}\"",
@@ -212,6 +213,9 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
         )
         .as_bytes(),
     )?;
+    config_path.set_file_name(DEFAULT_AB3_CONFIG_FILE);
+    // compatibility with autobuild3
+    std::os::unix::fs::symlink("ab4cfg.sh", &config_path)?;
     // write sources.list
     if !config.apt_sources.is_empty() {
         let mut apt_list_path = rootfs.to_owned();
