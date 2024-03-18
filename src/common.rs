@@ -144,10 +144,24 @@ pub fn extract_system_rootfs(path: &Path, total: u64, use_tarball: bool) -> Resu
         fs::create_dir_all(&dist_dir)?;
     }
 
-    if use_tarball {
-        extract_tar_xz(progress_bar.wrap_read(f), &dist_dir)?;
+    // detect if we are running in systemd-nspawn
+    // where /dev/console character device file cannot be created
+    // thus ignoring the error in extracting
+    let mut in_systemd_nspawn = false;
+    if let Ok(output) = std::process::Command::new("systemd-detect-virt").output() {
+        if let Ok("systemd-nspawn") = std::str::from_utf8(&output.stdout) {
+            in_systemd_nspawn = true;
+        }
+    }
+
+    let res = if use_tarball {
+        extract_tar_xz(progress_bar.wrap_read(f), &dist_dir)
     } else {
-        extract_squashfs(path, &dist_dir, &progress_bar, total)?;
+        extract_squashfs(path, &dist_dir, &progress_bar, total)
+    };
+
+    if !in_systemd_nspawn {
+        res?
     }
 
     progress_bar.finish_and_clear();
