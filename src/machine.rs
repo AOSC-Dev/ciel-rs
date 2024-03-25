@@ -231,7 +231,7 @@ fn execute_poweroff(ns_name: &str) -> Result<()> {
 
 fn wait_for_poweroff(proxy: &MachineProxyBlocking) -> Result<()> {
     for _ in 0..10 {
-        if proxy.leader().is_err() {
+        if proxy.get_uidshift().is_err() {
             // machine object no longer exists
             return Ok(());
         }
