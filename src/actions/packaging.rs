@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Select};
 use nix::unistd::gethostname;
@@ -14,6 +14,7 @@ use walkdir::WalkDir;
 
 use crate::{common::create_spinner, config, error, info, repo, warn};
 
+use super::ipc::IpcServer;
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
     UPDATE_SCRIPT,
@@ -152,6 +153,8 @@ fn package_build_inner<P: AsRef<Path>>(
         mount_fs(instance)?;
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
+        let handle = create_ipc_server(instance, root.as_ref())
+            .with_context(|| "unable to create ipc server")?;
         let mut status = -1;
         for i in 1..=5 {
             status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT]).unwrap_or(-1);
@@ -175,6 +178,7 @@ fn package_build_inner<P: AsRef<Path>>(
             error!("Build failed with status: {}", status);
             return Ok((status, index));
         }
+        drop(handle);
         rollback_container(instance)?;
     }
 
@@ -243,6 +247,24 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
     Ok(status)
 }
 
+struct IpcServerGuard {
+    sock_location: String,
+}
+
+impl Drop for IpcServerGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.sock_location);
+    }
+}
+
+fn create_ipc_server(instance: &str, output_dir: &Path) -> Result<IpcServerGuard> {
+    let server = IpcServer::new(instance.to_string(), output_dir.to_owned())?;
+    let sock_location = server.get_sock_location().to_string();
+    std::thread::spawn(move || server.spawn());
+
+    Ok(IpcServerGuard { sock_location })
+}
+
 /// Build packages in the container
 pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
@@ -284,6 +306,9 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     mount_fs(instance)?;
     rollback_container(instance)?;
 
+    let output_dir = get_output_directory(conf.sep_mount);
+    let root = std::env::current_dir()?.join(output_dir);
+
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build".to_string(), "--".to_string()];
         cmd.extend(packages);
@@ -291,8 +316,6 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
         return Ok(status);
     }
 
-    let output_dir = get_output_directory(conf.sep_mount);
-    let root = std::env::current_dir()?.join(output_dir);
     let total = packages.len();
     let start = Instant::now();
     let (exit_status, progress) = package_build_inner(&packages, instance, root)?;

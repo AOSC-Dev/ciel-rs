@@ -391,6 +391,7 @@ dependencies = [
  "rayon",
  "reqwest",
  "serde",
+ "serde_json",
  "sha2",
  "tabwriter",
  "tar",
