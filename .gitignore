@@ -3,10 +3,13 @@
 /.ciel
 /test
 /OUTPUT
+/OUTPUT-*
 /TREE
 /SRCS
+/STATES
 
 .#*
 *.tar*
+*.squashfs
 .vscode
 .idea
