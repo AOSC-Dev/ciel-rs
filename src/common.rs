@@ -119,9 +119,17 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &Path) -> Result<()> {
 
 /// Extract the given .squashfs
 pub fn extract_squashfs(path: &Path, dist_dir: &Path, pb: &ProgressBar, total: u64) -> Result<()> {
-    unsquashfs_wrapper::extract(path, dist_dir, None, |c| {
-        pb.set_position(total * c as u64 / 100);
-    })?;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+    unsquashfs_wrapper::extract(
+        path,
+        dist_dir,
+        None,
+        |c| {
+            pb.set_position(total * c as u64 / 100);
+        },
+        Arc::new(AtomicBool::new(false)),
+    )?;
 
     Ok(())
 }

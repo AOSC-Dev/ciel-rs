@@ -11,7 +11,7 @@ use std::{
 use tempfile::tempfile_in;
 use which::which;
 use zbus::blocking::Connection;
-use zbus::dbus_proxy;
+use zbus::proxy;
 
 use crate::error;
 
@@ -27,18 +27,18 @@ const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_disk_space,
 ];
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.systemd1.Manager",
     default_service = "org.freedesktop.systemd1",
     default_path = "/org/freedesktop/systemd1"
 )]
 trait Systemd1Manager {
     /// Version property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn version(&self) -> zbus::Result<String>;
 
     /// Virtualization property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn virtualization(&self) -> zbus::Result<String>;
 }
 

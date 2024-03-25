@@ -230,11 +230,8 @@ fn execute_poweroff(ns_name: &str) -> Result<()> {
 }
 
 fn wait_for_poweroff(proxy: &MachineProxyBlocking) -> Result<()> {
-    let ns_name = proxy.name()?;
-    let conn = proxy.connection();
-    let proxy = ManagerProxyBlocking::new(conn)?;
     for _ in 0..10 {
-        if proxy.get_machine(&ns_name).is_err() {
+        if proxy.leader().is_err() {
             // machine object no longer exists
             return Ok(());
         }

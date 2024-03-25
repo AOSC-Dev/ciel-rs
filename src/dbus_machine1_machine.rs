@@ -19,9 +19,9 @@
 //!
 //! …consequently `zbus-xmlgen` did not generate code for the above interfaces.
 
-use zbus::dbus_proxy;
+use zbus::proxy;
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.machine1.Machine",
     default_service = "org.freedesktop.machine1"
 )]
@@ -75,46 +75,46 @@ trait Machine {
     fn terminate(&self) -> zbus::Result<()>;
 
     /// Class property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn class(&self) -> zbus::Result<String>;
 
     /// Id property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn id(&self) -> zbus::Result<Vec<u8>>;
 
     /// Leader property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn leader(&self) -> zbus::Result<u32>;
 
     /// Name property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn name(&self) -> zbus::Result<String>;
 
     /// NetworkInterfaces property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn network_interfaces(&self) -> zbus::Result<Vec<i32>>;
 
     /// RootDirectory property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn root_directory(&self) -> zbus::Result<String>;
 
     /// Service property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn service(&self) -> zbus::Result<String>;
 
     /// State property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn state(&self) -> zbus::Result<String>;
 
     /// Timestamp property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn timestamp(&self) -> zbus::Result<u64>;
 
     /// TimestampMonotonic property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn timestamp_monotonic(&self) -> zbus::Result<u64>;
 
     /// Unit property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn unit(&self) -> zbus::Result<String>;
 }

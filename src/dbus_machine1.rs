@@ -21,9 +21,9 @@
 
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
-use zbus::dbus_proxy;
+use zbus::proxy;
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.machine1.Manager",
     default_service = "org.freedesktop.machine1",
     default_path = "/org/freedesktop/machine1"
@@ -220,11 +220,11 @@ trait Manager {
     fn unregister_machine(&self, name: &str) -> zbus::Result<()>;
 
     /// MachineNew signal
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn machine_new(&self, machine: &str, path: zbus::zvariant::ObjectPath<'_>) -> zbus::Result<()>;
 
     /// MachineRemoved signal
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn machine_removed(
         &self,
         machine: &str,
@@ -232,14 +232,14 @@ trait Manager {
     ) -> zbus::Result<()>;
 
     /// PoolLimit property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn pool_limit(&self) -> zbus::Result<u64>;
 
     /// PoolPath property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn pool_path(&self) -> zbus::Result<String>;
 
     /// PoolUsage property
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn pool_usage(&self) -> zbus::Result<u64>;
 }
