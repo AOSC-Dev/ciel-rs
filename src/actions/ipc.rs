@@ -103,7 +103,9 @@ impl IpcServer {
                         let req: IpcProtocol = serde_json::from_slice(&buf)?;
                         let resp = self.handle_request(req)?;
                         let resp = serde_json::to_string(&resp)?;
-                        bufreader.into_inner().write_all(resp.as_bytes())?;
+                        let resp = format!("Content-Length: {}\r\n\r\n{}", resp.len(), resp);
+                        let mut stream = bufreader.into_inner();
+                        stream.write_all(resp.as_bytes())?;
                         continue;
                     }
                     error!("Invalid request header: {}", buf);

@@ -4,9 +4,9 @@ use console::style;
 use crate::machine;
 
 mod container;
+mod ipc;
 mod onboarding;
 mod packaging;
-mod ipc;
 
 // re-export all the functions from the sub
 pub use self::container::*;
