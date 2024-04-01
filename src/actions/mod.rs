@@ -4,7 +4,6 @@ use console::style;
 use crate::machine;
 
 mod container;
-mod ipc;
 mod onboarding;
 mod packaging;
 

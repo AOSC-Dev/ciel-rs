@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Select};
 use nix::unistd::gethostname;
@@ -7,14 +7,13 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
     path::Path,
-    thread::sleep,
+    thread::{self, sleep},
     time::{Duration, Instant},
 };
 use walkdir::WalkDir;
 
 use crate::{common::create_spinner, config, error, info, repo, warn};
 
-use super::ipc::IpcServer;
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
     UPDATE_SCRIPT,
@@ -127,6 +126,26 @@ fn expand_package_list<S: AsRef<str>, I: IntoIterator<Item = S>>(packages: I) ->
     expanded
 }
 
+struct RepoMonitorGuard<T> {
+    _handle: thread::JoinHandle<T>,
+    stop_sender: std::sync::mpsc::Sender<()>,
+}
+
+impl<T> RepoMonitorGuard<T> {
+    fn new(handle: thread::JoinHandle<T>, stop_sender: std::sync::mpsc::Sender<()>) -> Self {
+        Self {
+            _handle: handle,
+            stop_sender,
+        }
+    }
+}
+
+impl<T> Drop for RepoMonitorGuard<T> {
+    fn drop(&mut self) {
+        self.stop_sender.send(()).ok();
+    }
+}
+
 #[inline]
 fn package_build_inner<P: AsRef<Path>>(
     packages: &[String],
@@ -138,6 +157,10 @@ fn package_build_inner<P: AsRef<Path>>(
         |_| "unknown".to_string(),
         |s| s.into_string().unwrap_or_else(|_| "unknown".to_string()),
     );
+    let (tx, rx) = std::sync::mpsc::channel();
+    let root_path = root.as_ref().to_path_buf();
+    let refresh_monitor = thread::spawn(move || repo::start_monitor(&root_path, rx));
+    let guard = RepoMonitorGuard::new(refresh_monitor, tx);
     for (index, package) in packages.iter().enumerate() {
         // set terminal title, \r is for hiding the message if the terminal does not support the sequence
         eprint!(
@@ -153,8 +176,6 @@ fn package_build_inner<P: AsRef<Path>>(
         mount_fs(instance)?;
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
-        let handle = create_ipc_server(instance, root.as_ref())
-            .with_context(|| "unable to create ipc server")?;
         let mut status = -1;
         for i in 1..=5 {
             status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT]).unwrap_or(-1);
@@ -178,9 +199,9 @@ fn package_build_inner<P: AsRef<Path>>(
             error!("Build failed with status: {}", status);
             return Ok((status, index));
         }
-        drop(handle);
         rollback_container(instance)?;
     }
+    drop(guard);
 
     Ok((0, 0))
 }
@@ -247,24 +268,6 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
     Ok(status)
 }
 
-struct IpcServerGuard {
-    sock_location: String,
-}
-
-impl Drop for IpcServerGuard {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.sock_location);
-    }
-}
-
-fn create_ipc_server(instance: &str, output_dir: &Path) -> Result<IpcServerGuard> {
-    let server = IpcServer::new(instance.to_string(), output_dir.to_owned())?;
-    let sock_location = server.get_sock_location().to_string();
-    std::thread::spawn(move || server.spawn());
-
-    Ok(IpcServerGuard { sock_location })
-}
-
 /// Build packages in the container
 pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
@@ -306,9 +309,6 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     mount_fs(instance)?;
     rollback_container(instance)?;
 
-    let output_dir = get_output_directory(conf.sep_mount);
-    let root = std::env::current_dir()?.join(output_dir);
-
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build".to_string(), "--".to_string()];
         cmd.extend(packages);
@@ -316,6 +316,8 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
         return Ok(status);
     }
 
+    let output_dir = get_output_directory(conf.sep_mount);
+    let root = std::env::current_dir()?.join(output_dir);
     let total = packages.len();
     let start = Instant::now();
     let (exit_status, progress) = package_build_inner(&packages, instance, root)?;

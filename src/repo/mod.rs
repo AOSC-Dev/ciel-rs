@@ -8,7 +8,10 @@ use std::io::Write;
 use std::{fs, io, path::Path};
 use time::{format_description::FormatItem, macros::format_description, OffsetDateTime};
 
+mod monitor;
 mod scan;
+
+pub use monitor::start_monitor;
 
 /// Debian 822 date: "%a, %d %b %Y %H:%M:%S %z"
 const DEB822_DATE: &[FormatItem] = format_description!("[weekday repr:short], [day] [month repr:short] [year] [hour repr:24]:[minute]:[second] [offset_hour sign:mandatory][offset_minute]");
