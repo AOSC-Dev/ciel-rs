@@ -10,6 +10,8 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+use crate::info;
+use console::style;
 
 use super::refresh_repo;
 
@@ -67,11 +69,18 @@ fn refresh_once(pool_path: &Path) -> Result<()> {
 }
 
 pub fn start_monitor(pool_path: &Path, stop_token: Receiver<()>) -> Result<()> {
+    // ensure lock exists
+    let lock_path  = pool_path.join(LOCK_FILE);
+    if !Path::exists(&lock_path) {
+        File::create(&lock_path)?;
+        info!("Creating lock file at {}...", LOCK_FILE);
+    }
+
     let mut inotify = Inotify::init()?;
     let mut buffer = [0u8; 1024];
     let mut ignore_next = false;
     inotify.watches().add(
-        pool_path.join(LOCK_FILE),
+        &lock_path,
         WatchMask::DELETE_SELF | WatchMask::CLOSE_WRITE | WatchMask::CREATE,
     )?;
 
