@@ -229,9 +229,9 @@ fn execute_poweroff(ns_name: &str) -> Result<()> {
     }
 }
 
-fn wait_for_poweroff(proxy: &MachineProxyBlocking) -> Result<()> {
+fn wait_for_poweroff(proxy: &ManagerProxyBlocking, ns_name: &str) -> Result<()> {
     for _ in 0..10 {
-        if proxy.get_uidshift().is_err() {
+        if proxy.get_machine(ns_name).is_err() {
             // machine object no longer exists
             return Ok(());
         }
@@ -261,12 +261,15 @@ fn is_booted(proxy: &MachineProxyBlocking) -> Result<bool> {
     Ok(false)
 }
 
-fn terminate_container(proxy: &MachineProxyBlocking) -> Result<()> {
-    let ns_name = proxy.name()?;
-    let _ = proxy.receive_state_changed();
+fn terminate_container(
+    proxy: &ManagerProxyBlocking,
+    machine_proxy: &MachineProxyBlocking,
+    ns_name: &str,
+) -> Result<()> {
+    let _ = machine_proxy.receive_state_changed();
     if execute_poweroff(&ns_name).is_ok() {
         // Successfully passed poweroff command to the container, wait for it
-        if wait_for_poweroff(proxy).is_ok() {
+        if wait_for_poweroff(proxy, ns_name).is_ok() {
             return Ok(());
         }
         // still did not poweroff?
@@ -276,10 +279,10 @@ fn terminate_container(proxy: &MachineProxyBlocking) -> Result<()> {
     }
 
     // violently kill everything inside the container
-    kill_container(proxy)?;
-    proxy.terminate().ok();
+    kill_container(machine_proxy)?;
+    machine_proxy.terminate().ok();
     // status re-check, in the event of I/O problems, the container may still be running (stuck)
-    if wait_for_poweroff(proxy).is_ok() {
+    if wait_for_poweroff(proxy, ns_name).is_ok() {
         return Ok(());
     }
 
@@ -291,9 +294,9 @@ pub fn terminate_container_by_name(ns_name: &str) -> Result<()> {
     let conn = Connection::system()?;
     let proxy = ManagerProxyBlocking::new(&conn)?;
     let path = proxy.get_machine(ns_name)?;
-    let proxy = MachineProxyBlocking::builder(&conn).path(&path)?.build()?;
+    let machine_proxy = MachineProxyBlocking::builder(&conn).path(&path)?.build()?;
 
-    terminate_container(&proxy)
+    terminate_container(&proxy, &machine_proxy, ns_name)
 }
 
 /// Mount the filesystem layers using the specified layer manager and the instance name
