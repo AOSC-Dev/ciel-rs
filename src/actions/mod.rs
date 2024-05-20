@@ -16,8 +16,9 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("OUTPUT/debs/", "/debs/"),
     ("TREE", "/tree"),
     ("SRCS", "/var/cache/acbs/tarballs"),
+    ("CACHE", "/var/cache/apt/archives"),
 ];
-const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt clean"#;
+const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt autoclean"#;
 
 type MountOptions = (Vec<String>, Vec<(String, &'static str)>);
 /// Ensure that the directories exist and mounted
