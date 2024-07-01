@@ -22,6 +22,7 @@ PREFIX=/usr/local ./install-assets.sh
 Building:
 - Rust w/ Cargo (Rust 1.51.0+)
 - C compiler
+- pkg-config (for detecting C library dependencies)
 - make (when GCC LTO is used, not needed for Clang)
 
 Runtime:
