@@ -281,6 +281,9 @@ fn main() -> Result<()> {
             let instance = args.get_one::<String>("INSTANCE").unwrap();
             print_error!({ actions::remove_instance(instance) });
         }
+        ("delall", args) => {
+            print_error!({ one_or_all_instance!(args, &actions::remove_instance) });
+        }
         ("add", args) => {
             let instance = args.get_one::<String>("INSTANCE").unwrap();
             print_error!({ actions::add_instance(instance) });
