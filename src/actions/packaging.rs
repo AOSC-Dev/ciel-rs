@@ -12,11 +12,11 @@ use std::{
 };
 use walkdir::WalkDir;
 
-use crate::{actions::OMA_UPDATE_SCRIPT, common::create_spinner, config, error, info, repo, warn};
+use crate::{common::create_spinner, config, error, info, repo, warn};
 
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},
-    APT_UPDATE_SCRIPT,
+    UPDATE_SCRIPT,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -177,13 +177,8 @@ fn package_build_inner<P: AsRef<Path>>(
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
         let mut status = -1;
-        let mut oma = true;
         for i in 1..=5 {
-            status = if oma {
-                run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT]).unwrap_or(-1)
-            } else {
-                run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT]).unwrap_or(-1)
-            };
+            status = run_in_container(instance, &["/bin/bash", "-ec", UPDATE_SCRIPT]).unwrap_or(-1);
             if status == 0 {
                 break;
             } else {
@@ -192,7 +187,6 @@ fn package_build_inner<P: AsRef<Path>>(
                     "Failed to update the OS, will retry in {} seconds ...",
                     interval
                 );
-                oma = false;
                 sleep(Duration::from_secs(interval));
             }
         }

@@ -18,8 +18,7 @@ const DEFAULT_MOUNTS: &[(&str, &str)] = &[
     ("SRCS", "/var/cache/acbs/tarballs"),
     ("CACHE", "/var/cache/apt/archives"),
 ];
-const APT_UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt autoclean"#;
-const OMA_UPDATE_SCRIPT: &str = r#"oma upgrade -y --force-confnew --no-progress && oma autoremove --remove-config && oma clean"#;
+const UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt autoclean"#;
 
 type MountOptions = (Vec<String>, Vec<(String, &'static str)>);
 /// Ensure that the directories exist and mounted

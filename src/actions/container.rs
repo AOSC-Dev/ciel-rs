@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    actions::{ensure_host_sanity, OMA_UPDATE_SCRIPT},
+    actions::ensure_host_sanity,
     common::*,
     config, error, info,
     machine::{self, get_container_ns_name, inspect_instance, spawn_container},
@@ -19,7 +19,7 @@ use crate::{
     overlayfs, warn,
 };
 
-use super::{for_each_instance, APT_UPDATE_SCRIPT};
+use super::{for_each_instance, UPDATE_SCRIPT};
 
 /// Get the branch name of the workspace TREE repository
 #[inline]
@@ -380,12 +380,9 @@ pub fn update_os() -> Result<()> {
     info!("Updating base OS...");
     let instance = format!("update-{:x}", random::<u32>());
     add_instance(&instance)?;
-    let mut status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT])?;
+    let status = run_in_container(&instance, &["/bin/bash", "-ec", UPDATE_SCRIPT])?;
     if status != 0 {
-        status = run_in_container(&instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT])?;
-        if status != 0 {
-            return Err(anyhow!("Failed to update OS: {}", status));
-        }
+        return Err(anyhow!("Failed to update OS: {}", status));
     }
     commit_container(&instance)?;
     remove_instance(&instance)?;
