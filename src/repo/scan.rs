@@ -19,6 +19,7 @@ use xz2::read::XzDecoder;
 enum TarFormat {
     Xzip,
     Gzip,
+    Zstd,
 }
 
 fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
@@ -40,6 +41,7 @@ fn open_compressed_control<R: Read>(reader: R, format: &TarFormat) -> Result<Vec
     match format {
         TarFormat::Xzip => collect_control(XzDecoder::new(reader)),
         TarFormat::Gzip => collect_control(GzDecoder::new(reader)),
+        TarFormat::Zstd => collect_control(zstd::stream::read::Decoder::new(reader)?),
     }
 }
 
@@ -48,6 +50,8 @@ fn determine_format(format: &[u8]) -> Result<TarFormat> {
         Ok(TarFormat::Xzip)
     } else if format.ends_with(b".gz") {
         Ok(TarFormat::Gzip)
+    } else if format.ends_with(b".zst") {
+        Ok(TarFormat::Zstd)
     } else {
         Err(anyhow!("Unknown format: {:?}", format))
     }
