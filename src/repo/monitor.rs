@@ -1,4 +1,6 @@
+use crate::info;
 use anyhow::Result;
+use console::style;
 use fs3::FileExt;
 use inotify::{Inotify, WatchMask};
 use std::{
@@ -10,8 +12,6 @@ use std::{
     thread::sleep,
     time::Duration,
 };
-use crate::info;
-use console::style;
 
 use super::refresh_repo;
 
@@ -70,7 +70,7 @@ fn refresh_once(pool_path: &Path) -> Result<()> {
 
 pub fn start_monitor(pool_path: &Path, stop_token: Receiver<()>) -> Result<()> {
     // ensure lock exists
-    let lock_path  = pool_path.join(LOCK_FILE);
+    let lock_path = pool_path.join(LOCK_FILE);
     if !Path::exists(&lock_path) {
         File::create(&lock_path)?;
         info!("Creating lock file at {}...", LOCK_FILE);

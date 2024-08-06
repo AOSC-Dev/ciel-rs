@@ -19,7 +19,8 @@ use super::{load_os, mount_fs};
 pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result<()> {
     ctrlc::set_handler(move || {
         let _ = Term::stderr().show_cursor();
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
 
     let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
