@@ -39,6 +39,7 @@ sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
 clap = { version = "^4", features = ["wrap_help", "string", "env"] }
+ctrlc = "3.4.4"
 # repo scan
 ar = "0.9"
 faster-hex = "0.9"

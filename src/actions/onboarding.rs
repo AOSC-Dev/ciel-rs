@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::{style, user_attended};
+use console::{style, user_attended, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path};
 
@@ -17,6 +17,10 @@ use super::{load_os, mount_fs};
 
 /// Show interactive onboarding guide, triggered by issuing `ciel new`
 pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result<()> {
+    ctrlc::set_handler(move || {
+        let _ = Term::stderr().show_cursor();
+    }).expect("Error setting Ctrl-C handler");
+
     let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
     if Path::new(".ciel").exists() {
