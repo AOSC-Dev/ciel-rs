@@ -376,19 +376,32 @@ pub fn remove_instance(instance: &str) -> Result<()> {
 }
 
 /// Update AOSC OS in the container/instance
-pub fn update_os() -> Result<()> {
+pub fn update_os(force_use_apt: bool) -> Result<()> {
     info!("Updating base OS...");
     let instance = format!("update-{:x}", random::<u32>());
     add_instance(&instance)?;
-    let mut status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT])?;
-    if status != 0 {
-        status = run_in_container(&instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT])?;
-        if status != 0 {
-            return Err(anyhow!("Failed to update OS: {}", status));
-        }
+
+    if force_use_apt {
+        return apt_update_os(&instance);
     }
+
+    let status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT])?;
+    if status != 0 {
+        return apt_update_os(&instance);
+    }
+
     commit_container(&instance)?;
     remove_instance(&instance)?;
+
+    Ok(())
+}
+
+fn apt_update_os(instance: &str) -> Result<()> {
+    let status = run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT])?;
+
+    if status != 0 {
+        return Err(anyhow!("Failed to update OS: {}", status));
+    }
 
     Ok(())
 }

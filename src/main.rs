@@ -13,6 +13,7 @@ mod repo;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
+use config::read_config;
 use console::{style, user_attended};
 use dotenvy::dotenv;
 use std::process;
@@ -218,7 +219,7 @@ fn main() -> Result<()> {
             });
         }
         ("update-os", _) => {
-            print_error!({ actions::update_os() });
+            print_error!({ actions::update_os(read_config().is_ok_and(|x| x.force_use_apt)) });
         }
         ("config", args) => {
             if args.get_flag("g") {
