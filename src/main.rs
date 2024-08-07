@@ -218,8 +218,12 @@ fn main() -> Result<()> {
                 )
             });
         }
-        ("update-os", _) => {
-            print_error!({ actions::update_os(read_config().is_ok_and(|x| x.force_use_apt)) });
+        ("update-os", args) => {
+            print_error!({
+                actions::update_os(
+                    args.get_flag("force_use_apt") || read_config().is_ok_and(|x| x.force_use_apt),
+                )
+            });
         }
         ("config", args) => {
             if args.get_flag("g") {
