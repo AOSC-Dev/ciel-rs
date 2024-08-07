@@ -66,7 +66,7 @@ pub fn check_arch_name(arch: &str) -> bool {
 /// AOSC OS specific architecture mapping table
 #[inline]
 pub fn get_host_arch_name() -> Option<&'static str> {
-    #[cfg(all(not(target_arch = "powerpc64"), not(feature = "mips64r6")))]
+    #[cfg(not(target_arch = "powerpc64"))]
     match ARCH {
         "x86_64" => Some("amd64"),
         "x86" => Some("i486"),
@@ -90,11 +90,6 @@ pub fn get_host_arch_name() -> Option<&'static str> {
             libc::PR_ENDIAN_BIG => Some("ppc64"),
             _ => None,
         }
-    }
-
-    #[cfg(feature = "mips64r6")]
-    {
-        Some("mips64r6el")
     }
 }
 
