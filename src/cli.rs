@@ -49,7 +49,11 @@ pub fn build_cli() -> Command {
                 .arg(Arg::new("arch").short('a').long("arch").help("Specify the target architecture for fetching OS tarball"))
                 .about("Unpack OS tarball or fetch the latest BuildKit from the repository"),
         )
-        .subcommand(Command::new("update-os").about("Update the OS in the container"))
+        .subcommand(
+            Command::new("update-os")
+                .arg(Arg::new("force_use_apt").long("force-use-apt").help("Use apt to update-os"))
+                .about("Update the OS in the container")
+        )
         .subcommand(
             Command::new("load-tree")
                 .arg(Arg::new("url").default_value(GIT_TREE_URL).help("URL to the git repository"))
