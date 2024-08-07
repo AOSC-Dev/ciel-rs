@@ -1,7 +1,7 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use crate::info;
+use crate::{get_host_arch_name, info};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
@@ -40,6 +40,10 @@ pub struct CielConfig {
 
 impl CielConfig {
     const fn default_force_use_apt() -> bool {
+        #[cfg(target_arch = "riscv64")]
+        {
+            true
+        }
         false
     }
 
@@ -192,10 +196,15 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         .with_prompt("Use volatile mode for filesystem operations")
         .default(config.volatile_mount)
         .interact()?;
-    config.force_use_apt = Confirm::with_theme(&theme)
-        .with_prompt("Use apt as package manager")
-        .default(config.force_use_apt)
-        .interact()?;
+
+    // FIXME: RISC-V build hosts is unreliable when using oma: random lock-ups
+    // during `oma refresh'. Disabling oma to workaround potential lock-ups.
+    if get_host_arch_name().map(|x| x != "riscv64").unwrap_or(true) {
+        config.force_use_apt = Confirm::with_theme(&theme)
+            .with_prompt("Use apt as package manager")
+            .default(config.force_use_apt)
+            .interact()?;
+    }
 
     Ok(config)
 }

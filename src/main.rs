@@ -219,11 +219,13 @@ fn main() -> Result<()> {
             });
         }
         ("update-os", args) => {
-            print_error!({
-                actions::update_os(
-                    args.get_flag("force_use_apt") || read_config().is_ok_and(|x| x.force_use_apt),
-                )
-            });
+            let force_use_apt = if get_host_arch_name().is_some_and(|x| x == "riscv64") {
+                true
+            } else {
+                args.get_flag("force_use_apt") || read_config().is_ok_and(|x| x.force_use_apt)
+            };
+
+            print_error!({ actions::update_os(force_use_apt,) });
         }
         ("config", args) => {
             if args.get_flag("g") {
