@@ -267,7 +267,7 @@ fn terminate_container(
     ns_name: &str,
 ) -> Result<()> {
     let _ = machine_proxy.receive_state_changed();
-    if execute_poweroff(&ns_name).is_ok() {
+    if execute_poweroff(ns_name).is_ok() {
         // Successfully passed poweroff command to the container, wait for it
         if wait_for_poweroff(proxy, ns_name).is_ok() {
             return Ok(());
@@ -358,7 +358,7 @@ pub fn list_instances() -> Result<Vec<CielInstance>> {
         if entry.file_type().map(|e| e.is_dir())? {
             instances.push(inspect_instance(
                 &entry.file_name().to_string_lossy(),
-                &get_container_ns_name(&entry.file_name(), legacy)?,
+                &get_container_ns_name(entry.file_name(), legacy)?,
             )?);
         }
     }

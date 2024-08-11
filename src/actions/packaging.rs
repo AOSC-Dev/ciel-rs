@@ -328,7 +328,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
             attempts,
             time_elapsed: 0,
         };
-        if !std::env::var("CIEL_NO_CHECKPOINT").is_ok() {
+        if std::env::var("CIEL_NO_CHECKPOINT").is_err() {
             dump_build_checkpoint(&checkpoint)?;
         }
         return Ok(exit_status);

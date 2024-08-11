@@ -58,7 +58,7 @@ fn refresh_once(pool_path: &Path) -> Result<()> {
     };
     let mut guarded = FreshLockGuard::new(f)?;
     let mut buf = [0u8; 1];
-    guarded.read(&mut buf)?;
+    guarded.read_exact(&mut buf)?;
     if buf[0] != b'1' {
         refresh_repo(pool_path)?;
         guarded.rewind()?;

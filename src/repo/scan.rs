@@ -27,8 +27,7 @@ fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
     for entry in tar.entries()? {
         let mut entry = entry?;
         if entry.path_bytes().as_ref() == &b"./control"[..] {
-            let mut buf = Vec::new();
-            buf.reserve(1024);
+            let mut buf = Vec::with_capacity(1024);
             entry.read_to_end(&mut buf)?;
             return Ok(buf);
         }
