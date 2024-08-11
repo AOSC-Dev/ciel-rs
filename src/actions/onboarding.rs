@@ -4,13 +4,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path};
 
 use crate::{
-    cli::GIT_TREE_URL,
-    common::*,
-    config, error, info,
-    network::{download_git, pick_latest_rootfs},
-    overlayfs::create_new_instance_fs,
-    repo::{init_repo, refresh_repo},
-    warn,
+    actions::get_branch_name, cli::GIT_TREE_URL, common::*, config, error, info, network::{download_git, pick_latest_rootfs}, overlayfs::create_new_instance_fs, repo::{init_repo, refresh_repo}, warn
 };
 
 use super::{load_os, mount_fs};
@@ -93,7 +87,8 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     let cwd = std::env::current_dir()?;
     if config.local_repo {
         info!("Setting up local repository ...");
-        refresh_repo(&cwd.join("OUTPUT"))?;
+        let name = get_sep_mount_name(&config)?; 
+        refresh_repo(&cwd.join(name))?;
         info!("Local repository ready.");
     }
     if let Some(init_instance) = init_instance {
@@ -101,12 +96,22 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
         info!("{}: instance initialized.", init_instance);
         if config.local_repo {
             mount_fs(&init_instance)?;
-            init_repo(&cwd.join("OUTPUT"), &cwd.join(&init_instance))?;
+            init_repo(&cwd.join(get_sep_mount_name(&config)?), &cwd.join(&init_instance))?;
             info!("{}: local repository initialized.", init_instance);
         }
     }
 
     Ok(())
+}
+
+fn get_sep_mount_name(config: &config::CielConfig) -> Result<String, anyhow::Error> {
+    let mut name = "OUTPUT".to_string();
+    if config.sep_mount {
+        name.push('-');
+        name.push_str(&get_branch_name()?);
+    }
+
+    Ok(name)
 }
 
 #[inline]

@@ -23,7 +23,7 @@ use super::{for_each_instance, UPDATE_SCRIPT};
 
 /// Get the branch name of the workspace TREE repository
 #[inline]
-fn get_branch_name() -> Result<String> {
+pub fn get_branch_name() -> Result<String> {
     let repo = Repository::open("TREE")?;
     let head = repo.head()?;
 
