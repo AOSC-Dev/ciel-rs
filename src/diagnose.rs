@@ -1,7 +1,8 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use console::style;
 use fs3::statvfs;
 use indicatif::HumanBytes;
+use std::env;
 use std::sync::mpsc::channel;
 use std::{fs::File, io::BufRead, time::Duration};
 use std::{
@@ -25,6 +26,7 @@ const TEST_CASES: &[&dyn Fn() -> Result<String>] = &[
     &test_vm_container,
     &test_disk_io,
     &test_disk_space,
+    &test_editor,
 ];
 
 #[proxy(
@@ -130,6 +132,19 @@ fn test_disk_space() -> Result<String> {
             HumanBytes(stats.available_space()),
             HumanBytes(stats.total_space())
         ))
+    }
+}
+
+fn test_editor() -> Result<String> {
+    let editor_env = env::var("EDITOR");
+    let editor_path = which::which("editor");
+
+    if let Ok(editor_env) = editor_env {
+        Ok(format!("`EDITOR` var is set to {editor_env}"))
+    } else if let Ok(editor_path) = editor_path {
+        Ok(format!("`editor` binary found: {}", editor_path.display()))
+    } else {
+        bail!("`editor` binary not in PATH and `EDITOR` var is not set.")
     }
 }
 
