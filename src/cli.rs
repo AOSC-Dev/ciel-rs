@@ -51,7 +51,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("update-os")
-                .arg(Arg::new("force_use_apt").long("force-use-apt").help("Use apt to update-os"))
+                .arg(Arg::new("force_use_apt").long("force-use-apt").help("Use apt to update-os").action(clap::ArgAction::SetTrue))
                 .about("Update the OS in the container")
         )
         .subcommand(
