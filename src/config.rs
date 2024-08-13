@@ -1,7 +1,7 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use crate::{get_host_arch_name, info};
+use crate::{get_host_arch_name, info, warn};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
@@ -155,6 +155,8 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         info!("Not controlled by an user. Default values are used.");
         return Ok(config);
     }
+    warn!("Ciel now uses oma as the default package manager for base system updating tasks.");
+    warn!("You can choose whether to use oma instead of apt while configuring.");
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
