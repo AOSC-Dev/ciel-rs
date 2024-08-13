@@ -1,7 +1,7 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use crate::info;
+use crate::{get_host_arch_name, info, warn};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
@@ -34,9 +34,19 @@ pub struct CielConfig {
     pub sep_mount: bool,
     #[serde(rename = "volatile-mount", default)]
     pub volatile_mount: bool,
+    #[serde(default = "CielConfig::default_force_use_apt")]
+    pub force_use_apt: bool,
 }
 
 impl CielConfig {
+    const fn default_force_use_apt() -> bool {
+        #[cfg(target_arch = "riscv64")]
+        {
+            true
+        }
+        false
+    }
+
     pub fn save_config(&self) -> Result<String> {
         Ok(toml::to_string(self)?)
     }
@@ -58,6 +68,7 @@ impl Default for CielConfig {
             extra_options: Vec::new(),
             sep_mount: true,
             volatile_mount: false,
+            force_use_apt: false,
         }
     }
 }
@@ -144,6 +155,8 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         info!("Not controlled by an user. Default values are used.");
         return Ok(config);
     }
+    warn!("Ciel now uses oma as the default package manager for base system updating tasks.");
+    warn!("You can choose whether to use oma instead of apt while configuring.");
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
@@ -185,6 +198,15 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         .with_prompt("Use volatile mode for filesystem operations")
         .default(config.volatile_mount)
         .interact()?;
+
+    // FIXME: RISC-V build hosts is unreliable when using oma: random lock-ups
+    // during `oma refresh'. Disabling oma to workaround potential lock-ups.
+    if get_host_arch_name().map(|x| x != "riscv64").unwrap_or(true) {
+        config.force_use_apt = Confirm::with_theme(&theme)
+            .with_prompt("Use apt as package manager")
+            .default(config.force_use_apt)
+            .interact()?;
+    }
 
     Ok(config)
 }
