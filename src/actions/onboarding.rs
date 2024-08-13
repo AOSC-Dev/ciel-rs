@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::{style, user_attended, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::exit};
 
 use crate::{
     actions::get_branch_name,
@@ -20,6 +20,7 @@ use super::{load_os, mount_fs};
 pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result<()> {
     ctrlc::set_handler(move || {
         let _ = Term::stderr().show_cursor();
+        exit(1);
     })
     .expect("Error setting Ctrl-C handler");
 
