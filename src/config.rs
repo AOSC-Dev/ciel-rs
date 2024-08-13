@@ -1,7 +1,7 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use crate::{get_host_arch_name, info, warn};
+use crate::{get_host_arch_name, info};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
@@ -151,8 +151,6 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
         info!("Not controlled by an user. Default values are used.");
         return Ok(config);
     }
-    warn!("Ciel now uses oma as the default package manager for base system updating tasks.");
-    warn!("You can choose whether to use oma instead of apt while configuring.");
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
@@ -198,6 +196,8 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     // FIXME: RISC-V build hosts is unreliable when using oma: random lock-ups
     // during `oma refresh'. Disabling oma to workaround potential lock-ups.
     if get_host_arch_name().map(|x| x != "riscv64").unwrap_or(true) {
+        info!("Ciel now uses oma as the default package manager for base system updating tasks.");
+        info!("You can choose whether to use oma instead of apt while configuring.");
         config.force_use_apt = Confirm::with_theme(&theme)
             .with_prompt("Use apt as package manager")
             .default(config.force_use_apt)
