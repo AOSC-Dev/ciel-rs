@@ -40,11 +40,7 @@ pub struct CielConfig {
 
 impl CielConfig {
     const fn default_force_use_apt() -> bool {
-        #[cfg(target_arch = "riscv64")]
-        {
-            true
-        }
-        false
+        cfg!(target_arch = "riscv64")
     }
 
     pub fn save_config(&self) -> Result<String> {
