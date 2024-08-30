@@ -403,5 +403,8 @@ fn apt_update_os(instance: &str) -> Result<()> {
         return Err(anyhow!("Failed to update OS: {}", status));
     }
 
+    commit_container(&instance)?;
+    remove_instance(&instance)?;
+
     Ok(())
 }
