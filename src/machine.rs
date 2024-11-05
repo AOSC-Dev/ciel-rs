@@ -189,6 +189,7 @@ pub fn execute_container_command<S: AsRef<OsStr>>(ns_name: &str, args: &[S]) -> 
     }
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
+        .env("SYSTEMD_ADJUST_TERMINAL_TITLE", "0")
         .args(extra_options)
         .args(["-M", ns_name, "-qt", "--"])
         .args(args)
@@ -216,6 +217,7 @@ fn kill_container(proxy: &MachineProxyBlocking) -> Result<()> {
 fn execute_poweroff(ns_name: &str) -> Result<()> {
     // TODO: maybe replace with systemd API cross-namespace call?
     let exit_code = Command::new("systemd-run")
+        .env("SYSTEMD_ADJUST_TERMINAL_TITLE", "0")
         .args(["-M", ns_name, "-q", "--no-block", "--", "poweroff"])
         .spawn()?
         .wait()?
