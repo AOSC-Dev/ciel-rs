@@ -52,6 +52,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("update-os")
                 .arg(Arg::new("force_use_apt").long("force-use-apt").help("Use apt to update-os").action(clap::ArgAction::SetTrue))
+                .arg(Arg::new("tmpfs").long("tmpfs").help("Use tmpfs for containers").action(clap::ArgAction::SetTrue))
                 .about("Update the OS in the container")
         )
         .subcommand(
@@ -79,6 +80,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("add")
                 .arg(Arg::new("INSTANCE").required(true))
+                .arg(Arg::new("tmpfs").long("tmpfs").help("Use tmpfs for containers").action(clap::ArgAction::SetTrue))
                 .about("Add a new instance"),
         )
         .subcommand(

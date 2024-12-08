@@ -230,7 +230,9 @@ fn main() -> Result<()> {
                 args.get_flag("force_use_apt") || read_config().is_ok_and(|x| x.force_use_apt)
             };
 
-            print_error!({ actions::update_os(force_use_apt,) });
+            let tmpfs = args.get_flag("tmpfs");
+
+            print_error!({ actions::update_os(force_use_apt, tmpfs) });
         }
         ("config", args) => {
             if args.get_flag("g") {
@@ -295,7 +297,8 @@ fn main() -> Result<()> {
         }
         ("add", args) => {
             let instance = args.get_one::<String>("INSTANCE").unwrap();
-            print_error!({ actions::add_instance(instance) });
+            let tmpfs = args.get_flag("tmpfs");
+            print_error!({ actions::add_instance(instance, tmpfs) });
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
