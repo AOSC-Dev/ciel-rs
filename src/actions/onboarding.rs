@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::{style, user_attended, Term};
+use console::{user_attended, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path, process::exit};
 

@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)+) => {
-        eprint!("{} ", style("info:").cyan().bold());
+        eprint!("{} ", ::console::style("info:").cyan().bold());
         eprintln!($($arg)+);
     };
 }
@@ -9,7 +9,7 @@ macro_rules! info {
 #[macro_export]
 macro_rules! warn {
     ($($arg:tt)+) => {
-        eprint!("{} ", style("warning:").yellow().bold());
+        eprint!("{} ", ::console::style("warning:").yellow().bold());
         eprintln!($($arg)+);
     };
 }
@@ -17,7 +17,7 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)+) => {
-        eprint!("{} ", style("error:").red().bold());
+        eprint!("{} ", ::console::style("error:").red().bold());
         eprintln!($($arg)+);
     };
 }

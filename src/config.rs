@@ -3,7 +3,7 @@
 use crate::common::CURRENT_CIEL_VERSION;
 use crate::{get_host_arch_name, info};
 use anyhow::{anyhow, Result};
-use console::{style, user_attended};
+use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
 use std::{ffi::OsString, path::Path};

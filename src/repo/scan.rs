@@ -1,7 +1,6 @@
 use crate::error;
 use anyhow::{anyhow, Result};
 use ar::Archive as ArArchive;
-use console::style;
 use faster_hex::hex_string;
 use flate2::read::GzDecoder;
 use rayon::prelude::*;

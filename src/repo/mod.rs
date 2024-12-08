@@ -2,7 +2,6 @@
 
 use crate::info;
 use anyhow::Result;
-use console::style;
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::{fs, io, path::Path};

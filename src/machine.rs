@@ -7,7 +7,6 @@ use crate::overlayfs::is_mounted;
 use crate::{info, overlayfs::LayerManager, warn};
 use adler32::adler32;
 use anyhow::{anyhow, Result};
-use console::style;
 use libc::{c_char, ftok, waitpid, WNOHANG};
 use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
 use std::{

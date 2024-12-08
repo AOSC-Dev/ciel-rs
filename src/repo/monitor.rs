@@ -1,6 +1,5 @@
 use crate::info;
 use anyhow::Result;
-use console::style;
 use fs3::FileExt;
 use inotify::{Inotify, WatchMask};
 use std::{
