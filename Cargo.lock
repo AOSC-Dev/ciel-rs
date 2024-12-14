@@ -364,7 +364,6 @@ dependencies = [
  "git2",
  "indicatif",
  "inotify",
- "lazy_static",
  "libc",
  "libmount",
  "libsystemd-sys",

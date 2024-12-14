@@ -1,10 +1,10 @@
 use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
 use fs3::FileExt;
-use lazy_static::lazy_static;
 use reqwest::blocking::{Client, Response};
 use serde::Deserialize;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -37,11 +37,11 @@ pub struct Recipe {
     variants: Vec<Variant>,
 }
 
-lazy_static! {
-    static ref GIT_PROGRESS: indicatif::ProgressStyle = indicatif::ProgressStyle::default_bar()
+static GIT_PROGRESS: LazyLock<indicatif::ProgressStyle> = LazyLock::new(|| {
+    indicatif::ProgressStyle::default_bar()
         .template("[{bar:25.cyan/blue}] {pos}/{len} {msg} ({eta})")
-        .unwrap();
-}
+        .unwrap()
+});
 
 /// Download a file from the web
 pub fn download_file(url: &str) -> Result<Response> {

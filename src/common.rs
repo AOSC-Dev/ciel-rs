@@ -2,11 +2,11 @@ use anyhow::{anyhow, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 use indicatif::ProgressBar;
-use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::env::consts::ARCH;
 use std::fs::{self, File};
 use std::os::unix::prelude::MetadataExt;
+use std::sync::LazyLock;
 use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -31,13 +31,12 @@ pub const CIEL_INST_DIR: &str = ".ciel/container/instances";
 pub const CIEL_DATA_DIR: &str = ".ciel/data";
 const SKELETON_DIRS: &[&str] = &[CIEL_DIST_DIR, CIEL_INST_DIR, CIEL_DATA_DIR];
 
-lazy_static! {
-    static ref SPINNER_STYLE: indicatif::ProgressStyle =
-        indicatif::ProgressStyle::default_spinner()
-            .tick_chars("⠋⠙⠸⠴⠦⠇ ")
-            .template("{spinner:.green} {wide_msg}")
-            .unwrap();
-}
+static SPINNER_STYLE: LazyLock<indicatif::ProgressStyle> = LazyLock::new(|| {
+    indicatif::ProgressStyle::default_spinner()
+        .tick_chars("⠋⠙⠸⠴⠦⠇ ")
+        .template("{spinner:.green} {wide_msg}")
+        .unwrap()
+});
 
 #[macro_export]
 macro_rules! make_progress_bar {
