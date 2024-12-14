@@ -10,7 +10,7 @@
 //! section of the zbus documentation.
 //!
 //! This DBus object implements
-//! [standard DBus interfaces](https://dbus.freedesktop.org/doc/dbus-specification.html),
+//! [standard DBus interfaces](https://dbus.freedes pub(crate) ktop.org/doc/dbus-specification.html),
 //! (`org.freedesktop.DBus.*`) for which the following zbus proxies can be used:
 //!
 //! * [`zbus::fdo::PeerProxy`]
@@ -25,7 +25,7 @@ use zbus::proxy;
     interface = "org.freedesktop.machine1.Machine",
     default_service = "org.freedesktop.machine1"
 )]
-trait Machine {
+pub trait Machine {
     /// BindMount method
     fn bind_mount(
         &self,

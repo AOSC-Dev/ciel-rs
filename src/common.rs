@@ -12,6 +12,7 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
+use unsquashfs_wrapper::Unsquashfs;
 
 pub const CIEL_MAINLINE_ARCHS: &[&str] = &[
     "amd64",
@@ -114,17 +115,11 @@ pub fn extract_tar_xz<R: Read>(reader: R, path: &Path) -> Result<()> {
 
 /// Extract the given .squashfs
 pub fn extract_squashfs(path: &Path, dist_dir: &Path, pb: &ProgressBar, total: u64) -> Result<()> {
-    use std::sync::atomic::AtomicBool;
-    use std::sync::Arc;
-    unsquashfs_wrapper::extract(
-        path,
-        dist_dir,
-        None,
-        |c| {
-            pb.set_position(total * c as u64 / 100);
-        },
-        Arc::new(AtomicBool::new(false)),
-    )?;
+    let unsquashfs = Unsquashfs::default();
+
+    unsquashfs.extract(path, dist_dir, None, move |c| {
+        pb.set_position(total * c as u64 / 100);
+    })?;
 
     Ok(())
 }

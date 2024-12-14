@@ -28,7 +28,7 @@ use zbus::proxy;
     default_service = "org.freedesktop.machine1",
     default_path = "/org/freedesktop/machine1"
 )]
-trait Manager {
+pub trait Manager {
     /// BindMountMachine method
     fn bind_mount_machine(
         &self,
