@@ -18,7 +18,6 @@ use console::{style, user_attended};
 use dotenvy::dotenv;
 use std::process;
 use std::{path::Path, process::Command};
-use libc;
 
 use crate::actions::BuildSettings;
 use crate::common::*;
@@ -101,7 +100,9 @@ fn update_tree(path: &Path, branch: Option<&String>, rebase_from: Option<&String
 
 fn main() -> Result<()> {
     // set umask to 022 to ensure correct permissions on rootfs
-    unsafe { libc::umask(libc::S_IWGRP | libc:: S_IWOTH); }
+    unsafe {
+        libc::umask(libc::S_IWGRP | libc::S_IWOTH);
+    }
 
     // source .env file, ignore errors
     dotenv().ok();

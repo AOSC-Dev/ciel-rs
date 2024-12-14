@@ -197,11 +197,7 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
         }
         warn!(
             "Please rollback {} for the new config to take effect!",
-            if let Some(inst) = instance {
-                inst
-            } else {
-                "all your instances"
-            }
+            instance.unwrap_or("all your instances"),
         );
     } else {
         return Err(anyhow!("Could not recognize the configuration."));
@@ -403,8 +399,8 @@ fn apt_update_os(instance: &str) -> Result<()> {
         return Err(anyhow!("Failed to update OS: {}", status));
     }
 
-    commit_container(&instance)?;
-    remove_instance(&instance)?;
+    commit_container(instance)?;
+    remove_instance(instance)?;
 
     Ok(())
 }
