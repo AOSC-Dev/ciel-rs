@@ -10,7 +10,7 @@
 //! section of the zbus documentation.
 //!
 //! This DBus object implements
-//! [standard DBus interfaces](https://dbus.freedes pub(crate) ktop.org/doc/dbus-specification.html),
+//! [standard DBus interfaces](https://dbus.freedesktop.org/doc/dbus-specification.html),
 //! (`org.freedesktop.DBus.*`) for which the following zbus proxies can be used:
 //!
 //! * [`zbus::fdo::PeerProxy`]
