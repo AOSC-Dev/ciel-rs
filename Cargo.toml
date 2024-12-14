@@ -6,8 +6,7 @@ license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 repository = "https://github.com/AOSC-Dev/ciel-rs"
 resolver = "2"
-edition = "2018"
-
+edition = "2021"
 
 [dependencies]
 console = "0.15"
