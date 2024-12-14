@@ -25,7 +25,7 @@ libmount = { git = "https://github.com/liushuyu/libmount", rev = "6fe8dba03a6404
 libc = "0.2"
 adler32 = "1.2"
 rayon = "1.10"
-tempfile = "3.10"
+tempfile = "3.14"
 anyhow = "1.0"
 libsystemd-sys = "0.9"
 walkdir = "2"
@@ -37,7 +37,7 @@ sha2 = "0.10"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 fs3 = "0.5"
 clap = { version = "^4", features = ["wrap_help", "string", "env"] }
-ctrlc = "3.4.4"
+ctrlc = "3.4.5"
 # repo scan
 ar = "0.9"
 faster-hex = "0.10"

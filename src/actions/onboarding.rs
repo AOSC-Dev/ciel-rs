@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use console::{style, user_attended, Term};
+use console::{user_attended, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::{fs, path::Path, process::exit};
 
@@ -107,7 +107,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     }
 
     if let Some(init_instance) = init_instance {
-        create_new_instance_fs(CIEL_INST_DIR, &init_instance)?;
+        create_new_instance_fs(CIEL_INST_DIR, &init_instance, false)?;
         info!("{}: instance initialized.", init_instance);
         if config.local_repo {
             mount_fs(&init_instance)?;

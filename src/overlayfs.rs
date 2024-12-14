@@ -1,8 +1,7 @@
-use crate::common;
+use crate::{common, info};
 use anyhow::{anyhow, bail, Context, Result};
-use libmount::{mountinfo::Parser, Overlay};
+use libmount::{mountinfo::Parser, Overlay, Tmpfs};
 use nix::mount::{umount2, MntFlags};
-use std::fs;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -11,6 +10,7 @@ use std::{
     ffi::OsStr,
     io::{BufRead, BufReader},
 };
+use std::{fs, path};
 
 pub trait LayerManager {
     /// Return the name of the layer manager, e.g. "overlay".
@@ -31,12 +31,18 @@ pub trait LayerManager {
     fn mount(&mut self, to: &Path) -> Result<()>;
     /// Return if the filesystem is mounted
     fn is_mounted(&self, target: &Path) -> Result<bool>;
+    /// Return if the filesystem uses tmpfs for upper layer.
+    fn is_tmpfs(&self) -> bool;
+    /// Return if tmpfs is mounted.
+    fn is_tmpfs_mounted(&self) -> Result<bool>;
     /// Rollback the filesystem to the distribution state
     fn rollback(&mut self) -> Result<()>;
     /// Commit the current state of the instance filesystem to the distribution state
     fn commit(&mut self) -> Result<()>;
     /// Un-mount the filesystem
     fn unmount(&mut self, target: &Path) -> Result<()>;
+    /// Un-mount tmpfs.
+    fn unmount_tmpfs(&self) -> Result<()>;
     /// Return the directory where the configuration layer is located
     /// You may temporary mount this directory if your backend does not expose this directory directly
     fn get_config_layer(&mut self) -> Result<PathBuf>;
@@ -55,12 +61,20 @@ struct OverlayFS {
     upper: PathBuf,
     work: PathBuf,
     volatile: bool,
+    tmpfs: Option<PathBuf>,
 }
 
 /// Create a new overlay filesystem on the host system
-pub fn create_new_instance_fs<P: AsRef<Path>>(inst_path: P, inst_name: P) -> Result<()> {
+pub fn create_new_instance_fs<P: AsRef<Path>>(
+    inst_path: P,
+    inst_name: P,
+    tmpfs: bool,
+) -> Result<()> {
     let inst = inst_path.as_ref().join(inst_name.as_ref());
-    fs::create_dir_all(inst)?;
+    fs::create_dir_all(&inst)?;
+    if tmpfs {
+        fs::create_dir_all(inst.join("layers/tmpfs"))?;
+    }
     Ok(())
 }
 
@@ -174,17 +188,49 @@ impl LayerManager for OverlayFS {
     {
         let dist = dist_path.as_ref();
         let inst = inst_path.as_ref().join(inst_name.as_ref());
-        Ok(Box::new(OverlayFS {
-            inst: inst.to_owned(),
-            base: dist.to_owned(),
-            lower: inst.join("layers/local"),
-            upper: inst.join("layers/diff"),
-            work: inst.join("layers/diff.tmp"),
-            volatile: false,
-        }))
+        if inst.join("layers/tmpfs").exists() {
+            Ok(Box::new(OverlayFS {
+                inst: inst.to_owned(),
+                base: dist.to_owned(),
+                lower: inst.join("layers/local"),
+                upper: inst.join("layers/tmpfs/upper"),
+                work: inst.join("layers/tmpfs/work"),
+                volatile: false,
+                tmpfs: Some(inst.join("layers/tmpfs")),
+            }))
+        } else {
+            Ok(Box::new(OverlayFS {
+                inst: inst.to_owned(),
+                base: dist.to_owned(),
+                lower: inst.join("layers/local"),
+                upper: inst.join("layers/diff"),
+                work: inst.join("layers/diff.tmp"),
+                volatile: false,
+                tmpfs: None,
+            }))
+        }
     }
+
     fn mount(&mut self, to: &Path) -> Result<()> {
         let base_dirs = [self.lower.clone(), self.base.clone()];
+
+        // mount tmpfs if needed
+        if let Some(tmpfs) = &self.tmpfs {
+            fs::create_dir_all(&tmpfs)?;
+            if !self.is_tmpfs_mounted()? {
+                info!("Mounting container upper tmpfs");
+                let tmpfs = Tmpfs::new(tmpfs).size_bytes(4 * 1024 * 1024 * 1024);
+                tmpfs
+                    .mount()
+                    .map_err(|e| anyhow!("failed to mount tmpfs: {}", e.to_string()))?;
+            }
+        }
+
+        // create the directories if they don't exist (work directory may be missing)
+        fs::create_dir_all(&self.upper)?;
+        fs::create_dir_all(&self.work)?;
+        fs::create_dir_all(&self.lower)?;
+
         let mut overlay = Overlay::writable(
             // base_dirs variable contains the base and lower directories
             base_dirs.iter().map(|x| x.as_ref()),
@@ -192,10 +238,6 @@ impl LayerManager for OverlayFS {
             self.work.clone(),
             to,
         );
-        // create the directories if they don't exist (work directory may be missing)
-        fs::create_dir_all(&self.work)?;
-        fs::create_dir_all(&self.upper)?;
-        fs::create_dir_all(&self.lower)?;
         // check overlay usability
         load_overlayfs_support()?;
         if self.volatile {
@@ -218,11 +260,28 @@ impl LayerManager for OverlayFS {
         is_mounted(target, OsStr::new("overlay"))
     }
 
+    fn is_tmpfs(&self) -> bool {
+        self.tmpfs.is_some()
+    }
+
+    fn is_tmpfs_mounted(&self) -> Result<bool> {
+        if let Some(tmpfs) = &self.tmpfs {
+            is_mounted(&path::absolute(&tmpfs)?, OsStr::new("tmpfs"))
+        } else {
+            bail!("the container does not use tmpfs")
+        }
+    }
+
     fn rollback(&mut self) -> Result<()> {
-        fs::remove_dir_all(&self.upper)?;
-        fs::remove_dir_all(&self.work)?;
-        fs::create_dir(&self.upper)?;
-        fs::create_dir(&self.work)?;
+        if self.is_tmpfs() {
+            // for mounted tmpfs containers, simply un-mount the tmpfs
+            self.unmount_tmpfs()?;
+        } else {
+            fs::remove_dir_all(&self.upper)?;
+            fs::remove_dir_all(&self.work)?;
+            fs::create_dir(&self.upper)?;
+            fs::create_dir(&self.work)?;
+        }
 
         Ok(())
     }
@@ -261,6 +320,16 @@ impl LayerManager for OverlayFS {
         Ok(())
     }
 
+    fn unmount_tmpfs(&self) -> Result<()> {
+        if let Some(tmpfs) = &self.tmpfs {
+            if self.is_tmpfs_mounted()? {
+                info!("Un-mounting tmpfs ...");
+                umount2(tmpfs, MntFlags::MNT_DETACH)?;
+            }
+        }
+        Ok(())
+    }
+
     fn get_config_layer(&mut self) -> Result<PathBuf> {
         Ok(self.lower.clone())
     }
@@ -270,6 +339,9 @@ impl LayerManager for OverlayFS {
     }
 
     fn destroy(&mut self) -> Result<()> {
+        if self.is_tmpfs() {
+            self.unmount_tmpfs()?;
+        }
         fs::remove_dir_all(&self.inst)?;
 
         Ok(())
@@ -351,6 +423,42 @@ fn sync_permission(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+fn rename_file(from: &Path, to: &Path, overlay: &OverlayFS) -> Result<()> {
+    if overlay.is_tmpfs() {
+        if to.symlink_metadata().is_ok() {
+            if to.is_dir() {
+                fs::remove_dir_all(to)?;
+            } else {
+                fs::remove_file(to)?;
+            }
+        }
+        if from.is_symlink() {
+            std::os::unix::fs::symlink(fs::read_link(from)?, to)?;
+            fs::remove_file(from)?;
+        } else if from.is_file() {
+            fs::copy(from, to)?;
+            fs::remove_file(from)?;
+        } else if from.is_dir() {
+            fs::create_dir_all(to)?;
+            fs::set_permissions(to, from.metadata()?.permissions())?;
+            for entry in fs::read_dir(from)? {
+                let entry = entry?;
+                rename_file(
+                    &from.join(entry.file_name()),
+                    &to.join(entry.file_name()),
+                    overlay,
+                )?;
+            }
+            fs::remove_dir_all(from)?;
+        } else {
+            bail!("unsupported file type");
+        }
+    } else {
+        fs::rename(from, to)?;
+    }
+    Ok(())
+}
+
 #[inline]
 fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
     match action {
@@ -358,7 +466,7 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             let upper_path = overlay.upper.join(path);
             let lower_path = overlay.base.join(path);
             // Replace lower dir with upper
-            fs::rename(upper_path, lower_path)?;
+            rename_file(&upper_path, &lower_path, overlay)?;
         }
         Diff::OverrideDir(path) => {
             let upper_path = overlay.upper.join(path);
@@ -371,7 +479,7 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
                 // If it's a file, then remove it as well
                 fs::remove_file(&lower_path)?;
             }
-            fs::rename(upper_path, &lower_path)?;
+            rename_file(&upper_path, &lower_path, overlay)?;
         }
         Diff::RenamedDir(from, to) => {
             // TODO: Implement copy down
@@ -381,7 +489,7 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             let to_path = overlay.base.join(to);
             // TODO: Merge files from upper to lower
             // Replace lower dir with upper
-            fs::rename(from_path, to_path)?;
+            rename_file(&from_path, &to_path, overlay)?;
         }
         Diff::NewDir(path) => {
             let lower_path = overlay.base.join(path);
@@ -408,7 +516,7 @@ fn overlay_exec_action(action: &Diff, overlay: &OverlayFS) -> Result<()> {
             let upper_path = overlay.upper.join(path);
             let lower_path = overlay.base.join(path);
             // Move upper file to overwrite the lower
-            fs::rename(upper_path, lower_path)?;
+            rename_file(&upper_path, &lower_path, overlay)?;
         }
     }
 

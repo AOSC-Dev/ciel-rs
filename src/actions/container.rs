@@ -117,7 +117,6 @@ pub fn farewell(path: &Path) -> Result<()> {
 
 /// Download the OS tarball and then extract it for use as the base layer
 pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
-    info!("Downloading base OS rootfs...");
     let path = Path::new(url);
     let filename = path
         .file_name()
@@ -126,6 +125,7 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
         .ok_or_else(|| anyhow!("Unable to decode path string"))?;
     let is_local_file = path.is_file();
     let total = if !is_local_file {
+        info!("Downloading base OS rootfs...");
         download_file_progress(url, filename)?
     } else {
         let tarball = fs::File::open(path)?;
@@ -147,7 +147,7 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
     }
 
     if is_local_file {
-        extract_system_rootfs(&PathBuf::from(path), total, tarball)?;
+        extract_system_rootfs(path, total, tarball)?;
     } else {
         extract_system_rootfs(Path::new(filename), total, tarball)?;
     }
@@ -351,9 +351,15 @@ pub fn rollback_container(instance: &str) -> Result<()> {
 
 /// Create a new instance
 #[inline]
-pub fn add_instance(instance: &str) -> Result<()> {
-    overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance)?;
+pub fn add_instance(instance: &str, tmpfs: bool) -> Result<()> {
+    overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance, tmpfs)?;
     info!("{}: instance created.", instance);
+    if tmpfs {
+        warn!(
+            "{}: tmpfs is an experimental feature, use at your own risk!",
+            instance
+        );
+    }
 
     Ok(())
 }
@@ -372,10 +378,10 @@ pub fn remove_instance(instance: &str) -> Result<()> {
 }
 
 /// Update AOSC OS in the container/instance
-pub fn update_os(force_use_apt: bool) -> Result<()> {
+pub fn update_os(force_use_apt: bool, tmpfs: bool) -> Result<()> {
     info!("Updating base OS...");
     let instance = format!("update-{:x}", random::<u32>());
-    add_instance(&instance)?;
+    add_instance(&instance, tmpfs)?;
 
     if force_use_apt {
         return apt_update_os(&instance);
