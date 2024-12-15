@@ -235,12 +235,12 @@ fn main() -> Result<()> {
             print_error!({ actions::update_os(force_use_apt, tmpfs) });
         }
         ("config", args) => {
-            if args.get_flag("g") {
-                print_error!({ actions::config_os(None) });
-                return Ok(());
+            if args.get_flag("global") {
+                print_error!({ actions::config_workspace(&args) });
+            } else {
+                let instance = get_instance_option(args)?;
+                print_error!({ actions::config_instance(&instance, &args) });
             }
-            let instance = get_instance_option(args)?;
-            print_error!({ actions::config_os(Some(&instance)) });
         }
         ("mount", args) => {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });

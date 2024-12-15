@@ -157,49 +157,6 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
     Ok(())
 }
 
-/// Ask user for the configuration and then apply it
-pub fn config_os(instance: Option<&str>) -> Result<()> {
-    let config;
-    let mut prev_volatile = None;
-    if let Ok(c) = config::workspace_config() {
-        prev_volatile = Some(c.volatile_mount);
-        config = config::ask_for_config(Some(c));
-    } else {
-        config = config::ask_for_config(None);
-    }
-    if let Ok(c) = config {
-        info!("Shutting down instance(s) before saving config...");
-        if let Some(instance) = instance {
-            container_down(instance)?;
-        } else {
-            for_each_instance(&container_down)?;
-        }
-        fs::create_dir_all(CIEL_DATA_DIR)?;
-        fs::write(
-            Path::new(CIEL_DATA_DIR).join("config.toml"),
-            c.save_config()?,
-        )?;
-        info!("Configurations saved.");
-        let volatile_changed = if let Some(prev_voltile) = prev_volatile {
-            prev_voltile != c.volatile_mount
-        } else {
-            false
-        };
-        if volatile_changed {
-            warn!("You have changed the volatile mount option, please save your work and\x1b[1m\x1b[93m rollback \x1b[4mall the instances\x1b[0m.");
-            return Ok(());
-        }
-        warn!(
-            "Please rollback {} for the new config to take effect!",
-            instance.unwrap_or("all your instances"),
-        );
-    } else {
-        return Err(anyhow!("Could not recognize the configuration."));
-    }
-
-    Ok(())
-}
-
 /// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
     let workspace_config = config::workspace_config()?;

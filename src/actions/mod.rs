@@ -6,11 +6,13 @@ use crate::machine;
 mod container;
 mod onboarding;
 mod packaging;
+mod config;
 
 // re-export all the functions from the sub
 pub use self::container::*;
 pub use self::onboarding::onboarding;
 pub use self::packaging::*;
+pub use self::config::*;
 
 const APT_UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt autoclean"#;
 const OMA_UPDATE_SCRIPT: &str = r#"oma upgrade -y --force-confnew --no-progress --force-unsafe-io && oma autoremove -y --remove-config && oma clean"#;
