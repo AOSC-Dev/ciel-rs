@@ -1,50 +1,135 @@
-use std::{fs, path::Path};
+use std::fmt::Display;
 
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 
 use crate::{
     actions::rollback_container,
-    config::{self, workspace_config, InstanceConfig},
-    info, warn, CIEL_DATA_DIR,
+    config::{InstanceConfig, WorkspaceConfig},
+    info,
 };
 
-use super::{container_down, for_each_instance};
+use super::for_each_instance;
 
-/// Ask user for the configuration and then apply it
-pub fn config_workspace(args: &ArgMatches) -> Result<()> {
-    let config;
-
-    let mut prev_volatile = None;
-    if let Ok(c) = config::workspace_config() {
-        prev_volatile = Some(c.volatile_mount);
-        config = config::ask_for_config(Some(c));
-    } else {
-        config = config::ask_for_config(None);
+fn config_list<V>(instance: &str, args: &ArgMatches, id: &str, name: &str, list: &mut Vec<V>)
+where
+    V: ToOwned<Owned = V> + Display + PartialEq + Clone + Send + Sync + 'static,
+{
+    if args.get_flag(&format!("clear-{}", id)) {
+        info!("{}: removed all {}.", instance, name);
+        list.clear();
     }
-    if let Ok(c) = config {
-        info!("Shutting down instance(s) before saving config...");
-        for_each_instance(&container_down)?;
-        fs::create_dir_all(CIEL_DATA_DIR)?;
-        fs::write(
-            Path::new(CIEL_DATA_DIR).join("config.toml"),
-            c.save_config()?,
-        )?;
-        info!("Workspace configurations saved.");
-        let volatile_changed = if let Some(prev_voltile) = prev_volatile {
-            prev_voltile != c.volatile_mount
+
+    if let Some(val) = args.get_one::<V>(&format!("add-{}", id)) {
+        if !list.contains(&val) {
+            list.push(val.to_owned());
+            info!("{}: added new {} '{}'.", instance, name, val);
         } else {
-            false
-        };
-        if volatile_changed {
-            warn!("You have changed the volatile mount option, please save your work and\x1b[1m\x1b[93m rollback \x1b[4mall the instances\x1b[0m.");
-            return Ok(());
+            info!("{}: skipped existing {} '{}'.", instance, name, val);
         }
-        warn!("Please rollback all your instances for the new config to take effect!",);
-    } else {
-        return Err(anyhow!("Could not recognize the configuration."));
     }
 
+    if let Some(val) = args.get_one::<V>("remove-repo") {
+        if list.contains(&val) {
+            let mut new_list = list.drain(0..).filter(|o| o != val).collect();
+            list.append(&mut new_list);
+            info!("{}: removed new {} '{}'.", instance, name, val);
+        } else {
+            info!("{}: skipped non-existing {} '{}'.", instance, name, val);
+        }
+    }
+}
+
+fn config_bool(instance: &str, args: &ArgMatches, id: &str, name: &str, val: &mut bool) {
+    if let Some(new_val) = args.get_one::<bool>(id) {
+        if *new_val && !*val {
+            *val = true;
+            info!("{}: enabled {}.", instance, name);
+        }
+        if !*new_val && *val {
+            *val = false;
+            info!("{}: disabled {}.", instance, name);
+        }
+    }
+}
+
+pub fn config_workspace(args: &ArgMatches) -> Result<()> {
+    let mut config = WorkspaceConfig::load()?;
+    let old_config = config.clone();
+
+    if let Some(maintainer) = args.get_one::<String>("maintainer") {
+        if maintainer != &config.maintainer {
+            crate::config::validate_maintainer(maintainer)
+                .map_err(|err| anyhow!("Invalid maintainer information: {}", err))?;
+            config.maintainer = maintainer.to_owned();
+            info!("workspace: updated maintainer to '{}'.", maintainer);
+        }
+    }
+
+    config_bool("workspace", args, "dnssec", "DNSSEC", &mut config.dnssec);
+
+    if let Some(repo) = args.get_one::<String>("repo") {
+        if repo != &config.apt_sources {
+            config.apt_sources = repo.to_owned();
+            info!("workspace: updated APT sources to '{}'.", repo);
+        }
+    }
+
+    config_bool(
+        "workspace",
+        args,
+        "local-repo",
+        "local package repository",
+        &mut config.local_repo,
+    );
+
+    config_bool(
+        "workspace",
+        args,
+        "source-cache",
+        "local source caches",
+        &mut config.local_sources,
+    );
+
+    config_list(
+        "workspace",
+        args,
+        "nspawn-opt",
+        "extra nspawn options",
+        &mut config.nspawn_options,
+    );
+
+    config_bool(
+        "workspace",
+        args,
+        "branch-output",
+        "branch exclusive output",
+        &mut config.sep_mount,
+    );
+
+    config_bool(
+        "workspace",
+        args,
+        "volatile-mount",
+        "volatile mounts",
+        &mut config.volatile_mount,
+    );
+
+    config_bool(
+        "workspace",
+        args,
+        "use-apt",
+        "force use APT",
+        &mut config.force_use_apt,
+    );
+
+    if config != old_config {
+        info!("Applying workspace configuration ...");
+        if !args.get_flag("force-no-rollback") {
+            for_each_instance(&rollback_container)?;
+        }
+        config.save()?;
+    }
     Ok(())
 }
 
@@ -73,71 +158,20 @@ pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
         }
     }
 
-    if args.get_flag("clear-repo") {
-        info!("{}: removed all extra APT repositories.", instance);
-        config.nspawn_options = vec![];
-    }
-
-    if let Some(repo) = args.get_one::<String>("add-repo") {
-        if !config.extra_repos.contains(&repo) {
-            config.extra_repos.push(repo.to_owned());
-            info!("{}: added new extra APT repository '{}'.", instance, repo);
-        } else {
-            info!(
-                "{}: skipped existing extra APT repository '{}'.",
-                instance, repo
-            );
-        }
-    }
-
-    if let Some(repo) = args.get_one::<String>("remove-repo") {
-        if config.extra_repos.contains(&repo) {
-            config.extra_repos = config
-                .extra_repos
-                .into_iter()
-                .filter(|o| o != repo)
-                .collect();
-            info!("{}: removed new extra APT repository '{}'.", instance, repo);
-        } else {
-            info!(
-                "{}: skipped non-existing extra APT repository '{}'.",
-                instance, repo
-            );
-        }
-    }
-
-    if args.get_flag("clear-nspawn-opt") {
-        info!("{}: removed all extra nspawn options.", instance);
-        config.nspawn_options = vec![];
-    }
-
-    if let Some(opt) = args.get_one::<String>("add-nspawn-opt") {
-        if !config.nspawn_options.contains(&opt) {
-            config.nspawn_options.push(opt.to_owned());
-            info!("{}: added new extra nspawn option '{}'.", instance, opt);
-        } else {
-            info!(
-                "{}: skipped existing extra nspawn option '{}'.",
-                instance, opt
-            );
-        }
-    }
-
-    if let Some(opt) = args.get_one::<String>("remove-nspawn-opt") {
-        if config.nspawn_options.contains(&opt) {
-            config.nspawn_options = config
-                .nspawn_options
-                .into_iter()
-                .filter(|o| o != opt)
-                .collect();
-            info!("{}: removed new extra nspawn option '{}'.", instance, opt);
-        } else {
-            info!(
-                "{}: skipped non-existing extra nspawn option '{}'.",
-                instance, opt
-            );
-        }
-    }
+    config_list(
+        instance,
+        args,
+        "repo",
+        "extra APT repository",
+        &mut config.extra_repos,
+    );
+    config_list(
+        instance,
+        args,
+        "nspawn-opt",
+        "extra nspawn options",
+        &mut config.nspawn_options,
+    );
 
     if config != old_config {
         info!("{}: applying configuration ...", instance);

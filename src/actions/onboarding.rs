@@ -88,7 +88,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     info!("Saving configurations...");
     fs::write(
         Path::new(CIEL_DATA_DIR).join("config.toml"),
-        config.save_config()?,
+        config.to_toml()?,
     )?;
     info!("Configurations saved.");
     let cwd = std::env::current_dir()?;
