@@ -11,7 +11,7 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use actions::{inspect_container, patch_instance_config};
+use actions::{inspect_container, patch_instance_config, rollback_container};
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
 use config::{InstanceConfig, WorkspaceConfig};
@@ -268,6 +268,16 @@ fn main() -> Result<()> {
         }
         ("shell", args) => {
             let instance = get_instance_option(args)?;
+            let config_ref = InstanceConfig::get(&instance)?;
+            patch_instance_config(&instance, args, &mut *config_ref.write().unwrap())?;
+
+            let container = inspect_container(&instance)?;
+            let need_rollback = container.mounted
+                && *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            if need_rollback {
+                rollback_container(&instance)?;
+            }
+
             if let Some(cmd) = args.get_many::<String>("COMMANDS") {
                 let command = cmd
                     .into_iter()

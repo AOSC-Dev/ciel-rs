@@ -189,6 +189,7 @@ pub fn build_cli() -> Command {
                 .alias("sh")
                 .arg(instance_arg.clone().help("Instance to be used"))
                 .arg(Arg::new("COMMANDS").required(false).num_args(1..))
+                .args(instance_configs.iter().cloned())
                 .about("Start an interactive shell"),
         )
         .subcommand(
