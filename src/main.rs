@@ -237,10 +237,10 @@ fn main() -> Result<()> {
         }
         ("config", args) => {
             if args.get_flag("global") {
-                print_error!({ actions::config_workspace(&args) });
+                print_error!({ actions::config_workspace(args) });
             } else {
                 let instance = get_instance_option(args)?;
-                print_error!({ actions::config_instance(&instance, &args) });
+                print_error!({ actions::config_instance(&instance, args) });
             }
         }
         ("mount", args) => {

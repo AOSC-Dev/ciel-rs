@@ -12,7 +12,7 @@ use std::{
 };
 use walkdir::WalkDir;
 
-use crate::{actions::OMA_UPDATE_SCRIPT, common::create_spinner, config::{self, WorkspaceConfig}, error, info, repo, warn};
+use crate::{actions::OMA_UPDATE_SCRIPT, common::create_spinner, config::{WorkspaceConfig}, error, info, repo, warn};
 
 use super::{
     container::{get_output_directory, mount_fs, rollback_container, run_in_container},

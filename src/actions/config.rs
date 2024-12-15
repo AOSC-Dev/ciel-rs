@@ -21,7 +21,7 @@ where
     }
 
     if let Some(val) = args.get_one::<V>(&format!("add-{}", id)) {
-        if !list.contains(&val) {
+        if !list.contains(val) {
             list.push(val.to_owned());
             info!("{}: added new {} '{}'.", instance, name, val);
         } else {
@@ -30,7 +30,7 @@ where
     }
 
     if let Some(val) = args.get_one::<V>("remove-repo") {
-        if list.contains(&val) {
+        if list.contains(val) {
             let mut new_list = list.drain(0..).filter(|o| o != val).collect();
             list.append(&mut new_list);
             info!("{}: removed new {} '{}'.", instance, name, val);
