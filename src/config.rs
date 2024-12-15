@@ -19,6 +19,7 @@ const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 const DEFAULT_GITCONFIG: &str = "root/.gitconfig";
+const DEFAULT_CIEL_CONFIG_PATH: &str = ".ciel.toml";
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -265,7 +266,7 @@ impl InstanceConfig {
     }
 
     pub fn load_mounted<S: AsRef<str>>(instance: S) -> Result<Self> {
-        let path = Path::new(instance.as_ref()).join(".ciel.toml");
+        let path = Path::new(instance.as_ref()).join(DEFAULT_CIEL_CONFIG_PATH);
         if path.exists() {
             let content = fs::read_to_string(&path)
                 .with_context(|| format!("load instance config from {}", path.display()))?;
@@ -336,6 +337,9 @@ pub fn apply_config<P: AsRef<Path>>(
         }
         Ok(())
     }
+
+    // ciel config
+    fs::write(rootfs.join(DEFAULT_CIEL_CONFIG_PATH), instance.to_toml()?)?;
 
     // maintainer
     let config_path = rootfs.join(DEFAULT_AB4_CONFIG_LOCATION);
