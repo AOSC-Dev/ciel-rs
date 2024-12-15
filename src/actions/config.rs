@@ -57,6 +57,19 @@ pub fn config_workspace(args: &ArgMatches) -> Result<()> {
     let mut config = WorkspaceConfig::load()?;
     let old_config = config.clone();
 
+    patch_workspace_config(args, &mut config)?;
+
+    if config != old_config {
+        info!("Applying workspace configuration ...");
+        if !args.get_flag("force-no-rollback") {
+            for_each_instance(&rollback_container)?;
+        }
+        config.save()?;
+    }
+    Ok(())
+}
+
+pub fn patch_workspace_config(args: &ArgMatches, config: &mut WorkspaceConfig) -> Result<()> {
     if let Some(maintainer) = args.get_one::<String>("maintainer") {
         if maintainer != &config.maintainer {
             crate::config::validate_maintainer(maintainer)
@@ -123,13 +136,6 @@ pub fn config_workspace(args: &ArgMatches) -> Result<()> {
         &mut config.force_use_apt,
     );
 
-    if config != old_config {
-        info!("Applying workspace configuration ...");
-        if !args.get_flag("force-no-rollback") {
-            for_each_instance(&rollback_container)?;
-        }
-        config.save()?;
-    }
     Ok(())
 }
 
@@ -137,6 +143,23 @@ pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
     let mut config = InstanceConfig::load(instance)?;
     let old_config = config.clone();
 
+    patch_instance_config(instance, args, &mut config)?;
+
+    if config != old_config {
+        info!("{}: applying configuration ...", instance);
+        if !args.get_flag("force-no-rollback") {
+            rollback_container(instance)?;
+        }
+        config.save(instance)?;
+    }
+    Ok(())
+}
+
+pub fn patch_instance_config(
+    instance: &str,
+    args: &ArgMatches,
+    config: &mut InstanceConfig,
+) -> Result<()> {
     if let Some(tmpfs) = args.get_one::<bool>("tmpfs") {
         if *tmpfs && config.tmpfs.is_none() {
             config.tmpfs = Some(Default::default());
@@ -173,12 +196,5 @@ pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
         &mut config.nspawn_options,
     );
 
-    if config != old_config {
-        info!("{}: applying configuration ...", instance);
-        if !args.get_flag("force-no-rollback") {
-            rollback_container(instance)?;
-        }
-        config.save(instance)?;
-    }
     Ok(())
 }

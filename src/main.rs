@@ -219,7 +219,7 @@ fn main() -> Result<()> {
                 actions::load_os(
                     &format!("https://releases.aosc.io/{}", rootfs.path),
                     Some(rootfs.sha256sum),
-                    false
+                    false,
                 )
             });
         }
@@ -227,13 +227,11 @@ fn main() -> Result<()> {
             let force_use_apt = if get_host_arch_name().is_some_and(|x| x == "riscv64") {
                 true
             } else {
-                args.get_flag("force_use_apt")
+                args.get_flag("force-use-apt")
                     || WorkspaceConfig::load().is_ok_and(|x| x.force_use_apt)
             };
 
-            let tmpfs = args.get_flag("tmpfs");
-
-            print_error!({ actions::update_os(force_use_apt, tmpfs) });
+            print_error!({ actions::update_os(force_use_apt, Some(args)) });
         }
         ("config", args) => {
             if args.get_flag("global") {
