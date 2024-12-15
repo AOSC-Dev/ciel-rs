@@ -11,13 +11,11 @@ mod network;
 mod overlayfs;
 mod repo;
 
-use actions::{inspect_container, patch_instance_config, rollback_container};
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
-use config::{InstanceConfig, WorkspaceConfig};
+use config::WorkspaceConfig;
 use console::{style, user_attended};
 use dotenvy::dotenv;
-use libc::exit;
 use std::process;
 use std::{path::Path, process::Command};
 
@@ -268,20 +266,6 @@ fn main() -> Result<()> {
         }
         ("shell", args) => {
             let instance = get_instance_option(args)?;
-            let config_ref = InstanceConfig::get(&instance)?;
-            let mut config = config_ref.read().unwrap().clone();
-            patch_instance_config(&instance, args, &mut config)?;
-
-            let container = inspect_container(&instance)?;
-            let ephermal_config = config != InstanceConfig::load_mounted(&instance)?;
-            let need_rollback = container.mounted && ephermal_config;
-            if need_rollback {
-                rollback_container(&instance)?;
-            }
-            if ephermal_config {
-                *config_ref.write().unwrap() = config;
-            }
-
             if let Some(cmd) = args.get_many::<String>("COMMANDS") {
                 let command = cmd
                     .into_iter()
@@ -317,30 +301,12 @@ fn main() -> Result<()> {
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
-            let config_ref = InstanceConfig::get(&instance)?;
-            let mut config = config_ref.read().unwrap().clone();
-            patch_instance_config(&instance, args, &mut config)?;
-
-            let container = inspect_container(&instance)?;
-            let ephermal_config = config != InstanceConfig::load_mounted(&instance)?;
-            let need_rollback = container.mounted && ephermal_config;
-            if need_rollback {
-                rollback_container(&instance)?;
-            }
-            if ephermal_config {
-                *config_ref.write().unwrap() = config;
-            }
-
             let settings = BuildSettings {
                 offline: args.get_flag("OFFLINE"),
                 stage2: args.get_flag("STAGE2"),
             };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {
-                if container.started {
-                    error!("The current instance has not been started. Cannot continue.");
-                    process::exit(1);
-                }
                 state = Some(actions::load_build_checkpoint(cont)?);
                 let empty: Vec<&str> = Vec::new();
                 let status = actions::package_build(&instance, empty.into_iter(), state, settings)?;
@@ -353,12 +319,6 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
             let packages = packages.unwrap();
-
-            if need_rollback {
-                warn!("The current instance configuration differs from the mounted one. Rolling back.");
-                actions::rollback_container(&instance)?;
-            }
-
             if args.contains_id("SELECT") {
                 let start_package = args.get_one::<String>("SELECT");
                 let status =

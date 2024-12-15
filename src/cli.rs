@@ -189,7 +189,6 @@ pub fn build_cli() -> Command {
                 .alias("sh")
                 .arg(instance_arg.clone().help("Instance to be used"))
                 .arg(Arg::new("COMMANDS").required(false).num_args(1..))
-                .args(instance_configs.iter().cloned())
                 .about("Start an interactive shell"),
         )
         .subcommand(
@@ -226,7 +225,6 @@ pub fn build_cli() -> Command {
                 .arg(Arg::new("CONTINUE").conflicts_with("SELECT").short('c').long("resume").alias("continue").num_args(1).help("Continue from a Ciel checkpoint"))
                 .arg(Arg::new("SELECT").num_args(0..=1).long("stage-select").help("Select the starting point for a build"))
                 .arg(Arg::new("PACKAGES").conflicts_with("CONTINUE").num_args(1..))
-                .args(instance_configs.iter().cloned())
                 .about("Build the packages using the specified instance"),
         )
         .subcommand(
