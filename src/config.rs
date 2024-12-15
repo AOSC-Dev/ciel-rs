@@ -19,12 +19,16 @@ const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 const DEFAULT_GITCONFIG: &str = "root/.gitconfig";
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub struct WorkspaceConfig {
     version: usize,
     maintainer: String,
     dnssec: bool,
+    #[serde(alias = "apt_sources")]
     apt_sources: String,
+    #[serde(alias = "local_repo")]
     pub local_repo: bool,
+    #[serde(alias = "local_sources")]
     pub local_sources: bool,
     #[serde(rename = "nspawn-extra-options")]
     pub extra_options: Vec<String>,
@@ -32,7 +36,10 @@ pub struct WorkspaceConfig {
     pub sep_mount: bool,
     #[serde(rename = "volatile-mount", default)]
     pub volatile_mount: bool,
-    #[serde(default = "WorkspaceConfig::default_force_use_apt")]
+    #[serde(
+        alias = "force_use_apt",
+        default = "WorkspaceConfig::default_force_use_apt"
+    )]
     pub force_use_apt: bool,
 }
 
