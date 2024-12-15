@@ -12,7 +12,7 @@ use crate::{
     common::*,
     config::{self, InstanceConfig, WorkspaceConfig},
     error, info,
-    machine::{self, get_container_ns_name, inspect_instance, spawn_container},
+    machine::{self, get_container_ns_name, inspect_instance, spawn_container, CielInstance},
     network::download_file_progress,
     overlayfs, warn,
 };
@@ -400,4 +400,9 @@ fn apt_update_os(instance: &str) -> Result<()> {
     remove_instance(instance)?;
 
     Ok(())
+}
+
+pub fn inspect_container(instance: &str) -> Result<CielInstance> {
+    let ns_name = get_instance_ns_name(instance)?;
+    inspect_instance(instance, &ns_name)
 }

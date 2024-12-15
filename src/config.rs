@@ -6,11 +6,10 @@ use anyhow::{Context, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
-use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, OnceLock, RwLock, RwLockReadGuard};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::{ffi::OsString, path::Path};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
@@ -263,6 +262,17 @@ impl InstanceConfig {
         }
         fs::write(path, self.to_toml()?)?;
         Ok(())
+    }
+
+    pub fn load_mounted<S: AsRef<str>>(instance: S) -> Result<Self> {
+        let path = Path::new(instance.as_ref()).join(".ciel.toml");
+        if path.exists() {
+            let content = fs::read_to_string(&path)
+                .with_context(|| format!("load instance config from {}", path.display()))?;
+            Self::from_toml(content)
+        } else {
+            Self::load(instance)
+        }
     }
 }
 

@@ -11,11 +11,13 @@ mod network;
 mod overlayfs;
 mod repo;
 
+use actions::{inspect_container, patch_instance_config};
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
-use config::WorkspaceConfig;
+use config::{InstanceConfig, WorkspaceConfig};
 use console::{style, user_attended};
 use dotenvy::dotenv;
+use libc::exit;
 use std::process;
 use std::{path::Path, process::Command};
 
@@ -301,12 +303,27 @@ fn main() -> Result<()> {
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
+            let config_ref = InstanceConfig::get(&instance)?;
+            patch_instance_config(&instance, args, &mut *config_ref.write().unwrap())?;
+
+            let container = inspect_container(&instance)?;
+            let need_rollback = container.mounted
+                && *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+
             let settings = BuildSettings {
                 offline: args.get_flag("OFFLINE"),
                 stage2: args.get_flag("STAGE2"),
             };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {
+                if need_rollback {
+                    error!("The current instance configuration differs from the mounted instance. Cannot continue without rolling-back.");
+                    process::exit(1);
+                }
+                if container.started {
+                    error!("The current instance has not been started. Cannot continue.");
+                    process::exit(1);
+                }
                 state = Some(actions::load_build_checkpoint(cont)?);
                 let empty: Vec<&str> = Vec::new();
                 let status = actions::package_build(&instance, empty.into_iter(), state, settings)?;
@@ -319,6 +336,11 @@ fn main() -> Result<()> {
                 process::exit(1);
             }
             let packages = packages.unwrap();
+
+            if need_rollback {
+                actions::rollback_container(&instance)?;
+            }
+
             if args.contains_id("SELECT") {
                 let start_package = args.get_one::<String>("SELECT");
                 let status =
