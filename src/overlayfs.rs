@@ -1,3 +1,4 @@
+use crate::config::{InstanceConfig, TmpfsConfig};
 use crate::{common, info};
 use anyhow::{anyhow, bail, Context, Result};
 use libmount::{mountinfo::Parser, Overlay, Tmpfs};
@@ -20,10 +21,10 @@ pub trait LayerManager {
         Self: Sized;
     /// Create a new layer manager from the given distribution directory
     /// dist: distribution directory, inst: instance name (not directory)
-    fn from_inst_dir<P: AsRef<Path>>(
+    fn from_inst_dir<P: AsRef<Path>, S: AsRef<str>>(
         dist_path: P,
         inst_path: P,
-        inst_name: P,
+        inst_name: S,
     ) -> Result<Box<dyn LayerManager>>
     where
         Self: Sized;
@@ -61,7 +62,7 @@ struct OverlayFS {
     upper: PathBuf,
     work: PathBuf,
     volatile: bool,
-    tmpfs: Option<PathBuf>,
+    tmpfs: Option<(PathBuf, TmpfsConfig)>,
 }
 
 /// Create a new overlay filesystem on the host system
@@ -178,17 +179,19 @@ impl LayerManager for OverlayFS {
     // |- upper: .ciel/container/instances/<inst_name>/diff/
     // |- lower: .ciel/container/instances/<inst_name>/local/
     // ||- lower (base): .ciel/container/dist/
-    fn from_inst_dir<P: AsRef<Path>>(
+    fn from_inst_dir<P: AsRef<Path>, S: AsRef<str>>(
         dist_path: P,
         inst_path: P,
-        inst_name: P,
+        inst_name: S,
     ) -> Result<Box<dyn LayerManager>>
     where
         Self: Sized,
     {
         let dist = dist_path.as_ref();
         let inst = inst_path.as_ref().join(inst_name.as_ref());
-        if inst.join("layers/tmpfs").exists() {
+        let instance_config = InstanceConfig::load(inst_name)?;
+
+        if let Some(tmpfs) = instance_config.tmpfs {
             Ok(Box::new(OverlayFS {
                 inst: inst.to_owned(),
                 base: dist.to_owned(),
@@ -196,7 +199,7 @@ impl LayerManager for OverlayFS {
                 upper: inst.join("layers/tmpfs/upper"),
                 work: inst.join("layers/tmpfs/work"),
                 volatile: false,
-                tmpfs: Some(inst.join("layers/tmpfs")),
+                tmpfs: Some((inst.join("layers/tmpfs"), tmpfs)),
             }))
         } else {
             Ok(Box::new(OverlayFS {
@@ -215,11 +218,10 @@ impl LayerManager for OverlayFS {
         let base_dirs = [self.lower.clone(), self.base.clone()];
 
         // mount tmpfs if needed
-        if let Some(tmpfs) = &self.tmpfs {
+        if let Some((tmpfs, tmpfs_config)) = &self.tmpfs {
             fs::create_dir_all(&tmpfs)?;
             if !self.is_tmpfs_mounted()? {
-                info!("Mounting container upper tmpfs");
-                let tmpfs = Tmpfs::new(tmpfs).size_bytes(4 * 1024 * 1024 * 1024);
+                let tmpfs = Tmpfs::new(tmpfs).size_bytes(tmpfs_config.size_bytes());
                 tmpfs
                     .mount()
                     .map_err(|e| anyhow!("failed to mount tmpfs: {}", e.to_string()))?;
@@ -265,7 +267,7 @@ impl LayerManager for OverlayFS {
     }
 
     fn is_tmpfs_mounted(&self) -> Result<bool> {
-        if let Some(tmpfs) = &self.tmpfs {
+        if let Some((tmpfs, _)) = &self.tmpfs {
             is_mounted(&path::absolute(&tmpfs)?, OsStr::new("tmpfs"))
         } else {
             bail!("the container does not use tmpfs")
@@ -321,7 +323,7 @@ impl LayerManager for OverlayFS {
     }
 
     fn unmount_tmpfs(&self) -> Result<()> {
-        if let Some(tmpfs) = &self.tmpfs {
+        if let Some((tmpfs, _)) = &self.tmpfs {
             if self.is_tmpfs_mounted()? {
                 info!("Un-mounting tmpfs ...");
                 umount2(tmpfs, MntFlags::MNT_DETACH)?;

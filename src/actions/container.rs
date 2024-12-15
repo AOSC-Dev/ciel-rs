@@ -4,11 +4,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
-use std::{
-    ffi::OsStr,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{ffi::OsStr, fs, path::Path};
 
 use crate::{
     actions::{ensure_host_sanity, OMA_UPDATE_SCRIPT},

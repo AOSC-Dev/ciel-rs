@@ -2,26 +2,22 @@
 
 use crate::common::CURRENT_CIEL_VERSION;
 use crate::{get_host_arch_name, info, CIEL_INST_DIR};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::{ffi::OsString, path::Path};
-use std::{
-    fs,
-    io::{Read, Write},
-};
+use std::{fs, io::Read};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
 const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main\n";
-const DEFAULT_AB4_CONFIG_FILE: &str = "ab4cfg.sh";
 const DEFAULT_AB4_CONFIG_LOCATION: &str = "etc/autobuild/ab4cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceConfig {
     version: usize,
     maintainer: String,
@@ -219,7 +215,7 @@ fn test_validate_maintainer() {
     );
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct InstanceConfig {
     version: usize,
@@ -281,7 +277,7 @@ impl Default for InstanceConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct TmpfsConfig {
     #[serde(default)]
