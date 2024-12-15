@@ -39,7 +39,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     } else {
         ask_for_target_arch()?
     };
-    let config = config::ask_for_config(None)?;
+    let config = config::ask_for_config()?;
     let mut init_instance: Option<String> = None;
     if user_attended()
         && Confirm::with_theme(&theme)

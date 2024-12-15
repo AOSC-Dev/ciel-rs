@@ -149,22 +149,18 @@ fn get_default_editor() -> OsString {
 }
 
 /// Shows a series of prompts to let the user select the configurations
-pub fn ask_for_config(config: Option<WorkspaceConfig>) -> Result<WorkspaceConfig> {
-    let mut config = config.unwrap_or_default();
+pub fn ask_for_config() -> Result<WorkspaceConfig> {
+    let mut config = WorkspaceConfig::default();
     if !user_attended() {
         info!("Not controlled by an user. Default values are used.");
         return Ok(config);
     }
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
-        .with_prompt("Maintainer Information")
+        .with_prompt("Maintainer")
         .default(config.maintainer)
         .validate_with(|s: &String| validate_maintainer(s.as_str()))
         .interact_text()?;
-    config.dnssec = Confirm::with_theme(&theme)
-        .with_prompt("Enable DNSSEC")
-        .default(config.dnssec)
-        .interact()?;
     let edit_source = Confirm::with_theme(&theme)
         .with_prompt("Edit sources.list")
         .default(false)
@@ -189,12 +185,8 @@ pub fn ask_for_config(config: Option<WorkspaceConfig>) -> Result<WorkspaceConfig
         .default(config.local_repo)
         .interact()?;
     config.sep_mount = Confirm::with_theme(&theme)
-        .with_prompt("Use different OUTPUT dir for different branches")
+        .with_prompt("Use different OUTPUT directories for different branches")
         .default(config.sep_mount)
-        .interact()?;
-    config.volatile_mount = Confirm::with_theme(&theme)
-        .with_prompt("Use volatile mode for filesystem operations")
-        .default(config.volatile_mount)
         .interact()?;
 
     // FIXME: RISC-V build hosts is unreliable when using oma: random lock-ups
