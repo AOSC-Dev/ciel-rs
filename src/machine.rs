@@ -9,6 +9,7 @@ use adler32::adler32;
 use anyhow::{anyhow, Result};
 use libc::{c_char, ftok, waitpid, WNOHANG};
 use libsystemd_sys::bus::{sd_bus_flush_close_unref, sd_bus_open_system_machine};
+use std::collections::HashMap;
 use std::{
     ffi::{CString, OsStr},
     mem::MaybeUninit,
@@ -119,16 +120,16 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
 }
 
 /// Setting up cross-namespace bind-mounts for the container using systemd
-fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
+fn setup_bind_mounts(ns_name: &str, mounts: &HashMap<String, String>) -> Result<()> {
     let conn = Connection::system()?;
     let proxy = ManagerProxyBlocking::new(&conn)?;
-    for mount in mounts {
-        fs::create_dir_all(&mount.0)?;
-        let source_path = fs::canonicalize(&mount.0)?;
+    for (dest, host) in mounts {
+        fs::create_dir_all(&host)?;
+        let source_path = fs::canonicalize(&host)?;
         proxy.bind_mount_machine(
             ns_name,
             &source_path.to_string_lossy(),
-            mount.1,
+            &dest,
             false,
             true,
         )?;
@@ -155,7 +156,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     ns_name: &str,
     path: P,
     extra_options: &[String],
-    mounts: &[(String, &str)],
+    mounts: &HashMap<String, String>,
 ) -> Result<()> {
     let path = path
         .as_ref()
