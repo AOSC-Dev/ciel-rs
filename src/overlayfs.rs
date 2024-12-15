@@ -189,9 +189,10 @@ impl LayerManager for OverlayFS {
     {
         let dist = dist_path.as_ref();
         let inst = inst_path.as_ref().join(inst_name.as_ref());
-        let instance_config = InstanceConfig::load(inst_name)?;
+        let instance_config_ref = InstanceConfig::get(inst_name)?;
+        let instance_config = instance_config_ref.read().unwrap();
 
-        if let Some(tmpfs) = instance_config.tmpfs {
+        if let Some(tmpfs) = instance_config.tmpfs.clone() {
             Ok(Box::new(OverlayFS {
                 inst: inst.to_owned(),
                 base: dist.to_owned(),

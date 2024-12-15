@@ -140,12 +140,13 @@ pub fn patch_workspace_config(args: &ArgMatches, config: &mut WorkspaceConfig) -
 }
 
 pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
-    let mut config = InstanceConfig::load(instance)?;
+    let config_ref = InstanceConfig::get(instance)?;
+    let mut config = config_ref.write().unwrap();
     let old_config = config.clone();
 
     patch_instance_config(instance, args, &mut config)?;
 
-    if config != old_config {
+    if *config != old_config {
         info!("{}: applying configuration ...", instance);
         if !args.get_flag("force-no-rollback") {
             rollback_container(instance)?;
