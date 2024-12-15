@@ -146,8 +146,8 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("update-os")
-                .arg(Arg::new("force_use_apt").long("force-use-apt").help("Use apt to update-os").action(clap::ArgAction::SetTrue))
-                .arg(Arg::new("tmpfs").long("tmpfs").help("Use tmpfs for containers").action(clap::ArgAction::SetTrue))
+                .arg(Arg::new("force-use-apt").long("force-use-apt").help("Use apt to update-os").action(clap::ArgAction::SetTrue))
+                .args(instance_configs.iter().cloned())
                 .about("Update the OS in the container")
         )
         .subcommand(

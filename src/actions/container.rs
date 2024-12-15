@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use clap::ArgMatches;
 use console::{style, user_attended};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
@@ -7,7 +8,7 @@ use rand::random;
 use std::{collections::HashMap, ffi::OsStr, fs, path::Path};
 
 use crate::{
-    actions::OMA_UPDATE_SCRIPT,
+    actions::{patch_instance_config, OMA_UPDATE_SCRIPT},
     common::*,
     config::{self, InstanceConfig, WorkspaceConfig},
     error, info,
@@ -358,10 +359,16 @@ pub fn remove_instance(instance: &str) -> Result<()> {
 }
 
 /// Update AOSC OS in the container/instance
-pub fn update_os(force_use_apt: bool, tmpfs: bool) -> Result<()> {
-    info!("Updating base OS...");
+pub fn update_os(force_use_apt: bool, args: Option<&ArgMatches>) -> Result<()> {
+    info!("Updating base OS ...");
     let instance = format!("update-{:x}", random::<u32>());
-    add_instance(&instance, tmpfs)?;
+    add_instance(&instance, false)?;
+
+    if let Some(args) = args {
+        let mut config = InstanceConfig::load(&instance)?;
+        patch_instance_config(&instance, args, &mut config)?;
+        config.save(&instance)?
+    }
 
     if force_use_apt {
         return apt_update_os(&instance);
