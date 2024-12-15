@@ -6,8 +6,11 @@ use anyhow::{Context, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
+use std::cell::OnceCell;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock, RwLock, RwLockReadGuard};
 use std::{ffi::OsString, path::Path};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
@@ -263,6 +266,25 @@ impl InstanceConfig {
     }
 }
 
+static INSTANCE_CONFIGS: OnceLock<Mutex<HashMap<String, Arc<RwLock<InstanceConfig>>>>> =
+    OnceLock::new();
+
+impl InstanceConfig {
+    pub fn get<S: AsRef<str>>(instance: S) -> Result<Arc<RwLock<Self>>> {
+        let mut configs = INSTANCE_CONFIGS
+            .get_or_init(|| Mutex::new(HashMap::new()))
+            .lock()
+            .unwrap();
+        if !configs.contains_key(instance.as_ref()) {
+            configs.insert(
+                instance.as_ref().to_string(),
+                Arc::new(RwLock::new(Self::load(instance.as_ref())?)),
+            );
+        }
+        Ok(configs[instance.as_ref()].clone())
+    }
+}
+
 impl Default for InstanceConfig {
     fn default() -> Self {
         Self {
@@ -281,7 +303,6 @@ pub struct TmpfsConfig {
     #[serde(default)]
     pub size: Option<usize>,
 }
-
 
 impl TmpfsConfig {
     pub const DEFAULT_SIZE: usize = 4096;

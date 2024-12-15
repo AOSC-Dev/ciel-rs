@@ -161,7 +161,8 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
 /// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
     let workspace_config = WorkspaceConfig::load()?;
-    let instance_config = InstanceConfig::load(instance)?;
+    let instance_config_ref = InstanceConfig::get(instance)?;
+    let instance_config = instance_config_ref.read().unwrap();
 
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.set_volatile(workspace_config.volatile_mount)?;
@@ -241,11 +242,13 @@ pub fn start_container(instance: &str) -> Result<String> {
     let inst = inspect_instance(instance, &ns_name)?;
 
     let workspace_config = WorkspaceConfig::load().unwrap_or_default();
-    let instance_config = InstanceConfig::load(instance)?;
 
-    let mut extra_options = Vec::new();
+    let mut extra_options = InstanceConfig::get(instance)?
+        .read()
+        .unwrap()
+        .nspawn_options
+        .clone();
     extra_options.extend_from_slice(&workspace_config.nspawn_options);
-    extra_options.extend_from_slice(&instance_config.nspawn_options);
 
     let mut mounts = HashMap::new();
     mounts.insert("/tree".to_string(), "TREE".to_string());
@@ -365,7 +368,8 @@ pub fn update_os(force_use_apt: bool, args: Option<&ArgMatches>) -> Result<()> {
     add_instance(&instance, false)?;
 
     if let Some(args) = args {
-        let mut config = InstanceConfig::load(&instance)?;
+        let config_ref = InstanceConfig::get(&instance)?;
+        let mut config = config_ref.write().unwrap();
         patch_instance_config(&instance, args, &mut config)?;
         config.save(&instance)?
     }
