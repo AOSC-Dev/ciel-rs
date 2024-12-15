@@ -153,7 +153,8 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("farewell")
                 .alias("harakiri")
-                .about("Remove everything related to CIEL!"),
+                .about("Remove everything related to CIEL!")
+                .arg(Arg::new("force").short('f').action(clap::ArgAction::SetTrue).help("Force perform deletion without user confirmation"))
         )
         .subcommand(
             Command::new("repo")
