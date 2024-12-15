@@ -338,6 +338,7 @@ fn main() -> Result<()> {
             let packages = packages.unwrap();
 
             if need_rollback {
+                warn!("The current instance configuration differs from the mounted one. Rolling back.");
                 actions::rollback_container(&instance)?;
             }
 
