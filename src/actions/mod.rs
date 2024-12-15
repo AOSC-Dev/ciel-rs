@@ -31,7 +31,7 @@ pub fn ensure_host_sanity() -> Result<MountOptions, std::io::Error> {
         .iter()
         .map(|x| (x.0.to_string(), x.1))
         .collect();
-    if let Ok(c) = crate::config::read_config() {
+    if let Ok(c) = crate::config::workspace_config() {
         extra_options = c.extra_options;
         if !c.local_sources {
             // remove SRCS

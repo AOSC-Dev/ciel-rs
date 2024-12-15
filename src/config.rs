@@ -1,11 +1,12 @@
 //! This module contains configuration files related APIs
 
 use crate::common::CURRENT_CIEL_VERSION;
-use crate::{get_host_arch_name, info};
-use anyhow::{anyhow, Result};
+use crate::{get_host_arch_name, info, CIEL_INST_DIR};
+use anyhow::{anyhow, Context, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::{ffi::OsString, path::Path};
 use std::{
     fs,
@@ -13,7 +14,7 @@ use std::{
 };
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
-const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main";
+const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main\n";
 const DEFAULT_AB4_CONFIG_FILE: &str = "ab4cfg.sh";
 const DEFAULT_AB4_CONFIG_LOCATION: &str = "etc/autobuild/ab4cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
@@ -21,7 +22,7 @@ const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CielConfig {
+pub struct WorkspaceConfig {
     version: usize,
     maintainer: String,
     dnssec: bool,
@@ -34,11 +35,11 @@ pub struct CielConfig {
     pub sep_mount: bool,
     #[serde(rename = "volatile-mount", default)]
     pub volatile_mount: bool,
-    #[serde(default = "CielConfig::default_force_use_apt")]
+    #[serde(default = "WorkspaceConfig::default_force_use_apt")]
     pub force_use_apt: bool,
 }
 
-impl CielConfig {
+impl WorkspaceConfig {
     const fn default_force_use_apt() -> bool {
         cfg!(target_arch = "riscv64")
     }
@@ -47,14 +48,14 @@ impl CielConfig {
         Ok(toml::to_string(self)?)
     }
 
-    pub fn load_config(data: &str) -> Result<CielConfig> {
+    pub fn load_config(data: &str) -> Result<WorkspaceConfig> {
         Ok(toml::from_str(data)?)
     }
 }
 
-impl Default for CielConfig {
+impl Default for WorkspaceConfig {
     fn default() -> Self {
-        CielConfig {
+        WorkspaceConfig {
             version: CURRENT_CIEL_VERSION,
             maintainer: "Bot <null@aosc.io>".to_string(),
             dnssec: false,
@@ -120,16 +121,6 @@ fn validate_maintainer(maintainer: &String) -> Result<(), String> {
 }
 
 #[inline]
-fn create_parent_dir(path: &Path) -> Result<()> {
-    let path = path
-        .parent()
-        .ok_or_else(|| anyhow!("Parent directory is root."))?;
-    fs::create_dir_all(path)?;
-
-    Ok(())
-}
-
-#[inline]
 fn get_default_editor() -> OsString {
     if let Some(prog) = std::env::var_os("VISUAL") {
         return prog;
@@ -145,7 +136,7 @@ fn get_default_editor() -> OsString {
 }
 
 /// Shows a series of prompts to let the user select the configurations
-pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
+pub fn ask_for_config(config: Option<WorkspaceConfig>) -> Result<WorkspaceConfig> {
     let mut config = config.unwrap_or_default();
     if !user_attended() {
         info!("Not controlled by an user. Default values are used.");
@@ -208,54 +199,12 @@ pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
 }
 
 /// Reads the configuration file from the current workspace
-pub fn read_config() -> Result<CielConfig> {
+pub fn workspace_config() -> Result<WorkspaceConfig> {
     let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
     let mut data = String::new();
     f.read_to_string(&mut data)?;
 
-    CielConfig::load_config(&data)
-}
-
-/// Applies the given configuration (the configuration itself will not be saved to the disk)
-pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> {
-    // write maintainer information
-    let rootfs = root.as_ref();
-    let mut config_path = rootfs.to_owned();
-    config_path.push(DEFAULT_AB4_CONFIG_LOCATION);
-    create_parent_dir(&config_path)?;
-    let mut f = std::fs::File::create(&config_path)?;
-    f.write_all(
-        format!(
-            "#!/bin/bash\nABMPM=dpkg\nABAPMS=\nABINSTALL=dpkg\nMTER=\"{}\"",
-            config.maintainer
-        )
-        .as_bytes(),
-    )?;
-    config_path.set_file_name(DEFAULT_AB4_CONFIG_FILE);
-    // write sources.list
-    if !config.apt_sources.is_empty() {
-        let mut apt_list_path = rootfs.to_owned();
-        apt_list_path.push(DEFAULT_APT_LIST_LOCATION);
-        create_parent_dir(&apt_list_path)?;
-        let mut f = std::fs::File::create(apt_list_path)?;
-        f.write_all(config.apt_sources.as_bytes())?;
-    }
-    // write DNSSEC configuration
-    if !config.dnssec {
-        let mut resolv_path = rootfs.to_owned();
-        resolv_path.push(DEFAULT_RESOLV_LOCATION);
-        create_parent_dir(&resolv_path)?;
-        let mut f = std::fs::File::create(resolv_path)?;
-        f.write_all(b"[Resolve]\nDNSSEC=no\n")?;
-    }
-    // write acbs configuration
-    let mut acbs_path = rootfs.to_owned();
-    acbs_path.push(DEFAULT_ACBS_CONFIG);
-    create_parent_dir(&acbs_path)?;
-    let mut f = std::fs::File::create(acbs_path)?;
-    f.write_all(b"[default]\nlocation = /tree/\n")?;
-
-    Ok(())
+    WorkspaceConfig::load_config(&data)
 }
 
 #[test]
@@ -268,4 +217,145 @@ fn test_validate_maintainer() {
         validate_maintainer(&"test <aosc@aosc.io;".to_owned()),
         Err("Invalid format.".to_owned())
     );
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct InstanceConfig {
+    version: usize,
+    #[serde(default)]
+    pub extra_repos: Vec<String>,
+    #[serde(default)]
+    pub nspawn_options: Vec<String>,
+    #[serde(default)]
+    pub tmpfs: Option<TmpfsConfig>,
+}
+
+impl InstanceConfig {
+    pub fn to_toml(&self) -> Result<String> {
+        Ok(toml::to_string(self)?)
+    }
+    pub fn from_toml<S: AsRef<str>>(data: S) -> Result<Self> {
+        Ok(toml::from_str(data.as_ref())?)
+    }
+}
+
+impl InstanceConfig {
+    pub const FILE_NAME: &str = "config.toml";
+
+    pub fn path<S: AsRef<str>>(instance: S) -> PathBuf {
+        PathBuf::from(CIEL_INST_DIR)
+            .join(instance.as_ref())
+            .join(Self::FILE_NAME)
+    }
+
+    pub fn load<S: AsRef<str>>(instance: S) -> Result<Self> {
+        let path = Self::path(instance);
+        if path.exists() {
+            let content = fs::read_to_string(&path)
+                .with_context(|| format!("load instance config from {}", path.display()))?;
+            Self::from_toml(content)
+        } else {
+            Ok(Self::default())
+        }
+    }
+
+    pub fn save<S: AsRef<str>>(&self, instance: S) -> Result<()> {
+        let path = Self::path(instance);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, self.to_toml()?)?;
+        Ok(())
+    }
+}
+
+impl Default for InstanceConfig {
+    fn default() -> Self {
+        Self {
+            version: CURRENT_CIEL_VERSION,
+            extra_repos: Default::default(),
+            nspawn_options: Default::default(),
+            tmpfs: None,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TmpfsConfig {
+    #[serde(default)]
+    pub size: Option<usize>,
+}
+
+impl Default for TmpfsConfig {
+    fn default() -> Self {
+        Self { size: None }
+    }
+}
+
+impl TmpfsConfig {
+    pub const DEFAULT_SIZE: usize = 4096;
+
+    pub fn size_bytes(&self) -> usize {
+        self.size.unwrap_or(Self::DEFAULT_SIZE) * 1024 * 1024
+    }
+}
+
+/// Applies the given configuration to a rootfs
+pub fn apply_config<P: AsRef<Path>>(
+    root: P,
+    workspace: &WorkspaceConfig,
+    instance: &InstanceConfig,
+) -> Result<()> {
+    let rootfs = root.as_ref();
+
+    fn create_parent_dirs<P: AsRef<Path>>(path: P) -> Result<()> {
+        if let Some(parent) = path.as_ref().parent() {
+            fs::create_dir_all(parent)?;
+        }
+        Ok(())
+    }
+
+    // maintainer
+    let config_path = rootfs.join(DEFAULT_AB4_CONFIG_LOCATION);
+    create_parent_dirs(&config_path)?;
+    fs::write(
+        config_path,
+        format!(
+            "#!/bin/bash
+ABMPM=dpkg
+ABAPMS=
+ABINSTALL=dpkg
+MTER=\"{}\"",
+            workspace.maintainer
+        ),
+    )?;
+
+    // sources.list
+    let mut apt_sources = workspace.apt_sources.to_owned();
+    if apt_sources.is_empty() {
+        apt_sources.push_str(DEFAULT_APT_SOURCE);
+    }
+    for source in &instance.extra_repos {
+        apt_sources.push_str(source);
+        apt_sources.push('\n');
+    }
+    let apt_list_path = rootfs.join(DEFAULT_APT_LIST_LOCATION);
+    create_parent_dirs(&apt_list_path)?;
+    fs::write(apt_list_path, apt_sources)?;
+
+    // write DNSSEC configuration
+    if !workspace.dnssec {
+        let resolv_path = rootfs.join(DEFAULT_RESOLV_LOCATION);
+        create_parent_dirs(&resolv_path)?;
+        fs::write(resolv_path, "[Resolve]\nDNSSEC=no\n")?;
+    }
+
+    // write acbs configuration
+    let acbs_path = rootfs.join(DEFAULT_ACBS_CONFIG);
+    create_parent_dirs(&acbs_path)?;
+    fs::write(acbs_path, "[default]\nlocation = /tree/\n")?;
+
+    Ok(())
 }

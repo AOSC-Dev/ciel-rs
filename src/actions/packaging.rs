@@ -255,7 +255,7 @@ pub fn packages_stage_select<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = 
 
 /// Fetch all the source packages in one go
 pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i32> {
-    let conf = config::read_config();
+    let conf = config::workspace_config();
     if conf.is_err() {
         return Err(anyhow!("Please configure this workspace first!"));
     }
@@ -281,7 +281,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     state: Option<BuildCheckPoint>,
     settings: BuildSettings,
 ) -> Result<i32> {
-    let conf = config::read_config();
+    let conf = config::workspace_config();
     if conf.is_err() {
         return Err(anyhow!("Please configure this workspace first!"));
     }
