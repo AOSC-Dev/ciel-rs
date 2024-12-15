@@ -16,6 +16,7 @@ const DEFAULT_AB4_CONFIG_LOCATION: &str = "etc/autobuild/ab4cfg.sh";
 const DEFAULT_APT_LIST_LOCATION: &str = "etc/apt/sources.list";
 const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
+const DEFAULT_GITCONFIG: &str = "root/.gitconfig";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceConfig {
@@ -352,6 +353,11 @@ MTER=\"{}\"",
     let acbs_path = rootfs.join(DEFAULT_ACBS_CONFIG);
     create_parent_dirs(&acbs_path)?;
     fs::write(acbs_path, "[default]\nlocation = /tree/\n")?;
+
+    // write git config
+    let gitconfig_path = rootfs.join(DEFAULT_GITCONFIG);
+    create_parent_dirs(&gitconfig_path)?;
+    fs::write(gitconfig_path, "[safe]\n\tdirectory = /tree\n")?;
 
     Ok(())
 }
