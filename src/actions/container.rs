@@ -13,7 +13,8 @@ use std::{
 use crate::{
     actions::{ensure_host_sanity, OMA_UPDATE_SCRIPT},
     common::*,
-    config, error, info,
+    config::{self, InstanceConfig},
+    error, info,
     machine::{self, get_container_ns_name, inspect_instance, spawn_container},
     network::download_file_progress,
     overlayfs, warn,
@@ -159,33 +160,25 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
 pub fn config_os(instance: Option<&str>) -> Result<()> {
     let config;
     let mut prev_volatile = None;
-    if let Ok(c) = config::read_config() {
+    if let Ok(c) = config::workspace_config() {
         prev_volatile = Some(c.volatile_mount);
         config = config::ask_for_config(Some(c));
     } else {
         config = config::ask_for_config(None);
     }
-    let path;
-    if let Some(instance) = instance {
-        let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
-        path = man.get_config_layer()?;
-    } else {
-        path = PathBuf::from(CIEL_DIST_DIR);
-    }
     if let Ok(c) = config {
-        info!("Shutting down instance(s) before applying config...");
+        info!("Shutting down instance(s) before saving config...");
         if let Some(instance) = instance {
             container_down(instance)?;
         } else {
             for_each_instance(&container_down)?;
         }
-        config::apply_config(path, &c)?;
         fs::create_dir_all(CIEL_DATA_DIR)?;
         fs::write(
             Path::new(CIEL_DATA_DIR).join("config.toml"),
             c.save_config()?,
         )?;
-        info!("Configurations applied.");
+        info!("Configurations saved.");
         let volatile_changed = if let Some(prev_voltile) = prev_volatile {
             prev_voltile != c.volatile_mount
         } else {
@@ -208,9 +201,15 @@ pub fn config_os(instance: Option<&str>) -> Result<()> {
 
 /// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
-    let config = config::read_config()?;
+    let workspace_config = config::workspace_config()?;
+    let instance_config = config::InstanceConfig::load(instance)?;
+
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
-    man.set_volatile(config.volatile_mount)?;
+    man.set_volatile(workspace_config.volatile_mount)?;
+
+    config::apply_config(man.get_config_layer()?, &workspace_config, &instance_config)?;
+    info!("{}: configuration applied.", instance);
+
     machine::mount_layers(man, instance)?;
     info!("{}: filesystem mounted.", instance);
 
@@ -353,14 +352,18 @@ pub fn rollback_container(instance: &str) -> Result<()> {
 #[inline]
 pub fn add_instance(instance: &str, tmpfs: bool) -> Result<()> {
     overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance, tmpfs)?;
-    info!("{}: instance created.", instance);
+
+    let mut config = InstanceConfig::default();
     if tmpfs {
         warn!(
             "{}: tmpfs is an experimental feature, use at your own risk!",
             instance
         );
+        config.tmpfs = Some(Default::default());
     }
+    config.save(instance)?;
 
+    info!("{}: instance created.", instance);
     Ok(())
 }
 

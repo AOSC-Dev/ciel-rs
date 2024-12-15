@@ -13,7 +13,7 @@ mod repo;
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::ArgMatches;
-use config::read_config;
+use config::workspace_config;
 use console::{style, user_attended};
 use dotenvy::dotenv;
 use std::process;
@@ -54,7 +54,7 @@ fn unsupported_target_architecture(arch: &str) -> ! {
 }
 
 fn get_output_dir() -> String {
-    if let Ok(c) = config::read_config() {
+    if let Ok(c) = config::workspace_config() {
         return actions::get_output_directory(c.sep_mount);
     }
     "OUTPUT".to_string()
@@ -227,7 +227,7 @@ fn main() -> Result<()> {
             let force_use_apt = if get_host_arch_name().is_some_and(|x| x == "riscv64") {
                 true
             } else {
-                args.get_flag("force_use_apt") || read_config().is_ok_and(|x| x.force_use_apt)
+                args.get_flag("force_use_apt") || workspace_config().is_ok_and(|x| x.force_use_apt)
             };
 
             let tmpfs = args.get_flag("tmpfs");

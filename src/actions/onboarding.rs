@@ -85,13 +85,12 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
         fs::remove_file("TREE").ok();
         download_git(GIT_TREE_URL, Path::new("TREE"))?;
     }
-    config::apply_config(CIEL_DIST_DIR, &config)?;
-    info!("Applying configurations...");
+    info!("Saving configurations...");
     fs::write(
         Path::new(CIEL_DATA_DIR).join("config.toml"),
         config.save_config()?,
     )?;
-    info!("Configurations applied.");
+    info!("Configurations saved.");
     let cwd = std::env::current_dir()?;
     let mut output_dir_name = "OUTPUT".to_string();
 
