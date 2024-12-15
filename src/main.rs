@@ -269,13 +269,18 @@ fn main() -> Result<()> {
         ("shell", args) => {
             let instance = get_instance_option(args)?;
             let config_ref = InstanceConfig::get(&instance)?;
-            patch_instance_config(&instance, args, &mut *config_ref.write().unwrap())?;
+            let mut config = config_ref.read().unwrap().clone();
+            patch_instance_config(&instance, args, &mut config)?;
 
             let container = inspect_container(&instance)?;
-            let need_rollback = container.mounted
-                && *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let ephermal_config =
+                *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let need_rollback = container.mounted && ephermal_config;
             if need_rollback {
                 rollback_container(&instance)?;
+            }
+            if ephermal_config {
+                *config_ref.write().unwrap() = config;
             }
 
             if let Some(cmd) = args.get_many::<String>("COMMANDS") {
@@ -314,11 +319,19 @@ fn main() -> Result<()> {
         ("build", args) => {
             let instance = get_instance_option(args)?;
             let config_ref = InstanceConfig::get(&instance)?;
-            patch_instance_config(&instance, args, &mut *config_ref.write().unwrap())?;
+            let mut config = config_ref.read().unwrap().clone();
+            patch_instance_config(&instance, args, &mut config)?;
 
             let container = inspect_container(&instance)?;
-            let need_rollback = container.mounted
-                && *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let ephermal_config =
+                *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let need_rollback = container.mounted && ephermal_config;
+            if need_rollback {
+                rollback_container(&instance)?;
+            }
+            if ephermal_config {
+                *config_ref.write().unwrap() = config;
+            }
 
             let settings = BuildSettings {
                 offline: args.get_flag("OFFLINE"),
@@ -326,10 +339,6 @@ fn main() -> Result<()> {
             };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {
-                if need_rollback {
-                    error!("The current instance configuration differs from the mounted instance. Cannot continue without rolling-back.");
-                    process::exit(1);
-                }
                 if container.started {
                     error!("The current instance has not been started. Cannot continue.");
                     process::exit(1);
