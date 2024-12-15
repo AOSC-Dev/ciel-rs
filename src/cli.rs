@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use clap::{Arg, Command};
+use clap::{value_parser, Arg, ArgAction, Command};
 use std::ffi::OsStr;
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
@@ -35,6 +35,55 @@ pub fn build_cli() -> Command {
         .num_args(1)
         .env("CIEL_INST")
         .action(clap::ArgAction::Set);
+    let workspace_configs: Vec<Arg> = vec![];
+    let instance_configs = vec![
+        // tmpfs
+        Arg::new("tmpfs")
+            .long("tmpfs")
+            .help("Enable tmpfs")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("tmpfs-size")
+            .long("tmpfs-size")
+            .help("Size of tmpfs to use, in MiB")
+            .value_parser(value_parser!(u64))
+            .required(false),
+        Arg::new("unset-tmpfs-size")
+            .long("unset-tmpfs-size")
+            .help("Reset tmpfs size to default")
+            .action(ArgAction::SetTrue),
+        // nspawn options
+        Arg::new("add-repo")
+            .long("add-repo")
+            .help("Add an extra APT repository")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("remove-repo")
+            .long("remove-repo")
+            .help("Remove an extra APT repository")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("clear-repo")
+            .long("clear-repo")
+            .help("Remove all extra APT repositories")
+            .action(ArgAction::SetTrue),
+        // nspawn options
+        Arg::new("add-nspawn-opt")
+            .long("add-nspawn-opt")
+            .help("Add an extra nspawn option")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("remove-nspawn-opt")
+            .long("remove-nspawn-opt")
+            .help("Remove an extra nspawn option")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("clear-nspawn-opt")
+            .long("clear-nspawn-opt")
+            .help("Remove all extra nspawn options")
+            .action(ArgAction::SetTrue),
+    ];
+
     Command::new("ciel")
         .version(env!("CARGO_PKG_VERSION"))
         .about("CIEL! is a nspawn container manager")
@@ -106,7 +155,10 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("config")
                 .arg(instance_arg.clone().help("Instance to be configured"))
-                .arg(Arg::new("g").short('g').action(clap::ArgAction::SetTrue).conflicts_with("INSTANCE").help("Configure base system instead of an instance"))
+                .arg(Arg::new("global").short('g').action(clap::ArgAction::SetTrue).conflicts_with("INSTANCE").help("Configure base system instead of an instance"))
+                .arg(Arg::new("force-no-rollback").long("force-no-rollback").action(clap::ArgAction::SetTrue).help("Do not rollback instances to apply configuration"))
+                .args(workspace_configs.iter().cloned().map(|arg|arg.conflicts_with("INSTANCE")))
+                .args(instance_configs.iter().cloned().map(|arg|arg.conflicts_with("global")))
                 .about("Configure system and toolchain for building interactively"),
         )
         .subcommand(

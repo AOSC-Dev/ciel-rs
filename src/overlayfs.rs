@@ -279,8 +279,12 @@ impl LayerManager for OverlayFS {
             // for mounted tmpfs containers, simply un-mount the tmpfs
             self.unmount_tmpfs()?;
         } else {
-            fs::remove_dir_all(&self.upper)?;
-            fs::remove_dir_all(&self.work)?;
+            if self.upper.exists() {
+                fs::remove_dir_all(&self.upper)?;
+            }
+            if self.work.exists() {
+                fs::remove_dir_all(&self.work)?;
+            }
             fs::create_dir(&self.upper)?;
             fs::create_dir(&self.work)?;
         }

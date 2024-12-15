@@ -18,7 +18,7 @@ const DEFAULT_RESOLV_LOCATION: &str = "etc/systemd/resolved.conf";
 const DEFAULT_ACBS_CONFIG: &str = "etc/acbs/forest.conf";
 const DEFAULT_GITCONFIG: &str = "root/.gitconfig";
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct WorkspaceConfig {
     version: usize,
     maintainer: String,
@@ -216,7 +216,7 @@ fn test_validate_maintainer() {
     );
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct InstanceConfig {
     version: usize,
@@ -278,7 +278,7 @@ impl Default for InstanceConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct TmpfsConfig {
     #[serde(default)]
