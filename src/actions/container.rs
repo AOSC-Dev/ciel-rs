@@ -72,12 +72,16 @@ fn rollback(instance: &str) -> Result<()> {
 }
 
 /// Remove everything in the current workspace
-pub fn farewell(path: &Path) -> Result<()> {
+pub fn farewell(path: &Path, force: bool) -> Result<()> {
     if !user_attended() {
         eprintln!("DELETE THIS CIEL WORKSPACE?");
         info!("Not controlled by an user. Automatically confirmed.");
+    }
+    if !user_attended() || force {
         // Un-mount all the instances
+        info!("Un-mounting all the instances ...");
         for_each_instance(&container_down)?;
+        info!("Removing workspace directory ...");
         fs::remove_dir_all(path.join(".ciel"))?;
         return Ok(());
     }
@@ -104,9 +108,10 @@ pub fn farewell(path: &Path) -> Result<()> {
     }
 
     info!("... as you wish. Commencing destruction ...");
-    info!("Un-mounting all the instances...");
     // Un-mount all the instances
+    info!("Un-mounting all the instances ...");
     for_each_instance(&container_down)?;
+    info!("Removing workspace directory ...");
     fs::remove_dir_all(path.join(".ciel"))?;
 
     Ok(())

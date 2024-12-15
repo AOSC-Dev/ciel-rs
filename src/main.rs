@@ -148,7 +148,7 @@ fn main() -> Result<()> {
     // Switch table
     match subcmd {
         ("farewell", _) => {
-            actions::farewell(&directory).unwrap();
+            actions::farewell(&directory, args.get_flag("force")).unwrap();
         }
         ("init", args) => {
             if args.get_flag("upgrade") {
