@@ -371,7 +371,8 @@ pub fn update_os(force_use_apt: bool, args: Option<&ArgMatches>) -> Result<()> {
         let config_ref = InstanceConfig::get(&instance)?;
         let mut config = config_ref.write().unwrap();
         patch_instance_config(&instance, args, &mut config)?;
-        config.save(&instance)?
+        drop(config);
+        config_ref.read().unwrap().save(&instance)?
     }
 
     if force_use_apt {

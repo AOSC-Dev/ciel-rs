@@ -147,11 +147,12 @@ pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
     patch_instance_config(instance, args, &mut config)?;
 
     if *config != old_config {
+        drop(config);
         info!("{}: applying configuration ...", instance);
         if !args.get_flag("force-no-rollback") {
             rollback_container(instance)?;
         }
-        config.save(instance)?;
+        config_ref.read().unwrap().save(instance)?;
     }
     Ok(())
 }
