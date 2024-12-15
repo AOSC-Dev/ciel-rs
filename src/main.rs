@@ -273,8 +273,7 @@ fn main() -> Result<()> {
             patch_instance_config(&instance, args, &mut config)?;
 
             let container = inspect_container(&instance)?;
-            let ephermal_config =
-                *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let ephermal_config = config != InstanceConfig::load_mounted(&instance)?;
             let need_rollback = container.mounted && ephermal_config;
             if need_rollback {
                 rollback_container(&instance)?;
@@ -323,8 +322,7 @@ fn main() -> Result<()> {
             patch_instance_config(&instance, args, &mut config)?;
 
             let container = inspect_container(&instance)?;
-            let ephermal_config =
-                *config_ref.read().unwrap() != InstanceConfig::load_mounted(&instance)?;
+            let ephermal_config = config != InstanceConfig::load_mounted(&instance)?;
             let need_rollback = container.mounted && ephermal_config;
             if need_rollback {
                 rollback_container(&instance)?;
