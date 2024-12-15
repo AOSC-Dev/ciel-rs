@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{builder::ValueParser, value_parser, Arg, ArgAction, Command};
-use std::{ffi::OsStr, fmt::format};
+use std::ffi::OsStr;
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 

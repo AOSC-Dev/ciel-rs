@@ -205,9 +205,9 @@ pub fn ask_for_config() -> Result<WorkspaceConfig> {
 
 #[test]
 fn test_validate_maintainer() {
-    assert_eq!(validate_maintainer(&"test <aosc@aosc.io>"), Ok(()));
+    assert_eq!(validate_maintainer("test <aosc@aosc.io>"), Ok(()));
     assert_eq!(
-        validate_maintainer(&"test <aosc@aosc.io;"),
+        validate_maintainer("test <aosc@aosc.io;"),
         Err("Invalid format.".to_owned())
     );
 }
@@ -276,16 +276,12 @@ impl Default for InstanceConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub struct TmpfsConfig {
     #[serde(default)]
     pub size: Option<usize>,
 }
 
-impl Default for TmpfsConfig {
-    fn default() -> Self {
-        Self { size: None }
-    }
-}
 
 impl TmpfsConfig {
     pub const DEFAULT_SIZE: usize = 4096;

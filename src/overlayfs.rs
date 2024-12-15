@@ -219,7 +219,7 @@ impl LayerManager for OverlayFS {
 
         // mount tmpfs if needed
         if let Some((tmpfs, tmpfs_config)) = &self.tmpfs {
-            fs::create_dir_all(&tmpfs)?;
+            fs::create_dir_all(tmpfs)?;
             if !self.is_tmpfs_mounted()? {
                 let tmpfs = Tmpfs::new(tmpfs).size_bytes(tmpfs_config.size_bytes());
                 tmpfs
@@ -268,7 +268,7 @@ impl LayerManager for OverlayFS {
 
     fn is_tmpfs_mounted(&self) -> Result<bool> {
         if let Some((tmpfs, _)) = &self.tmpfs {
-            is_mounted(&path::absolute(&tmpfs)?, OsStr::new("tmpfs"))
+            is_mounted(&path::absolute(tmpfs)?, OsStr::new("tmpfs"))
         } else {
             bail!("the container does not use tmpfs")
         }

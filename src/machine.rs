@@ -124,12 +124,12 @@ fn setup_bind_mounts(ns_name: &str, mounts: &HashMap<String, String>) -> Result<
     let conn = Connection::system()?;
     let proxy = ManagerProxyBlocking::new(&conn)?;
     for (dest, host) in mounts {
-        fs::create_dir_all(&host)?;
-        let source_path = fs::canonicalize(&host)?;
+        fs::create_dir_all(host)?;
+        let source_path = fs::canonicalize(host)?;
         proxy.bind_mount_machine(
             ns_name,
             &source_path.to_string_lossy(),
-            &dest,
+            dest,
             false,
             true,
         )?;
