@@ -4,10 +4,10 @@ use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use git2::Repository;
 use nix::unistd::sync;
 use rand::random;
-use std::{ffi::OsStr, fs, path::Path};
+use std::{collections::HashMap, ffi::OsStr, fs, path::Path};
 
 use crate::{
-    actions::{ensure_host_sanity, OMA_UPDATE_SCRIPT},
+    actions::OMA_UPDATE_SCRIPT,
     common::*,
     config::{self, InstanceConfig},
     error, info,
@@ -276,13 +276,32 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
 pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
-    let (mut extra_options, mounts) = ensure_host_sanity()?;
+
+    let workspace_config = config::workspace_config().unwrap_or_default();
+    let instance_config = InstanceConfig::load(instance)?;
+
+    let mut extra_options = Vec::new();
+    extra_options.extend_from_slice(&workspace_config.extra_options);
+    extra_options.extend_from_slice(&instance_config.nspawn_options);
+
+    let mut mounts = HashMap::new();
+    mounts.insert("/tree".to_string(), "TREE".to_string());
+    mounts.insert("/var/cache/apt/archives".to_string(), "CACHE".to_string());
+    if workspace_config.local_sources {
+        mounts.insert("/var/cache/acbs/tarballs".to_string(), "SRCS".to_string());
+    }
+    mounts.insert(
+        "/debs".to_string(),
+        format!("{}/debs", get_output_directory(workspace_config.sep_mount)),
+    );
+
     if std::env::var("CIEL_OFFLINE").is_ok() {
         // FIXME: does not work with current version of systemd
         // add the offline option (private-network means don't share the host network)
         extra_options.push("--private-network".to_string());
-        info!("{}: network disconnected.", instance);
+        info!("{}: network isolated.", instance);
     }
+
     if !inst.mounted {
         mount_fs(instance)?;
     }
