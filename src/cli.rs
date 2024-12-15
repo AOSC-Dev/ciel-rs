@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use clap::{value_parser, Arg, ArgAction, Command};
-use std::ffi::OsStr;
+use clap::{builder::ValueParser, value_parser, Arg, ArgAction, Command};
+use std::{ffi::OsStr, fmt::format};
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 
@@ -28,6 +28,25 @@ fn list_helpers() -> Result<Vec<String>> {
     Ok(plugins)
 }
 
+fn config_list(id: &str, name: &str, parser: ValueParser) -> [Arg; 3] {
+    [
+        Arg::new(format!("add-{id}"))
+            .long(format!("add-{id}"))
+            .help(format!("Add an {name}"))
+            .value_parser(parser.clone())
+            .required(false),
+        Arg::new(format!("remove-{id}"))
+            .long(format!("remove-{id}"))
+            .help(format!("Remove an {name}"))
+            .value_parser(parser)
+            .required(false),
+        Arg::new(format!("clear-{id}"))
+            .long(format!("clear-{id}"))
+            .help(format!("Remove all {name}"))
+            .action(ArgAction::SetTrue),
+    ]
+}
+
 /// Build the CLI instance
 pub fn build_cli() -> Command {
     let instance_arg = Arg::new("INSTANCE")
@@ -35,8 +54,55 @@ pub fn build_cli() -> Command {
         .num_args(1)
         .env("CIEL_INST")
         .action(clap::ArgAction::Set);
-    let workspace_configs: Vec<Arg> = vec![];
-    let instance_configs = vec![
+    let mut workspace_configs: Vec<Arg> = vec![
+        Arg::new("maintainer")
+            .long("maintainer")
+            .short('m')
+            .help("Maintainer information")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("dnssec")
+            .long("dnssec")
+            .help("Enable DNSSEC")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("repo")
+            .long("repo")
+            .help("APT sources")
+            .value_parser(value_parser!(String))
+            .required(false),
+        Arg::new("local-repo")
+            .long("local-repo")
+            .help("Enable local package repository")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("source-cache")
+            .long("source-cache")
+            .help("Enable local source caches")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("branch-output")
+            .long("branch-output")
+            .help("Use different OUTPUT directory for branches")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("volatile-mount")
+            .long("volatile-mount")
+            .help("Enable volatile mount")
+            .value_parser(value_parser!(bool))
+            .required(false),
+        Arg::new("use-apt")
+            .long("use-apt")
+            .help("Force to use APT")
+            .value_parser(value_parser!(bool))
+            .required(false),
+    ];
+    workspace_configs.extend(config_list(
+        "workspace-nspawn-opt",
+        "extra nspawn option",
+        value_parser!(String),
+    ));
+    let mut instance_configs = vec![
         // tmpfs
         Arg::new("tmpfs")
             .long("tmpfs")
@@ -52,37 +118,17 @@ pub fn build_cli() -> Command {
             .long("unset-tmpfs-size")
             .help("Reset tmpfs size to default")
             .action(ArgAction::SetTrue),
-        // nspawn options
-        Arg::new("add-repo")
-            .long("add-repo")
-            .help("Add an extra APT repository")
-            .value_parser(value_parser!(String))
-            .required(false),
-        Arg::new("remove-repo")
-            .long("remove-repo")
-            .help("Remove an extra APT repository")
-            .value_parser(value_parser!(String))
-            .required(false),
-        Arg::new("clear-repo")
-            .long("clear-repo")
-            .help("Remove all extra APT repositories")
-            .action(ArgAction::SetTrue),
-        // nspawn options
-        Arg::new("add-nspawn-opt")
-            .long("add-nspawn-opt")
-            .help("Add an extra nspawn option")
-            .value_parser(value_parser!(String))
-            .required(false),
-        Arg::new("remove-nspawn-opt")
-            .long("remove-nspawn-opt")
-            .help("Remove an extra nspawn option")
-            .value_parser(value_parser!(String))
-            .required(false),
-        Arg::new("clear-nspawn-opt")
-            .long("clear-nspawn-opt")
-            .help("Remove all extra nspawn options")
-            .action(ArgAction::SetTrue),
     ];
+    instance_configs.extend(config_list(
+        "repo",
+        "extra APT repository",
+        value_parser!(String),
+    ));
+    instance_configs.extend(config_list(
+        "nspawn-opt",
+        "extra nspawn option",
+        value_parser!(String),
+    ));
 
     Command::new("ciel")
         .version(env!("CARGO_PKG_VERSION"))

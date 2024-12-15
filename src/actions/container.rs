@@ -9,7 +9,7 @@ use std::{collections::HashMap, ffi::OsStr, fs, path::Path};
 use crate::{
     actions::OMA_UPDATE_SCRIPT,
     common::*,
-    config::{self, InstanceConfig},
+    config::{self, InstanceConfig, WorkspaceConfig},
     error, info,
     machine::{self, get_container_ns_name, inspect_instance, spawn_container},
     network::download_file_progress,
@@ -159,8 +159,8 @@ pub fn load_os(url: &str, sha256: Option<String>, tarball: bool) -> Result<()> {
 
 /// Mount the filesystem of the instance
 pub fn mount_fs(instance: &str) -> Result<()> {
-    let workspace_config = config::workspace_config()?;
-    let instance_config = config::InstanceConfig::load(instance)?;
+    let workspace_config = WorkspaceConfig::load()?;
+    let instance_config = InstanceConfig::load(instance)?;
 
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.set_volatile(workspace_config.volatile_mount)?;
@@ -239,11 +239,11 @@ pub fn start_container(instance: &str) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
 
-    let workspace_config = config::workspace_config().unwrap_or_default();
+    let workspace_config = WorkspaceConfig::load().unwrap_or_default();
     let instance_config = InstanceConfig::load(instance)?;
 
     let mut extra_options = Vec::new();
-    extra_options.extend_from_slice(&workspace_config.extra_options);
+    extra_options.extend_from_slice(&workspace_config.nspawn_options);
     extra_options.extend_from_slice(&instance_config.nspawn_options);
 
     let mut mounts = HashMap::new();

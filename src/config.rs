@@ -6,9 +6,9 @@ use anyhow::{Context, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, Confirm, Editor, Input};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::PathBuf;
 use std::{ffi::OsString, path::Path};
-use std::{fs, io::Read};
 
 const DEFAULT_CONFIG_LOCATION: &str = ".ciel/data/config.toml";
 const DEFAULT_APT_SOURCE: &str = "deb https://repo.aosc.io/debs/ stable main\n";
@@ -22,16 +22,16 @@ const DEFAULT_GITCONFIG: &str = "root/.gitconfig";
 #[serde(rename_all = "kebab-case")]
 pub struct WorkspaceConfig {
     version: usize,
-    maintainer: String,
-    dnssec: bool,
+    pub maintainer: String,
+    pub dnssec: bool,
     #[serde(alias = "apt_sources")]
-    apt_sources: String,
+    pub apt_sources: String,
     #[serde(alias = "local_repo")]
     pub local_repo: bool,
     #[serde(alias = "local_sources")]
     pub local_sources: bool,
     #[serde(rename = "nspawn-extra-options")]
-    pub extra_options: Vec<String>,
+    pub nspawn_options: Vec<String>,
     #[serde(rename = "branch-exclusive-output")]
     pub sep_mount: bool,
     #[serde(rename = "volatile-mount", default)]
@@ -48,12 +48,22 @@ impl WorkspaceConfig {
         cfg!(target_arch = "riscv64")
     }
 
-    pub fn save_config(&self) -> Result<String> {
+    pub fn to_toml(&self) -> Result<String> {
         Ok(toml::to_string(self)?)
     }
 
-    pub fn load_config(data: &str) -> Result<WorkspaceConfig> {
-        Ok(toml::from_str(data)?)
+    pub fn from_toml<S: AsRef<str>>(data: S) -> Result<Self> {
+        Ok(toml::from_str(data.as_ref())?)
+    }
+
+    /// Reads the configuration file from the current workspace
+    pub fn load() -> Result<Self> {
+        Self::from_toml(fs::read_to_string(DEFAULT_CONFIG_LOCATION)?)
+    }
+
+    pub fn save(&self) -> Result<()> {
+        fs::write(DEFAULT_CONFIG_LOCATION, self.to_toml()?)?;
+        Ok(())
     }
 }
 
@@ -66,16 +76,15 @@ impl Default for WorkspaceConfig {
             apt_sources: DEFAULT_APT_SOURCE.to_string(),
             local_repo: true,
             local_sources: true,
-            extra_options: Vec::new(),
+            nspawn_options: Vec::new(),
             sep_mount: true,
             volatile_mount: false,
-            force_use_apt: false,
+            force_use_apt: Self::default_force_use_apt(),
         }
     }
 }
 
-#[allow(clippy::ptr_arg)]
-fn validate_maintainer(maintainer: &String) -> Result<(), String> {
+pub fn validate_maintainer(maintainer: &str) -> Result<(), String> {
     let mut lt = false; // "<"
     let mut gt = false; // ">"
     let mut at = false; // "@"
@@ -150,7 +159,7 @@ pub fn ask_for_config(config: Option<WorkspaceConfig>) -> Result<WorkspaceConfig
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer Information")
         .default(config.maintainer)
-        .validate_with(validate_maintainer)
+        .validate_with(|s: &String| validate_maintainer(s.as_str()))
         .interact_text()?;
     config.dnssec = Confirm::with_theme(&theme)
         .with_prompt("Enable DNSSEC")
@@ -202,23 +211,11 @@ pub fn ask_for_config(config: Option<WorkspaceConfig>) -> Result<WorkspaceConfig
     Ok(config)
 }
 
-/// Reads the configuration file from the current workspace
-pub fn workspace_config() -> Result<WorkspaceConfig> {
-    let mut f = std::fs::File::open(DEFAULT_CONFIG_LOCATION)?;
-    let mut data = String::new();
-    f.read_to_string(&mut data)?;
-
-    WorkspaceConfig::load_config(&data)
-}
-
 #[test]
 fn test_validate_maintainer() {
+    assert_eq!(validate_maintainer(&"test <aosc@aosc.io>"), Ok(()));
     assert_eq!(
-        validate_maintainer(&"test <aosc@aosc.io>".to_owned()),
-        Ok(())
-    );
-    assert_eq!(
-        validate_maintainer(&"test <aosc@aosc.io;".to_owned()),
+        validate_maintainer(&"test <aosc@aosc.io;"),
         Err("Invalid format.".to_owned())
     );
 }
