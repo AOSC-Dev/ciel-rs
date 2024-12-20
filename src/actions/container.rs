@@ -167,11 +167,11 @@ pub fn mount_fs(instance: &str) -> Result<()> {
     let man = &mut *overlayfs::get_overlayfs_manager(instance)?;
     man.set_volatile(workspace_config.volatile_mount)?;
 
-    config::apply_config(man.get_config_layer()?, &workspace_config, &instance_config)?;
-    info!("{}: configuration applied.", instance);
-
     machine::mount_layers(man, instance)?;
     info!("{}: filesystem mounted.", instance);
+
+    config::apply_config(man.get_config_layer()?, &workspace_config, &instance_config)?;
+    info!("{}: configuration applied.", instance);
 
     Ok(())
 }
