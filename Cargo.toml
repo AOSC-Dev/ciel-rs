@@ -1,5 +1,5 @@
 [package]
-name = "ciel-rs"
+name = "ciel"
 version = "3.6.0"
 description = "An nspawn container manager"
 license = "MIT"
