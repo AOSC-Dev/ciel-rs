@@ -1,42 +1,5 @@
-_ciel_list_instances() {
-    local workdir="$(_ciel_find_ciel_workdir)"
-    [ -d "$workdir/".ciel/container/instances ] || return
-    find "$workdir/".ciel/container/instances -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
-}
-
-_ciel_find_ciel_workdir() {
-    local cur="$PWD"
-    while [ "$cur" != '/' ]; do
-        [ -d "$cur/".ciel ] && echo "$cur" && break
-        cur="$(dirname "$cur")"
-    done
-}
-
-_ciel_source_env() {
-    local workdir="$(_ciel_find_ciel_workdir)"
-    [ -d "$workdir/.env" ] && source "$workdir/.env"
-}
-
-_ciel_list_packages() {
-    local workdir="$(_ciel_find_ciel_workdir)"
-    [ -d "$workdir/TREE" ] || return
-    local PGROUPS="$(find "$workdir/TREE/groups/" -maxdepth 1 -mindepth 1 -type f -printf 'groups/%f\n')"
-    COMPREPLY+=($(compgen -W "$PGROUPS" -- "${1}"))
-    if [[ "$1" == *'/'* ]]; then
-        return
-    fi
-    COMPREPLY+=($(find "$workdir/TREE" -maxdepth 2 -mindepth 2 -type d -not -path "TREE/.git" -name "${1}*" -printf '%f\n'))
-}
-
-_ciel_list_plugins() {
-    local CIEL="$(readlink -f $(command -v ciel))"
-    [ -z "$CIEL" ] && return
-    local PLUGIN_DIR="$(dirname $CIEL)/../libexec/ciel-plugin"
-    find "$PLUGIN_DIR" -maxdepth 1 -mindepth 1 -type f -name 'ciel-*' -printf '%f\n' | cut -d'-' -f2-
-}
-
 _ciel() {
-    local i cur prev opts cmds
+    local i cur prev opts cmd
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -251,7 +214,7 @@ _ciel() {
             return 0
             ;;
         ciel__add)
-            opts="-h --help"
+            opts="-h --tmpfs --help <INSTANCE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -265,15 +228,14 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts="-g -x -i -2 -c -h --offline --stage2 --resume --stage-select --help"
-            _ciel_source_env 2>/dev/null || true
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && -z "${CIEL_INST}" ]] ; then
+            opts="-g -x -i -2 -c -h --offline --stage2 --resume --stage-select --help [PACKAGES]..."
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --resume)
@@ -293,7 +255,6 @@ _ciel() {
                     ;;
             esac
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            _ciel_list_packages "$cur"
             return 0
             ;;
         ciel__clean)
@@ -318,7 +279,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -329,14 +290,82 @@ _ciel() {
             return 0
             ;;
         ciel__config)
-            opts="-i -g -h --help"
+            opts="-i -g -m -h --force-no-rollback --maintainer --dnssec --repo --local-repo --source-cache --branch-output --volatile-mount --use-apt --add-workspace-nspawn-opt --remove-workspace-nspawn-opt --clear-workspace-nspawn-opt --tmpfs --tmpfs-size --unset-tmpfs-size --add-repo --remove-repo --clear-repo --add-nspawn-opt --remove-nspawn-opt --clear-nspawn-opt --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --maintainer)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -m)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --dnssec)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --local-repo)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --source-cache)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --branch-output)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --volatile-mount)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --use-apt)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --add-workspace-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-workspace-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --tmpfs)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --tmpfs-size)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -347,16 +376,17 @@ _ciel() {
             return 0
             ;;
         ciel__del)
-            opts="-h --help"
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            if [[ ${cur} == -* ]] ; then
+            opts="-h --help <INSTANCE>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 *)
+                    COMPREPLY=()
                     ;;
             esac
-            COMPREPLY+=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
         ciel__doctor)
@@ -381,7 +411,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -392,7 +422,7 @@ _ciel() {
             return 0
             ;;
         ciel__farewell)
-            opts="-h --help"
+            opts="-f -h --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -826,12 +856,20 @@ _ciel() {
             return 0
             ;;
         ciel__load__os)
-            opts="-h --help [url]"
+            opts="-a -h --arch --help [url]"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --arch)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -a)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -861,7 +899,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -872,13 +910,21 @@ _ciel() {
             return 0
             ;;
         ciel__new)
-            opts="-h --from-tarball --help"
+            opts="-a -h --from-tarball --arch --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --from-tarball)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --arch)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -a)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -905,8 +951,8 @@ _ciel() {
             ;;
         ciel__repo__deinit)
             opts="-h --help"
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            if [[ ${cur} == -* ]] ; then
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
@@ -914,7 +960,7 @@ _ciel() {
                     COMPREPLY=()
                     ;;
             esac
-            COMPREPLY+=( $(compgen -W "$(_ciel_list_instances)" -- "$cur") )
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
         ciel__repo__help)
@@ -988,9 +1034,9 @@ _ciel() {
             return 0
             ;;
         ciel__repo__init)
-            opts="-h --help"
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            if [[ ${cur} == -* ]] ; then
+            opts="-h --help <INSTANCE>"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
@@ -998,7 +1044,7 @@ _ciel() {
                     COMPREPLY=()
                     ;;
             esac
-            COMPREPLY+=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
         ciel__repo__refresh)
@@ -1023,7 +1069,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -1041,7 +1087,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -1059,7 +1105,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -1077,7 +1123,7 @@ _ciel() {
             fi
             case "${prev}" in
                 -i)
-                    COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -1088,12 +1134,36 @@ _ciel() {
             return 0
             ;;
         ciel__update__os)
-            opts="-h --help"
+            opts="-h --force-use-apt --tmpfs --tmpfs-size --unset-tmpfs-size --add-repo --remove-repo --clear-repo --add-nspawn-opt --remove-nspawn-opt --clear-nspawn-opt --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --tmpfs)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --tmpfs-size)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1140,4 +1210,8 @@ _ciel() {
     esac
 }
 
-complete -F _ciel -o bashdefault -o default ciel
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _ciel -o nosort -o bashdefault -o default ciel
+else
+    complete -F _ciel -o bashdefault -o default ciel
+fi
