@@ -10,6 +10,7 @@ use ciel::{
 };
 use clap::ArgMatches;
 use console::style;
+use dialoguer::{theme::ColorfulTheme, Select};
 use log::info;
 use walkdir::WalkDir;
 
@@ -38,7 +39,7 @@ pub fn clean_outputs() -> Result<()> {
 pub fn build_packages(args: &ArgMatches) -> Result<()> {
     let ws = Workspace::current_dir()?;
 
-    let ckpt = if let Some(file) = args.get_one::<String>("resume") {
+    let mut ckpt = if let Some(file) = args.get_one::<String>("resume") {
         BuildCheckPoint::load(file)?
     } else {
         let mut req = BuildRequest::new(
@@ -50,6 +51,18 @@ pub fn build_packages(args: &ArgMatches) -> Result<()> {
         req.fetch_only = args.get_flag("fetch-only");
         BuildCheckPoint::from(req, &ws)?
     };
+
+    if args.get_flag("select") {
+        eprintln!("-*-* S T A G E\t\tS E L E C T *-*-");
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .default(0)
+            .with_prompt(
+                "Choose a package to start building from (left/right arrow keys to change pages)",
+            )
+            .items(&ckpt.packages)
+            .interact()?;
+        ckpt.progress = selection;
+    }
 
     let res = if let Some(inst) = args.get_one::<String>("INSTANCE") {
         let inst = ws.instance(inst)?.open()?;
