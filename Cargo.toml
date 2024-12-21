@@ -5,14 +5,22 @@ members = [
     "cli/",
 ]
 
-[package]
-name = "ciel"
+[workspace.package]
 version = "3.6.0"
 description = "An nspawn container manager"
 license = "MIT"
-authors = ["liushuyu <liushuyu011@gmail.com>"]
+authors = ["liushuyu <liushuyu011@gmail.com>", "xtex <xtex@xtexx.eu.org>"]
 repository = "https://github.com/AOSC-Dev/ciel-rs"
 edition = "2021"
+
+[package]
+name = "ciel"
+version.workspace = true
+description.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 [dependencies]
 zbus = { version = "^5", features = ["blocking"] }
