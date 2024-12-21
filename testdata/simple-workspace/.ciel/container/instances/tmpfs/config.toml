@@ -1,0 +1,7 @@
+version = 3
+extra-apt-repos = []
+extra-nspawn-options = []
+use-local-repo = true
+
+[tmpfs]
+size = 512

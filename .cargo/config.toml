@@ -1,0 +1,3 @@
+[target.'cfg(all())']
+# run with sudo, set RUST_LOG for tests
+runner = "sudo -E RUST_LOG=debug -E RUST_BACKTRACE=1"
