@@ -52,3 +52,5 @@ consolidate-commits = true
 pre-release-commit-message = "v{{version}}"
 tag-message = "v{{version}}"
 tag-name = "v{{version}}"
+# we cannot publish to crates.io due to the libmount git dep
+publish = false
