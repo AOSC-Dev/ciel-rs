@@ -48,3 +48,10 @@ xz2 = "0.1.7"
 
 [profile.release]
 lto = true
+
+[workspace.metadata.release]
+shared-version = true
+consolidate-commits = true
+pre-release-commit-message = "v{{version}}"
+tag-message = "v{{version}}"
+tag-name = "v{{version}}"
