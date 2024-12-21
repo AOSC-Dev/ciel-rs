@@ -12,11 +12,11 @@ use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Error, Instance, Result, Workspace,
-    fs::{BoxedLayer, OverlayFS, OverlayManager, SimpleLayer, tmpfs::TmpfsLayer},
+    fs::{tmpfs::TmpfsLayer, BoxedLayer, OverlayFS, OverlayManager, SimpleLayer},
     instance::{InstanceConfig, TmpfsConfig},
     machine::{Machine, MachineState},
     workspace::WorkspaceConfig,
+    Error, Instance, Result, Workspace,
 };
 
 /// A Ciel container.
@@ -122,9 +122,10 @@ impl Container {
         };
         let config_path = instance.directory().join("layers/local");
         let lower_layers: Vec<BoxedLayer> = vec![
-            Arc::new(Box::new(TmpfsLayer::new(&config_path, &TmpfsConfig {
-                size: Some(16),
-            }))),
+            Arc::new(Box::new(TmpfsLayer::new(
+                &config_path,
+                &TmpfsConfig { size: Some(16) },
+            ))),
             Arc::new(Box::new(SimpleLayer::from(
                 instance.workspace().system_rootfs(),
             ))),
@@ -191,7 +192,7 @@ impl Container {
     }
 
     /// Returns the lower layers of filesystem.
-    pub fn lower_layers(&self) -> impl Iterator<Item = BoxedLayer> {
+    pub fn lower_layers(&self) -> impl Iterator<Item = BoxedLayer> + use<'_> {
         self.lower_layers.iter().cloned()
     }
 
@@ -583,9 +584,9 @@ impl Drop for OwnedContainer {
 #[cfg(test)]
 mod test {
     use crate::{
-        Error,
-        container::{OwnedContainer, make_container_ns_name},
+        container::{make_container_ns_name, OwnedContainer},
         test::TestDir,
+        Error,
     };
     use test_log::test;
 
@@ -676,11 +677,14 @@ mod test {
         dbg!(&ws);
         let inst = ws.instance("test").unwrap();
         let config = inst.open().unwrap().config().to_owned();
-        assert_eq!(config.all_apt_repos(), vec![
-            "deb https://repo.aosc.io/debs/ stable main".to_string(),
-            "deb file:///test/ test test".to_string(),
-            "deb file:///test test testinst".to_string(),
-            "deb [trusted=yes] file:///debs/ /".to_string(),
-        ]);
+        assert_eq!(
+            config.all_apt_repos(),
+            vec![
+                "deb https://repo.aosc.io/debs/ stable main".to_string(),
+                "deb file:///test/ test test".to_string(),
+                "deb file:///test test testinst".to_string(),
+                "deb [trusted=yes] file:///debs/ /".to_string(),
+            ]
+        );
     }
 }

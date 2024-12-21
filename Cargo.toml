@@ -12,7 +12,7 @@ description = "An nspawn container manager"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 repository = "https://github.com/AOSC-Dev/ciel-rs"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 zbus = { version = "^5", features = ["blocking"] }
@@ -34,7 +34,6 @@ time = { version = "0.3", default-features = false, features = ["serde-human-rea
 fs3 = "0.5"
 clap = { version = "^4", features = ["wrap_help", "string", "env"] }
 ctrlc = "3.4.5"
-# repo scan
 ar = "0.9"
 faster-hex = "0.10"
 flate2 = "1.0"
