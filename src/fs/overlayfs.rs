@@ -13,7 +13,7 @@ use std::{
 
 use libmount::Overlay;
 use log::info;
-use nix::mount::{MntFlags, umount2};
+use nix::mount::{umount2, MntFlags};
 
 use crate::{Error, Result};
 
@@ -333,9 +333,12 @@ fn rename_file(from: &Path, to: &Path) -> Result<()> {
     match fs::rename(from, to) {
         Ok(_) => return Ok(()),
         Err(err) => {
-            if err.kind() != std::io::ErrorKind::CrossesDevices {
-                return Err(err.into());
-            }
+            // FIXME: use CrossesDevices when stablized
+            // now we just fallthrough
+            _ = err;
+            // if err.kind() != std::io::ErrorKind::CrossesDevices {
+            //     return Err(err.into());
+            // }
         }
     }
 
