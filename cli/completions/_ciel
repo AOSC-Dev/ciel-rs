@@ -94,6 +94,7 @@ _arguments "${_arguments_options[@]}" : \
 '--local-repo=[Enable local package repository]: :(true false)' \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'--rw-tree=[Mount TREE as read-write]: :(true false)' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
@@ -112,6 +113,7 @@ _arguments "${_arguments_options[@]}" : \
 '--local-repo=[Enable local package repository]: :(true false)' \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'--rw-tree=[Mount TREE as read-write]: :(true false)' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
@@ -157,6 +159,7 @@ _arguments "${_arguments_options[@]}" : \
 '--local-repo=[Enable local package repository]: :(true false)' \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'--rw-tree=[Mount TREE as read-write]: :(true false)' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
@@ -236,6 +239,7 @@ _arguments "${_arguments_options[@]}" : \
 '(-i)--local-repo=[Enable local package repository]: :(true false)' \
 '(-i)--tmpfs=[Enable tmpfs]: :(true false)' \
 '(-i)--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'(-i)--rw-tree=[Mount TREE as read-write]: :(true false)' \
 '(-i)--add-repo=[Add an extra APT repository]:repo:_default' \
 '(-i)--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '(-i)--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
@@ -262,6 +266,7 @@ _arguments "${_arguments_options[@]}" : \
 '(-i)--local-repo=[Enable local package repository]: :(true false)' \
 '(-i)--tmpfs=[Enable tmpfs]: :(true false)' \
 '(-i)--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'(-i)--rw-tree=[Mount TREE as read-write]: :(true false)' \
 '(-i)--add-repo=[Add an extra APT repository]:repo:_default' \
 '(-i)--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '(-i)--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
