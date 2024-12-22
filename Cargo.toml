@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "3.7.2"
+version = "3.7.3"
 description = "An nspawn container manager"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>", "xtex <xtex@xtexx.eu.org>"]
