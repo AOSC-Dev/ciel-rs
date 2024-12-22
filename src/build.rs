@@ -135,6 +135,8 @@ pub enum BuildError {
     UpdateFailure(crate::Error),
     #[error("acbs-build exied with error: {0}")]
     AcbsFailure(std::process::ExitStatus),
+    #[error("Failed to refresh the package repository: {0}")]
+    RefreshRepoError(crate::Error),
 }
 
 /// Output of a build request.
@@ -249,7 +251,7 @@ fn execute(
         ckpt.progress = index;
     }
 
-    refresh_monitor.stop()?;
+    refresh_monitor.stop().map_err(|err|BuildError::RefreshRepoError(err))?;
     Ok(BuildOutput {
         total_packages: total,
         time_elapsed: ckpt.time_elapsed,

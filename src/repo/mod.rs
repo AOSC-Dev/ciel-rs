@@ -8,7 +8,7 @@ use std::{
 use faster_hex::hex_string;
 use log::info;
 use sha2::{Digest, Sha256};
-use time::{OffsetDateTime, format_description::FormatItem, macros::format_description};
+use time::{format_description::FormatItem, macros::format_description, OffsetDateTime};
 
 pub mod monitor;
 pub mod scan;
@@ -93,8 +93,9 @@ impl SimpleAptRepository {
                 file.write(&chunk)?;
             }
         }
-
         fs::write(self.release_file(), self.generate_release()?)?;
+        info!("Refreshed all packages");
+
         Ok(())
     }
 }

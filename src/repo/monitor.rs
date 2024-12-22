@@ -62,7 +62,7 @@ impl RepositoryRefreshMonitor {
 
     /// Stops the monitor.
     pub fn stop(self) -> Result<()> {
-        self.stop_handle.send(()).unwrap();
+        _ = self.stop_handle.send(());
         self.thread.join().unwrap()
     }
 }
@@ -71,8 +71,8 @@ fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<(
     // ensure lock exists
     let lock_path = repo.refresh_lock_file();
     if !Path::exists(&lock_path) {
-        File::create(&lock_path)?;
         info!("Creating fresh lock file at {:?} ...", lock_path);
+        File::create(&lock_path)?;
     }
 
     let mut inotify = Inotify::init()?;
@@ -108,7 +108,12 @@ fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<(
 
 fn refresh_once(repo: &SimpleAptRepository) -> Result<()> {
     let lock_file = repo.refresh_lock_file();
-    let f = match File::open(&lock_file) {
+    let f = match File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&lock_file)
+    {
         Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => File::create(&lock_file)?,
         Err(e) => return Err(e.into()),
