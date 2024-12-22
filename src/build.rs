@@ -10,8 +10,8 @@ use nix::unistd::gethostname;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Container, Error, Result, SimpleAptRepository, Workspace,
-    repo::monitor::RepositoryRefreshMonitor,
+    repo::monitor::RepositoryRefreshMonitor, Container, Error, Result, SimpleAptRepository,
+    Workspace,
 };
 
 /// A build request.
@@ -174,7 +174,10 @@ impl BuildCheckPoint {
 
         let start = Instant::now();
         match execute(&mut self, container) {
-            Ok(out) => Ok(out),
+            Ok(mut out) => {
+                out.time_elapsed += start.elapsed().as_secs();
+                Ok(out)
+            }
             Err(err) => {
                 self.time_elapsed += start.elapsed().as_secs();
                 Err((Some(self), err))
@@ -251,7 +254,9 @@ fn execute(
         ckpt.progress = index;
     }
 
-    refresh_monitor.stop().map_err(|err|BuildError::RefreshRepoError(err))?;
+    refresh_monitor
+        .stop()
+        .map_err(|err| BuildError::RefreshRepoError(err))?;
     Ok(BuildOutput {
         total_packages: total,
         time_elapsed: ckpt.time_elapsed,
