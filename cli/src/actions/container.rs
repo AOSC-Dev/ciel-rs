@@ -95,8 +95,8 @@ pub fn shell_run_in_container(args: &ArgMatches) -> Result<()> {
     let name = args.get_one::<String>("INSTANCE").unwrap();
     let commands = args
         .get_many::<String>("COMMANDS")
-        .unwrap()
-        .collect::<Vec<_>>();
+        .map(|v| v.collect::<Vec<_>>())
+        .unwrap_or_default();
     let mut cmd = vec!["/usr/bin/bash".to_string()];
     if !commands.is_empty() {
         cmd.push("-ec".to_string());
