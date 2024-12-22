@@ -376,7 +376,7 @@ pub fn build_cli() -> Command {
                 .arg(
                     Arg::new("select")
                         .long("stage-select")
-                        .action(ArgAr::SetTrue)
+                        .action(ArgAction::SetTrue)
                         .help("Select the starting point for a build"),
                 )
                 .arg(Arg::new("PACKAGES").conflicts_with("resume").num_args(1..))
