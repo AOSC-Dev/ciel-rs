@@ -146,6 +146,16 @@ complete -c ciel -n "__fish_ciel_using_subcommand rollback" -s a -l all
 complete -c ciel -n "__fish_ciel_using_subcommand rollback" -s h -l help -d 'Print help'
 complete -c ciel -n "__fish_ciel_using_subcommand commit" -s h -l help -d 'Print help'
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -s i -d 'Instance to be used' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l local-repo -d 'Enable local package repository' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l add-repo -d 'Add an extra APT repository' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l remove-repo -d 'Remove an extra APT repository' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-repo -d 'Remove all extra APT repository'
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -s h -l help -d 'Print help'
 complete -c ciel -n "__fish_ciel_using_subcommand run" -s i -d 'Instance to run command in' -r
 complete -c ciel -n "__fish_ciel_using_subcommand run" -s h -l help -d 'Print help'
@@ -158,11 +168,11 @@ complete -c ciel -n "__fish_ciel_using_subcommand build" -l remove-repo -d 'Remo
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -s c -l resume -d 'Resume from a Ciel checkpoint' -r
-complete -c ciel -n "__fish_ciel_using_subcommand build" -l stage-select -d 'Select the starting point for a build' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -s g -d 'Fetch package sources only'
+complete -c ciel -n "__fish_ciel_using_subcommand build" -l stage-select -d 'Select the starting point for a build'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -s h -l help -d 'Print help'
 complete -c ciel -n "__fish_ciel_using_subcommand repo; and not __fish_seen_subcommand_from refresh help" -s h -l help -d 'Print help'
 complete -c ciel -n "__fish_ciel_using_subcommand repo; and not __fish_seen_subcommand_from refresh help" -f -a "refresh" -d 'Refresh the repository'

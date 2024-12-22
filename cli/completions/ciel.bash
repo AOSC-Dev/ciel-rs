@@ -298,10 +298,6 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --stage-select)
-                    COMPREPLY=($(compgen -f "${cur}"))
-                    return 0
-                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -1118,13 +1114,41 @@ _ciel() {
             return 0
             ;;
         ciel__shell)
-            opts="-i -h --help [COMMANDS]..."
+            opts="-i -h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help [COMMANDS]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 -i)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --local-repo)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --tmpfs)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --tmpfs-size)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --add-nspawn-opt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remove-nspawn-opt)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

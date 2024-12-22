@@ -233,6 +233,16 @@ _arguments "${_arguments_options[@]}" : \
 (shell)
 _arguments "${_arguments_options[@]}" : \
 '-i+[Instance to be used]: :_default' \
+'(-i)--local-repo=[Enable local package repository]: :(true false)' \
+'(-i)--tmpfs=[Enable tmpfs]: :(true false)' \
+'(-i)--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
+'(-i)--add-repo=[Add an extra APT repository]:repo:_default' \
+'(-i)--remove-repo=[Remove an extra APT repository]:repo:_default' \
+'(-i)--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
+'(-i)--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
+'(-i)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(-i)--unset-repo[Remove all extra APT repository]' \
+'(-i)--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '*::COMMANDS:_default' \
@@ -258,11 +268,11 @@ _arguments "${_arguments_options[@]}" : \
 '(-i)--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
 '(-g --stage-select)-c+[Resume from a Ciel checkpoint]: :_default' \
 '(-g --stage-select)--resume=[Resume from a Ciel checkpoint]: :_default' \
-'--stage-select=[Select the starting point for a build]: :_default' \
 '(-i)--unset-tmpfs-size[Reset tmpfs size to default]' \
 '(-i)--unset-repo[Remove all extra APT repository]' \
 '(-i)--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-g[Fetch package sources only]' \
+'--stage-select[Select the starting point for a build]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '*::PACKAGES:_default' \

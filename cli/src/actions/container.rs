@@ -92,7 +92,6 @@ pub fn run_in_container(args: &ArgMatches) -> Result<()> {
 }
 
 pub fn shell_run_in_container(args: &ArgMatches) -> Result<()> {
-    let name = args.get_one::<String>("INSTANCE").unwrap();
     let commands = args
         .get_many::<String>("COMMANDS")
         .map(|v| v.collect::<Vec<_>>())
@@ -106,8 +105,17 @@ pub fn shell_run_in_container(args: &ArgMatches) -> Result<()> {
     }
 
     let ws = Workspace::current_dir()?;
-    let inst = ws.instance(name)?.open()?;
-    inst.boot()?;
-    inst.machine()?.exec(cmd)?;
+    if let Some(name) = args.get_one::<String>("INSTANCE") {
+        let inst = ws.instance(name)?.open()?;
+        inst.boot()?;
+        inst.machine()?.exec(cmd)?;
+    } else {
+        let mut config = InstanceConfig::default();
+        patch_instance_config(args, &mut config)?;
+        let inst = ws.ephemeral_container("shell", config)?;
+        inst.boot()?;
+        inst.machine()?.exec(cmd)?;
+        inst.discard()?;
+    }
     Ok(())
 }
