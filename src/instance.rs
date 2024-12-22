@@ -8,7 +8,7 @@ use std::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use crate::{Container, Error, Result, workspace::Workspace};
+use crate::{workspace::Workspace, Container, Error, Result};
 
 /// A Ciel instance.
 ///
@@ -142,6 +142,9 @@ pub struct InstanceConfig {
     /// Set to `None` to disable tmpfs for filesystem.
     #[serde(default)]
     pub tmpfs: Option<TmpfsConfig>,
+    /// Whether TREE should be mounted as read-write.
+    #[serde(default)]
+    pub writable_tree: bool,
 }
 
 impl Default for InstanceConfig {
@@ -152,6 +155,7 @@ impl Default for InstanceConfig {
             extra_nspawn_options: vec![],
             use_local_repo: true,
             tmpfs: None,
+            writable_tree: false,
         }
     }
 }
@@ -223,7 +227,7 @@ impl TmpfsConfig {
 
 #[cfg(test)]
 mod test {
-    use crate::{Error, test::TestDir};
+    use crate::{test::TestDir, Error};
     use test_log::test;
 
     use super::InstanceConfig;
@@ -238,6 +242,7 @@ mod test {
 extra-apt-repos = []
 extra-nspawn-options = []
 use-local-repo = true
+writable-tree = false
 "##
         );
         assert_eq!(InstanceConfig::parse(&serialized).unwrap(), config);

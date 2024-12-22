@@ -498,6 +498,7 @@ MTER=\"{}\"",
 
 fn setup_machine(container: &Container) -> Result<()> {
     let workspace_config = &container.config.workspace_config;
+    let instance_config = &container.config.instance_config;
     let machine = container.machine()?;
     let workspace_dir = container.workspace().directory();
 
@@ -506,7 +507,7 @@ fn setup_machine(container: &Container) -> Result<()> {
         container.ns_name
     );
 
-    machine.bind(workspace_dir.join("TREE"), "/tree".into(), true)?;
+    machine.bind(workspace_dir.join("TREE"), "/tree".into(), !instance_config.writable_tree)?;
     if !workspace_config.no_cache_packages {
         machine.bind(
             workspace_dir.join("CACHE"),
