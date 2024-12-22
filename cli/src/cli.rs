@@ -115,6 +115,11 @@ pub fn build_cli() -> Command {
             .long("unset-tmpfs-size")
             .help("Reset tmpfs size to default")
             .action(ArgAction::SetTrue),
+        // read-write tree
+        Arg::new("ro-tree")
+            .long("ro-tree")
+            .help("Mount TREE as read-only")
+            .value_parser(value_parser!(bool)),
     ];
     instance_configs.extend(config_list(
         "repo",

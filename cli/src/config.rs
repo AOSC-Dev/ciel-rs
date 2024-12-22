@@ -126,6 +126,7 @@ pub fn patch_instance_config(args: &ArgMatches, config: &mut InstanceConfig) -> 
     config_list(args, "repo", &mut config.extra_apt_repos);
     config_list(args, "nspawn-opt", &mut config.extra_nspawn_options);
     config_bool(args, "local-repo", &mut config.use_local_repo);
+    config_bool(args, "ro-tree", &mut config.readonly_tree);
 
     Ok(())
 }
