@@ -1,9 +1,14 @@
 use std::{
-    io::Read, os::unix::fs::MetadataExt, path::{Path, PathBuf}, sync::LazyLock, time::Duration
+    io::Read,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+    sync::LazyLock,
+    time::Duration,
 };
 
 use anyhow::{bail, Result};
 use indicatif::ProgressBar;
+use nix::libc::{prctl, PR_GET_ENDIAN};
 use sha2::{Digest, Sha256};
 use unsquashfs_wrapper::Unsquashfs;
 
@@ -54,14 +59,14 @@ pub fn get_host_arch_name() -> Result<&'static str> {
 
     #[cfg(target_arch = "powerpc64")]
     {
-        let mut endian: libc::c_int = -1;
-        let result = unsafe { libc::prctl(libc::PR_GET_ENDIAN, &mut endian as *mut libc::c_int) };
+        let mut endian: nix::libc::c_int = -1;
+        let result = unsafe { prctl(PR_GET_ENDIAN, &mut endian as *mut nix::libc::c_int) };
         if result < 0 {
-            return None;
+            bail!("Failed to get host endian");
         }
         match endian {
-            libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Ok("ppc64el"),
-            libc::PR_ENDIAN_BIG => Ok("ppc64"),
+            nix::libc::PR_ENDIAN_LITTLE | nix::libc::PR_ENDIAN_PPC_LITTLE => Ok("ppc64el"),
+            nix::libc::PR_ENDIAN_BIG => Ok("ppc64"),
             _ => bail!("Unrecognized host architecture"),
         }
     }
