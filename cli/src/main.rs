@@ -42,6 +42,7 @@ fn main() -> Result<()> {
     let subcommand = args.subcommand();
     if let Some(("version", _)) = subcommand {
         println!("{}", version_string);
+        return Ok(());
     }
 
     if !geteuid().is_root() {
