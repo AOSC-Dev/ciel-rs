@@ -11,7 +11,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Container, Error, InstanceConfig, Result, container::OwnedContainer, instance::Instance,
+    container::OwnedContainer, instance::Instance, Container, Error, InstanceConfig, Result,
 };
 
 /// A Ciel workspace.
@@ -322,22 +322,23 @@ pub struct WorkspaceConfig {
     #[serde(default)]
     pub extra_apt_repos: Vec<String>,
     /// Whether local repository (the output directory) should be enabled in containers.
-    #[serde(alias = "local_repo")]
+    #[serde(alias = "local_repo", default)]
     pub use_local_repo: bool,
     /// Whether output directories should be branch-exclusive .
     ///
     /// This means using `OUTPUT-(branch)` instead of `OUTPUT` for outputs.
+    #[serde(default)]
     pub branch_exclusive_output: bool,
 
     /// Whether to cache APT packages.
     #[serde(default)]
     pub no_cache_packages: bool,
     /// Whether to cache sources.
-    #[serde(alias = "local_sources")]
+    #[serde(alias = "local_sources", default)]
     pub cache_sources: bool,
 
     /// Extra options for systemd-nspawn
-    #[serde(alias = "nspawn-extra-options")]
+    #[serde(alias = "nspawn-extra-options", default)]
     pub extra_nspawn_options: Vec<String>,
 
     /// Whether to mount the container filesystem as volatile
@@ -412,7 +413,7 @@ impl WorkspaceConfig {
         let mut at = false; // "@"
         let mut name = false;
         let mut nbsp = false; // space
-        // A simple FSM to match the states
+                              // A simple FSM to match the states
         for c in maintainer.as_bytes() {
             match *c {
                 b'<' => {
@@ -504,8 +505,8 @@ mod test {
     use test_log::test;
 
     use crate::{
+        test::{is_root, TestDir},
         ContainerState, Error, InstanceConfig,
-        test::{TestDir, is_root},
     };
 
     use super::WorkspaceConfig;
@@ -641,9 +642,10 @@ volatile-mount = false
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
-        assert_eq!(ws.config().extra_apt_repos, vec![
-            "deb file:///test/ test test".to_string(),
-        ]);
+        assert_eq!(
+            ws.config().extra_apt_repos,
+            vec!["deb file:///test/ test test".to_string(),]
+        );
         assert!(ws.config().branch_exclusive_output);
     }
 
