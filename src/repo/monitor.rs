@@ -1,7 +1,7 @@
 use inotify::{Inotify, WatchMask};
 use log::info;
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{Read, Seek, Write},
     ops::{Deref, DerefMut},
     path::Path,
@@ -72,6 +72,11 @@ fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<(
     let lock_path = repo.refresh_lock_file();
     if !Path::exists(&lock_path) {
         info!("Creating fresh lock file at {:?} ...", lock_path);
+        if let Some(parent) = lock_path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)?;
+            }
+        }
         File::create(&lock_path)?;
     }
 
