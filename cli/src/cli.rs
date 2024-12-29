@@ -442,6 +442,7 @@ pub fn build_cli() -> Command {
                 .short('C')
                 .value_name("DIR")
                 .default_value(".")
+                .env("CIEL_DIR")
                 .help("Set the CIEL! working directory"),
         )
         .arg(
