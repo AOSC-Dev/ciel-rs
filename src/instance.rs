@@ -136,6 +136,7 @@ pub struct InstanceConfig {
     #[serde(default, alias = "nspawn-options")]
     pub extra_nspawn_options: Vec<String>,
     /// Whether local repository (the output directory) should be enabled in the container.
+    #[serde(default)]
     pub use_local_repo: bool,
     /// tmpfs settings.
     ///
