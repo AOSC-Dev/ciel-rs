@@ -402,7 +402,12 @@ pub fn build_cli() -> Command {
                         .conflicts_with("INSTANCE")
                         .help("Destory ephemeral containers if the build fails"),
                 )
-                .arg(Arg::new("PACKAGES").conflicts_with("resume").num_args(1..))
+                .arg(
+                    Arg::new("PACKAGES")
+                        .conflicts_with("resume")
+                        .num_args(1..)
+                        .required_unless_present("resume"),
+                )
                 .about("Build the packages using the specified instance"),
         )
         .subcommand(
