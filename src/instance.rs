@@ -247,7 +247,7 @@ mod test {
 extra-apt-repos = []
 extra-nspawn-options = []
 use-local-repo = true
-writable-tree = false
+readonly-tree = false
 "##
         );
         assert_eq!(InstanceConfig::parse(&serialized).unwrap(), config);
