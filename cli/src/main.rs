@@ -1,5 +1,4 @@
 use std::{
-    fs,
     path::PathBuf,
     process::{exit, Command},
 };
@@ -27,9 +26,7 @@ fn main() -> Result<()> {
     umask(Mode::S_IWGRP | Mode::S_IWOTH);
 
     // source .env file, ignore errors
-    if fs::exists(".env")? {
-        dotenvy::dotenv()?;
-    }
+    _ = dotenvy::dotenv();
 
     let cli = cli::build_cli();
     let version_string = cli.render_version();
