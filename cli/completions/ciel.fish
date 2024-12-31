@@ -84,12 +84,14 @@ complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l local-repo -d 'E
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l ro-tree -d 'Mount TREE as read-only' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l output -d 'Path to output directory' -r -F
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l add-repo -d 'Add an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l remove-repo -d 'Remove an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l force-use-apt -d 'Use apt to update-os'
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l unset-output -d 'Use default output directory'
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand update-os" -s h -l help -d 'Print help'
@@ -98,12 +100,14 @@ complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l local-repo -d 'En
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l ro-tree -d 'Mount TREE as read-only' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l output -d 'Path to output directory' -r -F
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l add-repo -d 'Add an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l remove-repo -d 'Remove an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l force-no-rollback -d 'Do not rollback instances to apply configuration'
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l unset-output -d 'Use default output directory'
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand instconf" -s h -l help -d 'Print help'
@@ -127,11 +131,13 @@ complete -c ciel -n "__fish_ciel_using_subcommand add" -l local-repo -d 'Enable 
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l ro-tree -d 'Mount TREE as read-only' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand add" -l output -d 'Path to output directory' -r -F
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l add-repo -d 'Add an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l remove-repo -d 'Remove an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand add" -l unset-output -d 'Use default output directory'
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand add" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand add" -s h -l help -d 'Print help'
@@ -153,11 +159,13 @@ complete -c ciel -n "__fish_ciel_using_subcommand shell" -l local-repo -d 'Enabl
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l ro-tree -d 'Mount TREE as read-only' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l output -d 'Path to output directory' -r -F
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l add-repo -d 'Add an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l remove-repo -d 'Remove an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-output -d 'Use default output directory'
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand shell" -s h -l help -d 'Print help'
@@ -168,12 +176,14 @@ complete -c ciel -n "__fish_ciel_using_subcommand build" -l local-repo -d 'Enabl
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l tmpfs -d 'Enable tmpfs' -r -f -a "{true\t'',false\t''}"
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l tmpfs-size -d 'Size of tmpfs to use, in MiB' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l ro-tree -d 'Mount TREE as read-only' -r -f -a "{true\t'',false\t''}"
+complete -c ciel -n "__fish_ciel_using_subcommand build" -l output -d 'Path to output directory' -r -F
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l add-repo -d 'Add an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l remove-repo -d 'Remove an extra APT repository' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l add-nspawn-opt -d 'Add an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l remove-nspawn-opt -d 'Remove an extra nspawn option' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -s c -l resume -d 'Resume from a Ciel checkpoint' -r
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-tmpfs-size -d 'Reset tmpfs size to default'
+complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-output -d 'Use default output directory'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-repo -d 'Remove all extra APT repository'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -l unset-nspawn-opt -d 'Remove all extra nspawn option'
 complete -c ciel -n "__fish_ciel_using_subcommand build" -s g -d 'Fetch package sources only'

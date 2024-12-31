@@ -93,7 +93,7 @@ fn main() -> Result<()> {
             ("shell", args) => shell_run_in_container(args),
             ("build", args) => build_packages(args),
             ("repo", args) => match args.subcommand().unwrap() {
-                ("refresh", _) => refresh_repo(),
+                ("refresh", args) => refresh_repo(args.get_one::<PathBuf>("PATH").cloned()),
                 (cmd, _) => Err(anyhow!("unknown command: `{}`.", cmd)),
             },
             (cmd, args) => {

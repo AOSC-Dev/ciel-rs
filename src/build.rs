@@ -190,7 +190,7 @@ fn execute(
     ckpt: &mut BuildCheckPoint,
     container: &Container,
 ) -> std::result::Result<BuildOutput, BuildError> {
-    let outupt_dir = container.workspace().output_directory();
+    let outupt_dir = container.output_directory();
     let total = ckpt.packages.len();
 
     let hostname = gethostname().map_or_else(

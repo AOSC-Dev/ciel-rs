@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 use anyhow::Result;
 use ciel::{InstanceConfig, Workspace, WorkspaceConfig};
@@ -32,9 +32,9 @@ where
 }
 
 #[inline]
-fn config_bool(args: &ArgMatches, id: &str, val: &mut bool) {
-    if let Some(new_val) = args.get_one::<bool>(id) {
-        *val = *new_val;
+fn config_scalar<T: Clone + Send + Sync + 'static>(args: &ArgMatches, id: &str, val: &mut T) {
+    if let Some(new_val) = args.get_one::<T>(id) {
+        *val = new_val.clone();
     }
 }
 
@@ -88,18 +88,18 @@ pub fn patch_workspace_config(args: &ArgMatches, config: &mut WorkspaceConfig) -
         }
     }
 
-    config_bool(args, "dnssec", &mut config.dnssec);
+    config_scalar(args, "dnssec", &mut config.dnssec);
     config_list(args, "repo", &mut config.extra_apt_repos);
-    config_bool(args, "local-repo", &mut config.use_local_repo);
-    config_bool(args, "source-cache", &mut config.cache_sources);
+    config_scalar(args, "local-repo", &mut config.use_local_repo);
+    config_scalar(args, "source-cache", &mut config.cache_sources);
     config_list(args, "nspawn-opt", &mut config.extra_nspawn_options);
-    config_bool(
+    config_scalar(
         args,
         "branch-exclusive-output",
         &mut config.branch_exclusive_output,
     );
-    config_bool(args, "volatile-mount", &mut config.volatile_mount);
-    config_bool(args, "use-apt", &mut config.use_apt);
+    config_scalar(args, "volatile-mount", &mut config.volatile_mount);
+    config_scalar(args, "use-apt", &mut config.use_apt);
 
     Ok(())
 }
@@ -125,8 +125,14 @@ pub fn patch_instance_config(args: &ArgMatches, config: &mut InstanceConfig) -> 
 
     config_list(args, "repo", &mut config.extra_apt_repos);
     config_list(args, "nspawn-opt", &mut config.extra_nspawn_options);
-    config_bool(args, "local-repo", &mut config.use_local_repo);
-    config_bool(args, "ro-tree", &mut config.readonly_tree);
+    config_scalar(args, "local-repo", &mut config.use_local_repo);
+    config_scalar(args, "ro-tree", &mut config.readonly_tree);
+
+    if let Some(path) = args.get_one::<PathBuf>("output") {
+        config.output = Some(path.to_owned());
+    } else if args.get_flag("unset-output") {
+        config.output = None;
+    }
 
     Ok(())
 }

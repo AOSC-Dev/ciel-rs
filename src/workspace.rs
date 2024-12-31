@@ -258,7 +258,9 @@ impl Workspace {
         Ok(self.add_instance(name, config)?.open()?.into())
     }
 
-    /// Returns the output directory.
+    /// Returns the output directory of the workspace.
+    /// 
+    /// See [Container::output_directory].
     pub fn output_directory(&self) -> PathBuf {
         let name = if self.config().branch_exclusive_output {
             let head = if let Ok(repo) = git2::Repository::open(self.directory().join("TREE")) {

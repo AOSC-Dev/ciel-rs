@@ -283,6 +283,17 @@ impl Container {
         nix::unistd::sync();
         Ok(())
     }
+
+    /// Returns the output directory of the container.
+    ///
+    /// If [InstanceConfig::output] is set, it will be preferred.
+    /// Or else [Workspace::output_directory] will be used.
+    pub fn output_directory(&self) -> PathBuf {
+        self.instance()
+            .config()
+            .output
+            .unwrap_or_else(|| self.workspace().output_directory())
+    }
 }
 
 impl TryFrom<&Instance> for Container {
@@ -507,7 +518,11 @@ fn setup_machine(container: &Container) -> Result<()> {
         container.ns_name
     );
 
-    machine.bind(workspace_dir.join("TREE"), "/tree".into(), instance_config.readonly_tree)?;
+    machine.bind(
+        workspace_dir.join("TREE"),
+        "/tree".into(),
+        instance_config.readonly_tree,
+    )?;
     if !workspace_config.no_cache_packages {
         machine.bind(
             workspace_dir.join("CACHE"),
@@ -522,11 +537,14 @@ fn setup_machine(container: &Container) -> Result<()> {
             false,
         )?;
     }
-    machine.bind(
-        container.workspace().output_directory(),
-        "/debs".into(),
-        false,
-    )?;
+
+    let output = container.output_directory();
+    info!(
+        "{}: using output directory: {} ...",
+        container.ns_name,
+        output.display()
+    );
+    machine.bind(output, "/debs".into(), false)?;
 
     Ok(())
 }
