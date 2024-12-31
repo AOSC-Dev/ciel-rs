@@ -8,7 +8,6 @@ use std::{
 
 use anyhow::{bail, Result};
 use indicatif::ProgressBar;
-use nix::libc::{prctl, PR_GET_ENDIAN};
 use sha2::{Digest, Sha256};
 use unsquashfs_wrapper::Unsquashfs;
 
@@ -60,7 +59,12 @@ pub fn get_host_arch_name() -> Result<&'static str> {
     #[cfg(target_arch = "powerpc64")]
     {
         let mut endian: nix::libc::c_int = -1;
-        let result = unsafe { prctl(PR_GET_ENDIAN, &mut endian as *mut nix::libc::c_int) };
+        let result = unsafe {
+            nix::libc::prctl(
+                nix::libc::PR_GET_ENDIAN,
+                &mut endian as *mut nix::libc::c_int,
+            )
+        };
         if result < 0 {
             bail!("Failed to get host endian");
         }
