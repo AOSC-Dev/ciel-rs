@@ -143,9 +143,9 @@ pub struct InstanceConfig {
     /// Set to `None` to disable tmpfs for filesystem.
     #[serde(default)]
     pub tmpfs: Option<TmpfsConfig>,
-    /// Whether TREE should be mounted as read-write.
+    /// Whether TREE should be mounted as read-only.
     #[serde(default)]
-    pub writable_tree: bool,
+    pub readonly_tree: bool,
 }
 
 impl Default for InstanceConfig {
@@ -156,7 +156,7 @@ impl Default for InstanceConfig {
             extra_nspawn_options: vec![],
             use_local_repo: true,
             tmpfs: None,
-            writable_tree: false,
+            readonly_tree: false,
         }
     }
 }

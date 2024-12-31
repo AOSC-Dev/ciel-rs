@@ -196,7 +196,7 @@ _ciel() {
             return 0
             ;;
         ciel__add)
-            opts="-h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --rw-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help <INSTANCE>"
+            opts="-h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --ro-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help <INSTANCE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -214,7 +214,7 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --rw-tree)
+                --ro-tree)
                     COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
@@ -256,7 +256,7 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts="-i -g -c -h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --rw-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --resume --stage-select --help [PACKAGES]..."
+            opts="-i -g -c -h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --ro-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --resume --stage-select --always-discard --help [PACKAGES]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -278,7 +278,7 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --rw-tree)
+                --ro-tree)
                     COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
@@ -824,7 +824,7 @@ _ciel() {
             return 0
             ;;
         ciel__instconf)
-            opts="-i -h --force-no-rollback --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --rw-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help"
+            opts="-i -h --force-no-rollback --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --ro-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -846,7 +846,7 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --rw-tree)
+                --ro-tree)
                     COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
@@ -1126,7 +1126,7 @@ _ciel() {
             return 0
             ;;
         ciel__shell)
-            opts="-i -h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --rw-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help [COMMANDS]..."
+            opts="-i -h --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --ro-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help [COMMANDS]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1148,7 +1148,7 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --rw-tree)
+                --ro-tree)
                     COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;
@@ -1190,7 +1190,7 @@ _ciel() {
             return 0
             ;;
         ciel__update__os)
-            opts="-h --force-use-apt --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --rw-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help"
+            opts="-h --force-use-apt --local-repo --tmpfs --tmpfs-size --unset-tmpfs-size --ro-tree --add-repo --remove-repo --unset-repo --add-nspawn-opt --remove-nspawn-opt --unset-nspawn-opt --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1208,7 +1208,7 @@ _ciel() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --rw-tree)
+                --ro-tree)
                     COMPREPLY=($(compgen -W "true false" -- "${cur}"))
                     return 0
                     ;;

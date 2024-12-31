@@ -116,9 +116,9 @@ pub fn build_cli() -> Command {
             .help("Reset tmpfs size to default")
             .action(ArgAction::SetTrue),
         // read-write tree
-        Arg::new("rw-tree")
-            .long("rw-tree")
-            .help("Mount TREE as read-write")
+        Arg::new("ro-tree")
+            .long("ro-tree")
+            .help("Mount TREE as read-only")
             .value_parser(value_parser!(bool)),
     ];
     instance_configs.extend(config_list(

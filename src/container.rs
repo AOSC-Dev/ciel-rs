@@ -507,7 +507,7 @@ fn setup_machine(container: &Container) -> Result<()> {
         container.ns_name
     );
 
-    machine.bind(workspace_dir.join("TREE"), "/tree".into(), !instance_config.writable_tree)?;
+    machine.bind(workspace_dir.join("TREE"), "/tree".into(), instance_config.readonly_tree)?;
     if !workspace_config.no_cache_packages {
         machine.bind(
             workspace_dir.join("CACHE"),
