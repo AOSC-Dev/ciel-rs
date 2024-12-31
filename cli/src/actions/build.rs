@@ -72,7 +72,11 @@ pub fn build_packages(args: &ArgMatches) -> Result<()> {
         patch_instance_config(args, &mut config)?;
         let inst = ws.ephemeral_container("build", config)?;
         let result = ckpt.execute(&inst);
-        if result.is_err() {
+        if result.is_err() && !args.get_flag("always-discard") {
+            info!(
+                "{}: keeping ephemeral container for debug",
+                inst.as_ns_name()
+            );
             _ = inst.leak();
         } else {
             inst.discard()?;

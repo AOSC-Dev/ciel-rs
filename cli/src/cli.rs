@@ -395,6 +395,13 @@ pub fn build_cli() -> Command {
                         .action(ArgAction::SetTrue)
                         .help("Select the starting point for a build"),
                 )
+                .arg(
+                    Arg::new("always-discard")
+                        .long("always-discard")
+                        .action(ArgAction::SetTrue)
+                        .conflicts_with("INSTANCE")
+                        .help("Destory ephemeral containers if the build fails"),
+                )
                 .arg(Arg::new("PACKAGES").conflicts_with("resume").num_args(1..))
                 .about("Build the packages using the specified instance"),
         )
