@@ -146,6 +146,9 @@ pub struct InstanceConfig {
     /// Whether TREE should be mounted as read-only.
     #[serde(default)]
     pub readonly_tree: bool,
+    /// Path to OUTPUT directory.
+    #[serde(default)]
+    pub output: Option<PathBuf>,
 }
 
 impl Default for InstanceConfig {
@@ -157,6 +160,7 @@ impl Default for InstanceConfig {
             use_local_repo: true,
             tmpfs: None,
             readonly_tree: false,
+            output: None,
         }
     }
 }

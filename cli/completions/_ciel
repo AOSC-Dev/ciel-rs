@@ -95,12 +95,14 @@ _arguments "${_arguments_options[@]}" : \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
 '--ro-tree=[Mount TREE as read-only]: :(true false)' \
+'--output=[Path to output directory]: :_files' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
 '--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
 '--force-use-apt[Use apt to update-os]' \
-'--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--tmpfs-size)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--output)--unset-output[Use default output directory]' \
 '--unset-repo[Remove all extra APT repository]' \
 '--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-h[Print help]' \
@@ -114,12 +116,14 @@ _arguments "${_arguments_options[@]}" : \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
 '--ro-tree=[Mount TREE as read-only]: :(true false)' \
+'--output=[Path to output directory]: :_files' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
 '--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
 '--force-no-rollback[Do not rollback instances to apply configuration]' \
-'--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--tmpfs-size)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--output)--unset-output[Use default output directory]' \
 '--unset-repo[Remove all extra APT repository]' \
 '--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-h[Print help]' \
@@ -160,11 +164,13 @@ _arguments "${_arguments_options[@]}" : \
 '--tmpfs=[Enable tmpfs]: :(true false)' \
 '--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
 '--ro-tree=[Mount TREE as read-only]: :(true false)' \
+'--output=[Path to output directory]: :_files' \
 '--add-repo=[Add an extra APT repository]:repo:_default' \
 '--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
 '--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
-'--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--tmpfs-size)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--output)--unset-output[Use default output directory]' \
 '--unset-repo[Remove all extra APT repository]' \
 '--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-h[Print help]' \
@@ -240,11 +246,13 @@ _arguments "${_arguments_options[@]}" : \
 '(-i)--tmpfs=[Enable tmpfs]: :(true false)' \
 '(-i)--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
 '(-i)--ro-tree=[Mount TREE as read-only]: :(true false)' \
+'(-i)--output=[Path to output directory]: :_files' \
 '(-i)--add-repo=[Add an extra APT repository]:repo:_default' \
 '(-i)--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '(-i)--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
 '(-i)--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
-'(-i)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--tmpfs-size -i)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--output -i)--unset-output[Use default output directory]' \
 '(-i)--unset-repo[Remove all extra APT repository]' \
 '(-i)--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-h[Print help]' \
@@ -267,13 +275,15 @@ _arguments "${_arguments_options[@]}" : \
 '(-i)--tmpfs=[Enable tmpfs]: :(true false)' \
 '(-i)--tmpfs-size=[Size of tmpfs to use, in MiB]: :_default' \
 '(-i)--ro-tree=[Mount TREE as read-only]: :(true false)' \
+'(-i)--output=[Path to output directory]: :_files' \
 '(-i)--add-repo=[Add an extra APT repository]:repo:_default' \
 '(-i)--remove-repo=[Remove an extra APT repository]:repo:_default' \
 '(-i)--add-nspawn-opt=[Add an extra nspawn option]:nspawn-opt:_default' \
 '(-i)--remove-nspawn-opt=[Remove an extra nspawn option]:nspawn-opt:_default' \
 '(-g --stage-select)-c+[Resume from a Ciel checkpoint]: :_default' \
 '(-g --stage-select)--resume=[Resume from a Ciel checkpoint]: :_default' \
-'(-i)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--tmpfs-size -i)--unset-tmpfs-size[Reset tmpfs size to default]' \
+'(--output -i)--unset-output[Use default output directory]' \
 '(-i)--unset-repo[Remove all extra APT repository]' \
 '(-i)--unset-nspawn-opt[Remove all extra nspawn option]' \
 '-g[Fetch package sources only]' \
@@ -302,6 +312,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-h[Print help]' \
 '--help[Print help]' \
+'::PATH -- Path to the repository to refresh:_files' \
 && ret=0
 ;;
 (help)

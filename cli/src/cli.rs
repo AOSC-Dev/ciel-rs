@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{builder::ValueParser, value_parser, Arg, ArgAction, Command};
-use std::ffi::OsStr;
+use std::{ffi::OsStr, path::PathBuf};
 
 pub const GIT_TREE_URL: &str = "https://github.com/AOSC-Dev/aosc-os-abbs.git";
 
@@ -114,12 +114,23 @@ pub fn build_cli() -> Command {
         Arg::new("unset-tmpfs-size")
             .long("unset-tmpfs-size")
             .help("Reset tmpfs size to default")
-            .action(ArgAction::SetTrue),
+            .action(ArgAction::SetTrue)
+            .conflicts_with("tmpfs-size"),
         // read-write tree
         Arg::new("ro-tree")
             .long("ro-tree")
             .help("Mount TREE as read-only")
             .value_parser(value_parser!(bool)),
+        // custom output
+        Arg::new("output")
+            .long("output")
+            .value_parser(value_parser!(PathBuf))
+            .help("Path to output directory"),
+        Arg::new("unset-output")
+            .long("unset-output")
+            .help("Use default output directory")
+            .action(ArgAction::SetTrue)
+            .conflicts_with("output"),
     ];
     instance_configs.extend(config_list(
         "repo",
@@ -415,7 +426,13 @@ pub fn build_cli() -> Command {
                 .arg_required_else_help(true)
                 .subcommands([Command::new("refresh")
                     .alias("init")
-                    .about("Refresh the repository")])
+                    .about("Refresh the repository")
+                    .arg(
+                        Arg::new("PATH")
+                            .required(false)
+                            .value_parser(value_parser!(PathBuf))
+                            .help("Path to the repository to refresh"),
+                    )])
                 .alias("localrepo")
                 .about("Local repository maintenance"),
         )
