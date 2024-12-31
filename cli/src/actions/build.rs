@@ -71,7 +71,13 @@ pub fn build_packages(args: &ArgMatches) -> Result<()> {
         let mut config = InstanceConfig::default();
         patch_instance_config(args, &mut config)?;
         let inst = ws.ephemeral_container("build", config)?;
-        ckpt.execute(&inst)
+        let result = ckpt.execute(&inst);
+        if result.is_err() {
+            _ = inst.leak();
+        } else {
+            inst.discard()?;
+        }
+        result
     };
     match res {
         Ok(out) => {

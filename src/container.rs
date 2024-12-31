@@ -539,6 +539,7 @@ impl OwnedContainer {
     /// Leaks the owned container.
     ///
     /// This avoids the container being destroyed on drop.
+    #[must_use]
     pub fn leak(self) -> Container {
         let container = self.0.clone();
         forget(self);
