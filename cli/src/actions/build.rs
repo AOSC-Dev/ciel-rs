@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    process::exit,
 };
 
 use anyhow::Result;
@@ -99,6 +100,12 @@ pub fn build_packages(args: &ArgMatches) -> Result<()> {
                     dump_build_checkpoint(&ckpt)?;
                 }
             }
+            println!("\x07"); // bell character
+            exit(
+                err.into_exit_status()
+                    .and_then(|status| status.code())
+                    .unwrap_or(-1),
+            )
         }
     }
     Ok(())
