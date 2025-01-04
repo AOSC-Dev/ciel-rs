@@ -55,7 +55,7 @@ impl Layer for TmpfsLayer {
         }
         info!("tmpfs: un-mounting at {:?}", self.target);
         umount2(&self.target, MntFlags::MNT_DETACH)?;
-        fs::remove_dir(&self.target)?;
+        fs::remove_dir_all(&self.target)?;
         Ok(())
     }
 }

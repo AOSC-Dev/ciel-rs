@@ -145,7 +145,7 @@ impl OverlayManager for OverlayFS {
         }
         info!("overlayfs: un-mounting at {:?}", self.target);
         umount2(&self.target, MntFlags::MNT_DETACH)?;
-        fs::remove_dir(&self.target)?;
+        fs::remove_dir_all(&self.target)?;
         self.upper.unmount()?;
         for lower in &self.lower {
             lower.unmount()?;
