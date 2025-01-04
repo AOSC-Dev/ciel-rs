@@ -2,6 +2,7 @@ use std::{
     fs::{self},
     io::{BufRead, BufReader},
     path::Path,
+    process::ExitStatus,
     time::{Duration, Instant},
 };
 
@@ -134,9 +135,30 @@ pub enum BuildError {
     #[error("Failed to update build container: {0}")]
     UpdateFailure(crate::Error),
     #[error("acbs-build exied with error: {0}")]
-    AcbsFailure(std::process::ExitStatus),
+    AcbsFailure(ExitStatus),
     #[error("Failed to refresh the package repository: {0}")]
     RefreshRepoError(crate::Error),
+}
+
+impl BuildError {
+    /// Converts build errors into [crate::Error]
+    pub fn into_ciel_error(self) -> Option<crate::Error> {
+        match self {
+            BuildError::CielError(error)
+            | BuildError::GroupExpansionFailure(error)
+            | BuildError::UpdateFailure(error)
+            | BuildError::RefreshRepoError(error) => Some(error),
+            BuildError::AcbsFailure(status) => Some(crate::Error::SubcommandError(status)),
+        }
+    }
+
+    /// Converts build errors into exit statuses
+    pub fn into_exit_status(self) -> Option<ExitStatus> {
+        self.into_ciel_error().and_then(|err| match err {
+            Error::SubcommandError(status) => Some(status),
+            _ => None,
+        })
+    }
 }
 
 /// Output of a build request.
