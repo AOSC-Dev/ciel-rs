@@ -1,25 +1,31 @@
+use crate::info;
+use anyhow::Result;
+use console::style;
+use fs3::FileExt;
 use inotify::{Inotify, WatchMask};
-use log::info;
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{Read, Seek, Write},
     ops::{Deref, DerefMut},
     path::Path,
-    sync::mpsc::{self, Receiver, Sender},
+    sync::mpsc::Receiver,
     thread::sleep,
     time::Duration,
 };
 
-use crate::Result;
+use super::refresh_repo;
 
-use super::SimpleAptRepository;
+const LOCK_FILE: &str = "debs/fresh.lock";
 
-struct FreshLockGuard(File);
+struct FreshLockGuard {
+    inner: File,
+}
 
 impl FreshLockGuard {
     fn new(file: File) -> Result<Self> {
-        fs3::FileExt::lock_exclusive(&file)?;
-        Ok(Self(file))
+        file.lock_exclusive()?;
+
+        Ok(Self { inner: file })
     }
 }
 
@@ -27,57 +33,47 @@ impl Deref for FreshLockGuard {
     type Target = File;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 
 impl DerefMut for FreshLockGuard {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 
 impl Drop for FreshLockGuard {
     fn drop(&mut self) {
-        fs3::FileExt::unlock(&self.0).unwrap();
+        self.inner.unlock().ok();
     }
 }
 
-/// A monitor thread to refresh repository automatically.
-pub struct RepositoryRefreshMonitor {
-    thread: std::thread::JoinHandle<Result<()>>,
-    stop_handle: Sender<()>,
-}
-
-impl RepositoryRefreshMonitor {
-    /// Starts a new repository refresh monitor.
-    pub fn new(repo: SimpleAptRepository) -> Self {
-        let (tx, rx) = mpsc::channel();
-        let thread = std::thread::spawn(move || run_monitor(repo, rx));
-        Self {
-            thread,
-            stop_handle: tx,
-        }
+fn refresh_once(pool_path: &Path) -> Result<()> {
+    let lock_file = pool_path.join(LOCK_FILE);
+    let f = match File::options().read(true).write(true).open(&lock_file) {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => File::create(&lock_file)?,
+        Err(e) => return Err(e.into()),
+    };
+    let mut guarded = FreshLockGuard::new(f)?;
+    let mut buf = [0u8; 1];
+    guarded.read_exact(&mut buf)?;
+    if buf[0] != b'1' {
+        refresh_repo(pool_path)?;
+        guarded.rewind()?;
+        guarded.write_all("1".as_bytes())?;
     }
 
-    /// Stops the monitor.
-    pub fn stop(self) -> Result<()> {
-        _ = self.stop_handle.send(());
-        self.thread.join().unwrap()
-    }
+    Ok(())
 }
 
-fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<()> {
+pub fn start_monitor(pool_path: &Path, stop_token: Receiver<()>) -> Result<()> {
     // ensure lock exists
-    let lock_path = repo.refresh_lock_file();
+    let lock_path = pool_path.join(LOCK_FILE);
     if !Path::exists(&lock_path) {
-        info!("Creating fresh lock file at {:?} ...", lock_path);
-        if let Some(parent) = lock_path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
-        }
         File::create(&lock_path)?;
+        info!("Creating lock file at {}...", LOCK_FILE);
     }
 
     let mut inotify = Inotify::init()?;
@@ -89,12 +85,9 @@ fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<(
     )?;
 
     loop {
-        match stop_handle.try_recv() {
-            Ok(()) => return Ok(()),
-            Err(mpsc::TryRecvError::Empty) => {}
-            Err(mpsc::TryRecvError::Disconnected) => return Ok(()),
+        if stop_token.try_recv().is_ok() {
+            return Ok(());
         }
-
         sleep(Duration::from_secs(1));
         match inotify.read_events(&mut buffer) {
             Ok(_) => {
@@ -102,35 +95,11 @@ fn run_monitor(repo: SimpleAptRepository, stop_handle: Receiver<()>) -> Result<(
                     ignore_next = false;
                     continue;
                 }
-                refresh_once(&repo)?;
+                refresh_once(pool_path).ok();
                 ignore_next = true;
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => continue,
             Err(e) => return Err(e.into()),
         }
     }
-}
-
-fn refresh_once(repo: &SimpleAptRepository) -> Result<()> {
-    let lock_file = repo.refresh_lock_file();
-    let f = match File::options()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(&lock_file)
-    {
-        Ok(f) => f,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => File::create(&lock_file)?,
-        Err(e) => return Err(e.into()),
-    };
-    let mut f = FreshLockGuard::new(f)?;
-    let mut buf = [0u8; 1];
-    f.read_exact(&mut buf)?;
-    if buf[0] != b'1' {
-        repo.refresh()?;
-        f.rewind()?;
-        f.write_all("1".as_bytes())?;
-    }
-
-    Ok(())
 }
