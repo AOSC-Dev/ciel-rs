@@ -81,6 +81,11 @@ pub fn config_instance(instance: &str, args: &ArgMatches) -> Result<()> {
 
 /// Applies workspace configuration patches from [ArgMatches].
 pub fn patch_workspace_config(args: &ArgMatches, config: &mut WorkspaceConfig) -> Result<()> {
+    if !args.args_present() {
+        ask_for_config(config)?;
+        return Ok(());
+    }
+
     if let Some(maintainer) = args.get_one::<String>("maintainer") {
         if maintainer != &config.maintainer {
             WorkspaceConfig::validate_maintainer(maintainer)?;
@@ -138,7 +143,7 @@ pub fn patch_instance_config(args: &ArgMatches, config: &mut InstanceConfig) -> 
 }
 
 /// Shows a series of prompts to let the user select the configurations
-pub fn ask_for_init_config(config: &mut WorkspaceConfig) -> Result<()> {
+pub fn ask_for_config(config: &mut WorkspaceConfig) -> Result<()> {
     let theme = ColorfulTheme::default();
     config.maintainer = Input::<String>::with_theme(&theme)
         .with_prompt("Maintainer")

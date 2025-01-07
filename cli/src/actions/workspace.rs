@@ -8,7 +8,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input};
 use log::info;
 
 use crate::{
-    config::{ask_for_init_config, patch_instance_config, patch_workspace_config},
+    config::{ask_for_config, patch_instance_config, patch_workspace_config},
     download::{download_file, pick_latest_rootfs, CIEL_MAINLINE_ARCHS, CIEL_RETRO_ARCHS},
     logger::style_bool,
     make_progress_bar,
@@ -75,7 +75,7 @@ pub fn new_workspace(args: &ArgMatches) -> Result<()> {
         if arch.is_none() {
             arch = Some(ask_for_target_arch()?.to_owned())
         }
-        ask_for_init_config(&mut config)?;
+        ask_for_config(&mut config)?;
     } else {
         info!("Running in unattended mode, using default configuration ...");
     }
