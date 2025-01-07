@@ -55,6 +55,7 @@ pub fn config_workspace(args: &ArgMatches) -> Result<()> {
     } else {
         info!("Nothing has been changed");
     }
+
     ws.set_config(config)?;
     Ok(())
 }
