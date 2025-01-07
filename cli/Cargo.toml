@@ -1,0 +1,41 @@
+[package]
+name = "ciel-cli"
+version.workspace = true
+description.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = "1.0.94"
+ciel = { version = "3.8.8", path = ".." }
+clap = { version = "^4", features = ["string", "env"] }
+console = "0.15.10"
+dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
+dotenvy = "0.15.7"
+fs3 = "0.5.0"
+git2 = "0.19.0"
+indicatif = "0.17.9"
+log = { version = "0.4.22", features = ["max_level_debug", "release_max_level_info", "std"] }
+nix = "0.29.0"
+reqwest = { version = "0.12.9", features = ["blocking", "json"] }
+serde = { version = "1.0.216", features = ["derive"] }
+sha2 = "0.10.8"
+tabwriter = { version = "1.4.0", features = ["ansi_formatting"] }
+tar = "0.4.43"
+tempfile = "3.14.0"
+unsquashfs-wrapper = "0.3.0"
+walkdir = "2.5.0"
+which = "7.0.1"
+xz2 = "0.1.7"
+zbus = { version = "5.2.0", features = ["blocking"] }
+
+[build-dependencies]
+clap = { version = "^4", features = ["string", "env"] }
+clap_complete = "^4"
+anyhow = "^1"
+
+[[bin]]
+name = "ciel"
+path = "src/main.rs"

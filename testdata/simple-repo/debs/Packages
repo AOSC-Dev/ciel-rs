@@ -1,0 +1,17 @@
+Package: aosc-os-feature-data
+Version: 20241017.1
+Architecture: all
+Section: misc
+Maintainer: AOSC OS Maintainers <maintainers@aosc.io>
+Installed-Size: 56
+Description: Data defining key AOSC OS features
+Description-md5: 248f104b2025bbfc686d24bee09cb14c
+Essential: no
+X-AOSC-ACBS-Version: 20241023
+X-AOSC-Commit: 9c93f94783
+X-AOSC-Packager: AOSC OS Maintainers <maintainers@aosc.io>
+X-AOSC-Autobuild4-Version: 4.3.27
+Size: 1838
+Filename: a/aosc-os-feature-data_20241017.1-0_noarch.deb
+SHA256: dd386883fa246cc50826cced5df4353b64a490d3f0f487e2d8764b4d7d00151e
+

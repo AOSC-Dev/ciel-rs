@@ -1,85 +1,77 @@
-use crate::error;
-use anyhow::{anyhow, Result};
-use ar::Archive as ArArchive;
-use console::style;
+use core::str;
 use faster_hex::hex_string;
 use flate2::read::GzDecoder;
+use log::error;
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
-use std::io::SeekFrom;
 use std::{
     fs::File,
-    io::{Read, Seek, Write},
-    path::Path,
+    io::{Read, Seek, SeekFrom},
+    path::{Path, PathBuf},
 };
-use tar::Archive as TarArchive;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::WalkDir;
 use xz2::read::XzDecoder;
 
-enum TarFormat {
-    Xzip,
-    Gzip,
-    Zstd,
+#[non_exhaustive]
+#[derive(thiserror::Error, Debug)]
+pub enum ScanError {
+    #[error("I/O error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    WalkDirError(#[from] walkdir::Error),
+    #[error(transparent)]
+    StripPrefixError(#[from] std::path::StripPrefixError),
+
+    #[error("Unknown control.tar compression type: {0}")]
+    UnknownControlTarType(String),
+    #[error("control.tar not found")]
+    MissingControlTar,
+    #[error("control file not found")]
+    MissingControlFile,
 }
 
-fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
-    let mut tar = TarArchive::new(reader);
-    for entry in tar.entries()? {
-        let mut entry = entry?;
-        if entry.path_bytes().as_ref() == &b"./control"[..] {
-            let mut buf = Vec::with_capacity(1024);
-            entry.read_to_end(&mut buf)?;
-            return Ok(buf);
-        }
-    }
+pub type Result<T> = std::result::Result<T, ScanError>;
 
-    Err(anyhow!("Could not read control file"))
-}
-
-fn open_compressed_control<R: Read>(reader: R, format: &TarFormat) -> Result<Vec<u8>> {
-    match format {
-        TarFormat::Xzip => collect_control(XzDecoder::new(reader)),
-        TarFormat::Gzip => collect_control(GzDecoder::new(reader)),
-        TarFormat::Zstd => collect_control(zstd::stream::read::Decoder::new(reader)?),
-    }
-}
-
-fn determine_format(format: &[u8]) -> Result<TarFormat> {
-    if format.ends_with(b".xz") {
-        Ok(TarFormat::Xzip)
-    } else if format.ends_with(b".gz") {
-        Ok(TarFormat::Gzip)
-    } else if format.ends_with(b".zst") {
-        Ok(TarFormat::Zstd)
-    } else {
-        Err(anyhow!("Unknown format: {:?}", format))
-    }
-}
-
-fn open_deb_simple<R: Read>(reader: R) -> Result<Vec<u8>> {
-    let mut deb = ArArchive::new(reader);
-    while let Some(entry) = deb.next_entry() {
-        if entry.is_err() {
-            continue;
-        }
+pub(crate) fn collect_all_packages<P: AsRef<Path>>(path: P) -> crate::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(path.as_ref()) {
         let entry = entry?;
-        let filename = entry.header().identifier();
-        if filename.starts_with(b"control.tar") {
-            let format = determine_format(filename)?;
-            let control = open_compressed_control(entry, &format)?;
-            return Ok(control);
+        if entry
+            .file_name()
+            .to_str()
+            .map(|s| s.ends_with(".deb"))
+            .unwrap_or(false)
+        {
+            files.push(entry.into_path());
         }
     }
+    Ok(files)
+}
 
-    Err(anyhow!("data archive not found or format unsupported"))
+pub(crate) fn scan_packages_simple(
+    entries: &[PathBuf],
+    root: &Path,
+) -> crate::Result<Vec<Vec<u8>>> {
+    entries
+        .par_iter()
+        .map(|path| -> crate::Result<Vec<u8>> {
+            scan_single_deb_simple(path.as_path(), root)
+                .map_err(|err| crate::Error::DebScanError(path.to_owned(), err))
+        })
+        .collect()
 }
 
 fn scan_single_deb_simple<P: AsRef<Path>>(path: P, root: P) -> Result<Vec<u8>> {
     let mut f = File::open(path.as_ref())?;
-    let sha256 = sha256sum(&mut f)?;
+
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut f, &mut hasher)?;
+    let sha256sum = hex_string(&hasher.finalize());
+
     let actual_size = f.stream_position()?;
     f.seek(SeekFrom::Start(0))?;
-    let mut control = open_deb_simple(f)?;
+
+    let mut control = open_deb(f)?;
     control.reserve(128);
     if control.ends_with(&b"\n\n"[..]) {
         control.pop();
@@ -88,56 +80,161 @@ fn scan_single_deb_simple<P: AsRef<Path>>(path: P, root: P) -> Result<Vec<u8>> {
     control.extend(format!("Size: {}\n", actual_size).as_bytes());
     control.extend(format!("Filename: {}\n", rel_path.to_string_lossy()).as_bytes());
     control.extend(b"SHA256: ");
-    control.extend(sha256.as_bytes());
+    control.extend(sha256sum.as_bytes());
     control.extend(b"\n\n");
 
     Ok(control)
 }
 
-/// Calculate the Sha256 checksum of the given stream
-pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
-    let mut hasher = Sha256::new();
-    std::io::copy(&mut reader, &mut hasher)?;
-
-    Ok(hex_string(&hasher.finalize()))
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TarCompressionType {
+    Xzip,
+    Gzip,
+    Zstd,
 }
 
-#[inline]
-fn is_tarball(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.ends_with(".deb"))
-        .unwrap_or(false)
-}
-
-pub fn scan_packages_simple(entries: &[DirEntry], root: &Path) -> Vec<u8> {
-    entries
-        .par_iter()
-        .map(|entry| -> Vec<u8> {
-            let path = entry.path();
-            print!(".");
-            std::io::stderr().flush().ok();
-            match scan_single_deb_simple(path, root) {
-                Ok(entry) => entry,
-                Err(err) => {
-                    error!("{:?}", err);
-                    Vec::new()
-                }
-            }
-        })
-        .flatten()
-        .collect()
-}
-
-pub fn collect_all_packages<P: AsRef<Path>>(path: P) -> Result<Vec<DirEntry>> {
-    let mut files = Vec::new();
-    for entry in WalkDir::new(path.as_ref()) {
-        let entry = entry?;
-        if is_tarball(&entry) {
-            files.push(entry);
+fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
+    let mut tar = tar::Archive::new(reader);
+    for entry in tar.entries()? {
+        let mut entry = entry?;
+        if entry.path_bytes().as_ref() == &b"./control"[..] {
+            let mut buf = Vec::with_capacity(1024);
+            entry.read_to_end(&mut buf)?;
+            return Ok(buf);
         }
     }
+    Err(ScanError::MissingControlFile)
+}
 
-    Ok(files)
+fn open_deb<R: Read>(reader: R) -> Result<Vec<u8>> {
+    let mut deb = ar::Archive::new(reader);
+    while let Some(entry) = deb.next_entry() {
+        if entry.is_err() {
+            continue;
+        }
+        let entry = entry?;
+        let filename = entry.header().identifier();
+        if filename.starts_with(b"control.tar") {
+            let format = determine_compression(filename)?;
+            let control = open_compressed_control(entry, format)?;
+            return Ok(control);
+        }
+    }
+    Err(ScanError::MissingControlTar)
+}
+
+fn open_compressed_control<R: Read>(reader: R, format: TarCompressionType) -> Result<Vec<u8>> {
+    match format {
+        TarCompressionType::Xzip => collect_control(XzDecoder::new(reader)),
+        TarCompressionType::Gzip => collect_control(GzDecoder::new(reader)),
+        TarCompressionType::Zstd => collect_control(zstd::stream::read::Decoder::new(reader)?),
+    }
+}
+
+fn determine_compression(format: &[u8]) -> Result<TarCompressionType> {
+    if format.ends_with(b".xz") {
+        Ok(TarCompressionType::Xzip)
+    } else if format.ends_with(b".gz") {
+        Ok(TarCompressionType::Gzip)
+    } else if format.ends_with(b".zst") {
+        Ok(TarCompressionType::Zstd)
+    } else {
+        Err(ScanError::UnknownControlTarType(
+            str::from_utf8(format).unwrap().to_string(),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use test_log::test;
+
+    use crate::{
+        repo::scan::{collect_all_packages, scan_packages_simple, scan_single_deb_simple},
+        test::TestDir,
+    };
+
+    #[test]
+    fn test_collect_all_packages() {
+        let testdir = TestDir::from("testdata/simple-repo");
+        assert_eq!(
+            collect_all_packages(testdir.path().join("debs")).unwrap(),
+            vec![
+                testdir
+                    .path()
+                    .join("debs/a/aosc-os-feature-data_20241017.1-0_noarch.deb")
+            ]
+        );
+    }
+
+    #[test]
+    fn test_scan_single_deb_simple() {
+        let testdir = TestDir::from("testdata/simple-repo");
+        assert_eq!(
+            String::from_utf8(
+                scan_single_deb_simple(
+                    testdir
+                        .path()
+                        .join("debs/a/aosc-os-feature-data_20241017.1-0_noarch.deb"),
+                    testdir.path().join("debs")
+                )
+                .unwrap()
+            )
+            .unwrap(),
+            r##"Package: aosc-os-feature-data
+Version: 20241017.1
+Architecture: all
+Section: misc
+Maintainer: AOSC OS Maintainers <maintainers@aosc.io>
+Installed-Size: 56
+Description: Data defining key AOSC OS features
+Description-md5: 248f104b2025bbfc686d24bee09cb14c
+Essential: no
+X-AOSC-ACBS-Version: 20241023
+X-AOSC-Commit: 9c93f94783
+X-AOSC-Packager: AOSC OS Maintainers <maintainers@aosc.io>
+X-AOSC-Autobuild4-Version: 4.3.27
+Size: 1838
+Filename: a/aosc-os-feature-data_20241017.1-0_noarch.deb
+SHA256: dd386883fa246cc50826cced5df4353b64a490d3f0f487e2d8764b4d7d00151e
+
+"##
+        );
+    }
+
+    #[test]
+    fn test_scan_packages_simple() {
+        let testdir = TestDir::from("testdata/simple-repo");
+        assert_eq!(
+            String::from_utf8(
+                scan_packages_simple(
+                    &[testdir
+                        .path()
+                        .join("debs/a/aosc-os-feature-data_20241017.1-0_noarch.deb")],
+                    &testdir.path().join("debs")
+                )
+                .unwrap()
+                .concat()
+            )
+            .unwrap(),
+            r##"Package: aosc-os-feature-data
+Version: 20241017.1
+Architecture: all
+Section: misc
+Maintainer: AOSC OS Maintainers <maintainers@aosc.io>
+Installed-Size: 56
+Description: Data defining key AOSC OS features
+Description-md5: 248f104b2025bbfc686d24bee09cb14c
+Essential: no
+X-AOSC-ACBS-Version: 20241023
+X-AOSC-Commit: 9c93f94783
+X-AOSC-Packager: AOSC OS Maintainers <maintainers@aosc.io>
+X-AOSC-Autobuild4-Version: 4.3.27
+Size: 1838
+Filename: a/aosc-os-feature-data_20241017.1-0_noarch.deb
+SHA256: dd386883fa246cc50826cced5df4353b64a490d3f0f487e2d8764b4d7d00151e
+
+"##
+        );
+    }
 }
