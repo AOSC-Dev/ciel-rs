@@ -256,7 +256,7 @@ impl Machine {
 }
 
 const APT_UPDATE_SCRIPT: &str = r#"set -euo pipefail;export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge && apt autoclean"#;
-const OMA_UPDATE_SCRIPT: &str = r#"set -euo pipefail;oma upgrade -y --force-confnew --no-progress --force-unsafe-io && oma autoremove -y --remove-config && oma clean"#;
+const OMA_UPDATE_SCRIPT: &str = r#"set -euo pipefail;oma upgrade -y --force-confnew --no-progress --force-unsafe-io && oma autoremove --no-progress -y --remove-config && oma clean --no-progress"#;
 
 fn wait_for_machine(mut child: Child, ns_name: &str) -> Result<()> {
     for i in 0..10 {
