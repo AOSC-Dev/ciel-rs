@@ -1,6 +1,0 @@
-version = 3
-extra-apt-repos = [
-    "deb file:///test test testinst"
-]
-extra-nspawn-options = []
-use-local-repo = true

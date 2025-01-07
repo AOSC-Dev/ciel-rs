@@ -12,14 +12,15 @@ ciel --help
 ## Installation
 
 ```bash
-cargo build --release --workspace
+cargo build --release
+install -Dm755 target/release/ciel-rs /usr/local/bin/ciel
 PREFIX=/usr/local ./install-assets.sh
 ```
 
 ## Dependencies
 
 Building:
-- Rust w/ Cargo (Rust 1.83.0+)
+- Rust w/ Cargo (Rust 1.80.0+)
 - C compiler
 - pkg-config (for detecting C library dependencies)
 - make (when GCC LTO is used, not needed for Clang)
@@ -33,4 +34,3 @@ Runtime:
 
 Runtime Kernel:
 - Overlay file system
-- tmpfs
