@@ -9,7 +9,7 @@ edition.workspace = true
 
 [dependencies]
 anyhow = "1.0.94"
-ciel = { version = "3.6.0", path = ".." }
+ciel = { version = "4.0.0", path = ".." }
 clap = { version = "^4", features = ["string", "env"] }
 console = "0.15.10"
 dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
