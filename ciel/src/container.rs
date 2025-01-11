@@ -49,7 +49,7 @@ pub struct Container {
     instance: Instance,
     config: Arc<ContainerConfig>,
     #[allow(unused)]
-    lock: Arc<FileLock>,
+    lock: Option<Arc<FileLock>>,
     ns_name: String,
 
     rootfs_path: PathBuf,
@@ -89,15 +89,21 @@ impl Drop for FileLock {
 }
 
 impl Container {
-    /// Opens the build container, locking it exclusively.
-    pub fn open(instance: Instance) -> Result<Self> {
-        let lock = File::options()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(instance.directory().join(".lock"))?;
-        fs3::FileExt::lock_exclusive(&lock)?;
-        let lock = FileLock(lock);
+    /// Opens the build container.
+    ///
+    /// If `lock` is true, it will be locked exclusively.
+    pub fn open(instance: Instance, lock: bool) -> Result<Self> {
+        let lock = if lock {
+            let lock = File::options()
+                .read(true)
+                .write(true)
+                .create(true)
+                .open(instance.directory().join(".lock"))?;
+            fs3::FileExt::lock_exclusive(&lock)?;
+            Some(Arc::new(FileLock(lock)))
+        } else {
+            None
+        };
 
         let ns_name = make_container_ns_name(instance.name())?;
         let rootfs_path = instance.workspace().directory().join(instance.name());
@@ -134,7 +140,7 @@ impl Container {
         Ok(Self {
             instance,
             config: Arc::new(config),
-            lock: Arc::new(lock),
+            lock,
             ns_name,
             rootfs_path,
             config_path,
@@ -598,7 +604,9 @@ impl Deref for OwnedContainer {
 impl Drop for OwnedContainer {
     fn drop(&mut self) {
         let instance = self.0.instance().to_owned();
-        self.0.lock.force_unlock();
+        if let Some(lock) = &self.0.lock {
+            lock.force_unlock();
+        }
         instance.destroy().unwrap();
     }
 }

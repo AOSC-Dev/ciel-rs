@@ -27,7 +27,7 @@ pub fn list_instances() -> Result<()> {
     writeln!(&mut formatter, "NAME\tMOUNTED\tSTARTED\tBOOTED")?;
 
     for inst in ws.instances()? {
-        let container = inst.open()?;
+        let container = inst.open_unlocked()?;
         let state = container.state()?;
         let (mounted, started, running) = match state {
             ContainerState::Down => (false, false, false),

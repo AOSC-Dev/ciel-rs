@@ -89,7 +89,12 @@ impl Instance {
     ///
     /// This is equivalent to calling [Container::open].
     pub fn open(&self) -> Result<Container> {
-        Container::open(self.to_owned())
+        Container::open(self.to_owned(), true)
+    }
+
+    /// Opens the build container for further operations without locking.
+    pub fn open_unlocked(&self) -> Result<Container> {
+        Container::open(self.to_owned(), false)
     }
 
     /// Destories the container, removing all related files.
