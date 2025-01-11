@@ -119,9 +119,9 @@ pub(crate) mod test {
     use tempfile::TempDir;
 
     use crate::{
-        Result,
         repo::SimpleAptRepository,
         workspace::{Workspace, WorkspaceConfig},
+        Result,
     };
 
     pub fn is_root() -> bool {
@@ -144,6 +144,7 @@ pub(crate) mod test {
     }
 
     fn copy_file(from: &Path, to: &Path) {
+        assert!(from.exists());
         if from.is_symlink() {
             std::os::unix::fs::symlink(fs::read_link(from).unwrap(), to).unwrap();
         } else if from.is_file() {
@@ -170,7 +171,7 @@ pub(crate) mod test {
         pub fn from(template: &str) -> Self {
             let dir = Self::new();
             println!("copying test data: {} -> {:?}", template, dir.path());
-            copy_file(Path::new(template), dir.path());
+            copy_file(&Path::new("testdata").join(template), dir.path());
             dir
         }
 

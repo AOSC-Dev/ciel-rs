@@ -338,7 +338,7 @@ mod test {
 
     #[test(ignore)]
     fn test_container_boot() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());

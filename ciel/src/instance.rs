@@ -255,7 +255,7 @@ readonly-tree = false
 
     #[test]
     fn test_instance() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
 
@@ -276,7 +276,7 @@ readonly-tree = false
 
     #[test]
     fn test_instance_migration() {
-        let testdir = TestDir::from("testdata/old-workspace");
+        let testdir = TestDir::from("old-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -286,7 +286,7 @@ readonly-tree = false
 
     #[test]
     fn test_instance_destroy() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         assert_eq!(

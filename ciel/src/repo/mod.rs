@@ -110,7 +110,7 @@ mod test {
 
     #[test]
     fn test_simple_apt_repo_refresh() {
-        let testdir = TestDir::from("testdata/simple-repo");
+        let testdir = TestDir::from("simple-repo");
         let repo = testdir.apt_repo();
         repo.refresh().unwrap();
         assert_eq!(

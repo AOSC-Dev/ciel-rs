@@ -640,7 +640,7 @@ volatile-mount = false
     #[test]
     fn test_workspace_migration_v3() {
         // migration from Ciel <= 3.6.0
-        let testdir = TestDir::from("testdata/old-workspace");
+        let testdir = TestDir::from("old-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -654,7 +654,7 @@ volatile-mount = false
     #[test]
     fn test_workspace_migration_v2() {
         // migration from Ciel 2.x.x
-        let testdir = TestDir::from("testdata/v2-workspace");
+        let testdir = TestDir::from("v2-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -664,7 +664,7 @@ volatile-mount = false
 
     #[test]
     fn test_incompatible_workspace() {
-        let testdir = TestDir::from("testdata/incompat-ws-version");
+        let testdir = TestDir::from("incompat-ws-version");
         assert!(matches!(
             testdir.workspace(),
             Err(Error::UnsupportedWorkspaceVersion(0))
@@ -673,13 +673,13 @@ volatile-mount = false
 
     #[test]
     fn test_broken_workspace() {
-        let testdir = TestDir::from("testdata/broken-workspace");
+        let testdir = TestDir::from("broken-workspace");
         assert!(matches!(testdir.workspace(), Err(Error::BrokenWorkspace)));
     }
 
     #[test]
     fn test_workspace_instances() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         assert_eq!(
@@ -698,7 +698,7 @@ volatile-mount = false
 
     #[test]
     fn test_workspace_add_instance() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         assert_eq!(
@@ -733,7 +733,7 @@ volatile-mount = false
 
     #[test]
     fn test_workspace_commit() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         let instance = workspace.instance("test").unwrap();
@@ -758,7 +758,7 @@ volatile-mount = false
 
     #[test]
     fn test_workspace_commit_tmpfs() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         let instance = workspace.instance("tmpfs").unwrap();
@@ -783,7 +783,7 @@ volatile-mount = false
 
     #[test]
     fn test_workspace_destroy() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         workspace.destroy().unwrap();
@@ -793,7 +793,7 @@ volatile-mount = false
 
     #[test]
     fn test_workspace_ephemeral_container() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let workspace = testdir.workspace().unwrap();
         dbg!(&workspace);
         let cont = workspace

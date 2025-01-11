@@ -156,7 +156,7 @@ mod test {
 
     #[test]
     fn test_collect_all_packages() {
-        let testdir = TestDir::from("testdata/simple-repo");
+        let testdir = TestDir::from("simple-repo");
         assert_eq!(
             collect_all_packages(testdir.path().join("debs")).unwrap(),
             vec![
@@ -169,7 +169,7 @@ mod test {
 
     #[test]
     fn test_scan_single_deb_simple() {
-        let testdir = TestDir::from("testdata/simple-repo");
+        let testdir = TestDir::from("simple-repo");
         assert_eq!(
             String::from_utf8(
                 scan_single_deb_simple(
@@ -204,7 +204,7 @@ SHA256: dd386883fa246cc50826cced5df4353b64a490d3f0f487e2d8764b4d7d00151e
 
     #[test]
     fn test_scan_packages_simple() {
-        let testdir = TestDir::from("testdata/simple-repo");
+        let testdir = TestDir::from("simple-repo");
         assert_eq!(
             String::from_utf8(
                 scan_packages_simple(

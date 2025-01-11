@@ -1,0 +1,37 @@
+[package]
+name = "ciel"
+version.workspace = true
+description.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+zbus = { version = "^5", features = ["blocking"] }
+nix = { version = "0.29", features = ["fs", "hostname", "mount", "signal", "user"] }
+toml = "0.8"
+bincode = "1.3"
+serde = { version = "1.0", features = ["derive"] }
+git2 = "0.19"
+libmount = { git = "https://github.com/liushuyu/libmount", rev = "6fe8dba03a6404dfe1013995dd17af1c4e21c97b" }
+adler32 = "1.2"
+rayon = "1.10"
+tempfile = "3.14"
+libsystemd-sys = "0.9"
+walkdir = "2"
+xattr = "^1"
+rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
+time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
+fs3 = "0.5"
+ar = "0.9"
+faster-hex = "0.10"
+flate2 = "1.0"
+inotify = "0.11"
+zstd = "0.13.2"
+thiserror = "2.0.8"
+log = "0.4.22"
+test-log = { version = "0.2.16", features = ["log"] }
+sha2 = "0.10.8"
+tar = "0.4.43"
+xz2 = "0.1.7"

@@ -567,7 +567,9 @@ impl OwnedContainer {
     /// Destroies the owned container.
     pub fn discard(self) -> Result<()> {
         let instance = self.0.instance().to_owned();
-        self.0.lock.force_unlock();
+        if let Some(lock) = &self.0.lock {
+            lock.force_unlock();
+        }
         forget(self);
         instance.destroy()
     }
@@ -632,7 +634,7 @@ mod test {
 
     #[test]
     fn test_container_migration() {
-        let testdir = TestDir::from("testdata/old-workspace");
+        let testdir = TestDir::from("old-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -645,7 +647,7 @@ mod test {
 
     #[test]
     fn test_container_state() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -658,7 +660,7 @@ mod test {
 
     #[test]
     fn test_owned_container() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -676,7 +678,7 @@ mod test {
 
     #[test]
     fn test_owned_container_leak() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
@@ -692,7 +694,7 @@ mod test {
 
     #[test]
     fn test_container_config_apt_repos() {
-        let testdir = TestDir::from("testdata/simple-workspace");
+        let testdir = TestDir::from("simple-workspace");
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         let inst = ws.instance("test").unwrap();
