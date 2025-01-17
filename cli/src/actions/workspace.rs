@@ -61,13 +61,6 @@ pub fn list_instances() -> Result<()> {
 
 pub fn new_workspace(args: &ArgMatches) -> Result<()> {
     let mut config = WorkspaceConfig::default();
-
-    let gitconfig = git2::Config::open_default()?;
-    if let Ok(name) = gitconfig.get_string("user.name") {
-        if let Ok(email) = gitconfig.get_string("user.email") {
-            config.maintainer = format!("{} <{}>", name, email);
-        }
-    }
     let mut arch = args.get_one::<String>("arch").cloned();
 
     patch_workspace_config(args, &mut config)?;
