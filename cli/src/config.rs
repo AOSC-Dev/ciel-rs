@@ -90,7 +90,7 @@ pub fn patch_workspace_config(args: &ArgMatches, config: &mut WorkspaceConfig) -
     }
 
     config_scalar(args, "dnssec", &mut config.dnssec);
-    config_list(args, "repo", &mut config.extra_apt_repos);
+    config_list(args, "repo", &mut config.apt_repos);
     config_scalar(args, "local-repo", &mut config.use_local_repo);
     config_scalar(args, "source-cache", &mut config.cache_sources);
     config_list(args, "nspawn-opt", &mut config.extra_nspawn_options);

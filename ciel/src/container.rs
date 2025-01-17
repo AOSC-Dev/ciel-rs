@@ -394,8 +394,8 @@ impl ContainerConfig {
     /// and [InstanceConfig::use_local_repo]),
     /// `deb [trusted=yes] file:///debs/ /` will also be included.
     pub fn all_apt_repos(&self) -> Vec<String> {
-        let mut repos = vec!["deb https://repo.aosc.io/debs/ stable main".to_string()];
-        repos.extend(self.workspace_config.extra_apt_repos.iter().cloned());
+        let mut repos = Vec::new();
+        repos.extend(self.workspace_config.apt_repos.iter().cloned());
         repos.extend(self.instance_config.extra_apt_repos.iter().cloned());
         if self.workspace_config.use_local_repo && self.instance_config.use_local_repo {
             repos.push("deb [trusted=yes] file:///debs/ /".to_string());

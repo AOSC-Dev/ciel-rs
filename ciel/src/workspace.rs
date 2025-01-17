@@ -259,7 +259,7 @@ impl Workspace {
     }
 
     /// Returns the output directory of the workspace.
-    /// 
+    ///
     /// See [Container::output_directory].
     pub fn output_directory(&self) -> PathBuf {
         let name = if self.config().branch_exclusive_output {
@@ -322,7 +322,7 @@ pub struct WorkspaceConfig {
     apt_sources: Option<String>,
     /// Extra APT repositories to use.
     #[serde(default)]
-    pub extra_apt_repos: Vec<String>,
+    pub apt_repos: Vec<String>,
     /// Whether local repository (the output directory) should be enabled in containers.
     #[serde(alias = "local_repo", default)]
     pub use_local_repo: bool,
@@ -368,7 +368,7 @@ impl Default for WorkspaceConfig {
             maintainer: "Bot <null@aosc.io>".to_string(),
             dnssec: false,
             apt_sources: None,
-            extra_apt_repos: vec![],
+            apt_repos: vec!["deb https://repo.aosc.io/debs/ stable main".to_string()],
             use_local_repo: true,
             branch_exclusive_output: true,
             no_cache_packages: false,
@@ -464,14 +464,11 @@ impl WorkspaceConfig {
 
         // Convert old `apt_sources` into `extra_apt_repos`
         if let Some(sources) = config.apt_sources.take() {
-            config.extra_apt_repos.extend(
+            config.apt_repos.extend(
                 sources
                     .lines()
                     .map(|line| line.trim())
                     .filter(|line| !line.is_empty())
-                    .filter(|line| {
-                        !line.eq_ignore_ascii_case("deb https://repo.aosc.io/debs/ stable main")
-                    })
                     .map(|line| line.to_string()),
             );
         }
@@ -522,7 +519,7 @@ mod test {
             r##"version = 3
 maintainer = "Bot <null@aosc.io>"
 dnssec = false
-extra-apt-repos = []
+apt-repos = ["deb https://repo.aosc.io/debs/ stable main"]
 use-local-repo = true
 branch-exclusive-output = true
 no-cache-packages = false
@@ -560,7 +557,8 @@ nspawn-extra-options = ["-E", "NO_COLOR=1"]
                 maintainer: "AOSC OS Maintainers <maintainers@aosc.io>".to_string(),
                 dnssec: false,
                 apt_sources: None,
-                extra_apt_repos: vec![],
+                apt_repos: vec![
+                    "deb https://repo.aosc.io/debs/ stable main".to_string(),],
                 use_local_repo: true,
                 branch_exclusive_output: true,
                 cache_sources: true,
@@ -591,7 +589,10 @@ volatile-mount = false
                 maintainer: "AOSC OS Maintainers <maintainers@aosc.io>".to_string(),
                 dnssec: false,
                 apt_sources: None,
-                extra_apt_repos: vec!["deb file:///test/ test test".to_string()],
+                apt_repos: vec![
+                    "deb https://repo.aosc.io/debs/ stable main".to_string(),
+                    "deb file:///test/ test test".to_string()
+                ],
                 use_local_repo: true,
                 branch_exclusive_output: true,
                 cache_sources: true,
@@ -629,7 +630,7 @@ volatile-mount = false
         let ws = testdir.init_workspace(WorkspaceConfig::default()).unwrap();
         dbg!(&ws);
         assert!(!ws.is_system_loaded());
-        assert!(ws.config().extra_apt_repos.is_empty());
+        assert!(ws.config().apt_repos.len() == 1);
         fs::write(ws.directory().join(".ciel/container/dist/init"), "").unwrap();
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
@@ -645,8 +646,9 @@ volatile-mount = false
         dbg!(&ws);
         assert!(ws.is_system_loaded());
         assert_eq!(
-            ws.config().extra_apt_repos,
-            vec!["deb file:///test/ test test".to_string(),]
+            ws.config().apt_repos,
+            vec![
+                    "deb https://repo.aosc.io/debs/ stable main".to_string(),"deb file:///test/ test test".to_string(),]
         );
         assert!(ws.config().branch_exclusive_output);
     }
@@ -658,7 +660,7 @@ volatile-mount = false
         let ws = testdir.workspace().unwrap();
         dbg!(&ws);
         assert!(ws.is_system_loaded());
-        assert!(ws.config().extra_apt_repos.is_empty());
+        assert!(ws.config().apt_repos.len() == 1);
         assert!(ws.config().branch_exclusive_output);
     }
 
