@@ -18,7 +18,6 @@ pub const CIEL_MAINLINE_ARCHS: &[&str] = &[
     "amd64",
     "arm64",
     "ppc64el",
-    "mips64r6el",
     "riscv64",
     "loongarch64",
     "loongson3",
