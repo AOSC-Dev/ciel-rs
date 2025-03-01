@@ -329,9 +329,16 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     rollback_container(instance)?;
 
     if !conf.local_repo {
-        let mut cmd = vec!["/bin/acbs-build".to_string(), "--".to_string()];
+        let mut cmd = vec!["/bin/acbs-build".to_string()];
+
+        if settings.force_use_apt {
+            cmd.push("--force-use-apt".to_string());
+        }
+
+        cmd.push("--".to_string());
         cmd.extend(packages);
         let status = run_in_container(instance, &cmd)?;
+
         return Ok(status);
     }
 
