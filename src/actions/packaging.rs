@@ -181,7 +181,7 @@ fn package_build_inner<P: AsRef<Path>>(
         let mut status = -1;
         let mut oma = true;
         for i in 1..=5 {
-            status = if oma {
+            status = if oma && !apt {
                 run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT]).unwrap_or(-1)
             } else {
                 run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT]).unwrap_or(-1)
