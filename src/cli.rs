@@ -122,6 +122,7 @@ pub fn build_cli() -> Command {
                 .arg(Arg::new("OFFLINE").short('x').long("offline").action(clap::ArgAction::SetTrue).env("CIEL_OFFLINE").help("Disable network in the container during the build"))
                 .arg(instance_arg.clone().help("Instance to build in"))
                 .arg(Arg::new("STAGE2").long("stage2").short('2').action(clap::ArgAction::SetTrue).env("CIEL_STAGE2").help("Use stage 2 mode instead of the regular build mode"))
+                .arg(Arg::new("force_use_apt").long("force-use-apt").action(clap::ArgAction::SetTrue).env("FORCE_USE_APT").help("Force use apt to run acbs"))
                 .arg(Arg::new("CONTINUE").conflicts_with("SELECT").short('c').long("resume").alias("continue").num_args(1).help("Continue from a Ciel checkpoint"))
                 .arg(Arg::new("SELECT").num_args(0..=1).long("stage-select").help("Select the starting point for a build"))
                 .arg(Arg::new("PACKAGES").conflicts_with("CONTINUE").num_args(1..))
