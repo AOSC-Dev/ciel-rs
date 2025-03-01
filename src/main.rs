@@ -302,6 +302,8 @@ fn main() -> Result<()> {
             let settings = BuildSettings {
                 offline: args.get_flag("OFFLINE"),
                 stage2: args.get_flag("STAGE2"),
+                force_use_apt: args.get_flag("force_use_apt")
+                    || read_config().is_ok_and(|config| config.force_use_apt),
             };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {

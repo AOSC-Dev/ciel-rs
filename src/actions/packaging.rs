@@ -31,6 +31,7 @@ pub struct BuildCheckPoint {
 pub struct BuildSettings {
     pub offline: bool,
     pub stage2: bool,
+    pub force_use_apt: bool,
 }
 
 pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
@@ -151,6 +152,7 @@ fn package_build_inner<P: AsRef<Path>>(
     packages: &[String],
     instance: &str,
     root: P,
+    apt: bool,
 ) -> Result<(i32, usize)> {
     let total = packages.len();
     let hostname = gethostname().map_or_else(
@@ -200,7 +202,18 @@ fn package_build_inner<P: AsRef<Path>>(
             error!("Failed to update the OS before building packages");
             return Ok((status, index));
         }
-        let status = run_in_container(instance, &["/bin/acbs-build", "--", package])?;
+
+        let mut acbs = vec!["/bin/acbs-build"];
+
+        if apt {
+            acbs.push("--force-use-apt");
+        }
+
+        acbs.push("--");
+        acbs.push(package);
+
+        let status = run_in_container(instance, &acbs)?;
+
         if status != 0 {
             error!("Build failed with status: {}", status);
             return Ok((status, index));
@@ -326,7 +339,8 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     let root = std::env::current_dir()?.join(output_dir);
     let total = packages.len();
     let start = Instant::now();
-    let (exit_status, progress) = package_build_inner(&packages, instance, root)?;
+    let (exit_status, progress) =
+        package_build_inner(&packages, instance, root, settings.force_use_apt)?;
     if exit_status != 0 {
         let checkpoint = BuildCheckPoint {
             packages,
