@@ -879,7 +879,7 @@ _ciel() {
             fi
             case "${prev}" in
                 --from-tarball)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    # implicitly fallback to default path completion
                     return 0
                     ;;
                 *)
