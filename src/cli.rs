@@ -104,7 +104,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("config")
                 .arg(instance_arg.clone().help("Instance to be configured"))
-                .arg(Arg::new("g").short('g').action(clap::ArgAction::SetTrue).conflicts_with("INSTANCE").help("Configure base system instead of an instance"))
+                .arg(Arg::new("g").short('g').action(clap::ArgAction::SetTrue).help("Configure base system instead of an instance"))
                 .about("Configure system and toolchain for building interactively"),
         )
         .subcommand(

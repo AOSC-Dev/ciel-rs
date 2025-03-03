@@ -233,12 +233,32 @@ fn main() -> Result<()> {
             print_error!({ actions::update_os(force_use_apt,) });
         }
         ("config", args) => {
-            if args.get_flag("g") {
+            // HACK: To improve UX, we allow -i and -g to be implicitly specified through environment variable
+            // and then we check if user explicitly specified -i
+            let has_global_flag = args.get_flag("g");
+            let instance = get_instance_option(args).ok();
+            let instance_from_env = if let Some(ref inst) = instance {
+                std::env::var("CIEL_INST")
+                    .map(|x| &x == inst)
+                    .unwrap_or(false)
+            } else {
+                true
+            };
+            if !instance_from_env && has_global_flag {
+                error!("Cannot use -g and -i together.");
+                process::exit(1);
+            }
+            if has_global_flag {
                 print_error!({ actions::config_os(None) });
                 return Ok(());
             }
-            let instance = get_instance_option(args)?;
-            print_error!({ actions::config_os(Some(&instance)) });
+            if let Some(inst) = instance {
+                info!("Configuring for {}", inst);
+                print_error!({ actions::config_os(Some(&inst)) });
+                return Ok(());
+            }
+
+            return Err(anyhow!("No instance specified!"));
         }
         ("mount", args) => {
             print_error!({ one_or_all_instance!(args, &actions::mount_fs) });
