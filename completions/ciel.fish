@@ -145,5 +145,5 @@ complete -xc ciel -n "__fish_seen_subcommand_from rollback" -s i -d 'Instance to
 complete -xc ciel -n "__fish_seen_subcommand_from down" -s i -d 'Instance to be un-mounted' -a "(__ciel_list_instances)"
 complete -xc ciel -n "__fish_seen_subcommand_from stop" -s i -d 'Instance to be stopped' -a "(__ciel_list_instances)"
 complete -xc ciel -n "__fish_seen_subcommand_from mount" -s i -d 'Instance to be mounted' -a "(__ciel_list_instances)"
-complete -xc ciel -n "__fish_seen_subcommand_from load-os" -a "(__fish_complete_suffix tar.xz)"
+complete -xc ciel -n "__fish_seen_subcommand_from load-os" -a "(__fish_complete_suffix tar.xz squashfs)"
 complete -c ciel -n "__fish_use_subcommand" -f -a "(__ciel_list_plugins)"
