@@ -103,7 +103,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     load_os(&rootfs_url, rootfs_sha256, use_tarball)?;
     info!("Initializing ABBS tree...");
     // use README.md to detect if TREE is actually initialized
-    if Path::new("TREE/README.md").is_dir() {
+    if Path::new("TREE/README.md").exists() {
         warn!("TREE already exists, skipping this step...");
     } else {
         // if TREE is a file, then remove it
