@@ -1,11 +1,7 @@
 use anyhow::{anyhow, Result};
 use console::{style, user_attended, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
-use std::{
-    fs::{self, File},
-    path::Path,
-    process::exit,
-};
+use std::{fs, path::Path, process::exit};
 
 use crate::{
     actions::get_branch_name,
