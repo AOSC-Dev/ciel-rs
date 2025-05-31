@@ -1,11 +1,22 @@
 #!/bin/bash
-# Usage: ciel-switchmirror <mirror name in apt-gen-list>
+# Usage: ciel-switchmirror <mirror name in oma mirror>
 
 export CIEL_INST="ciel--switchmirror--"
 
 ciel add "$CIEL_INST"
-echo -e "\e[1m\e[96m[switch-mirror]:\e[0m\e[1m Mirror set to '$1'\e[0m"
-ciel shell "apt-gen-list set-mirror $1"
+if [ "$1" != "" ]; then
+ciel shell oma mirror add "$1"
+    if [ "$?" != "0" ]; then
+        echo -e "\e[1m\e[91m[switch-mirror]:\e[0m\e[1m Failed to set mirror '$1'.\e[0m"
+        echo -e "\e[1m\e[91m[switch-mirror]:\e[0m\e[1m More information please refer to the error oma had reported.\e[0m"
+        exit 1
+    else
+        echo -e "\e[1m\e[96m[switch-mirror]:\e[0m\e[1m Mirror set to '$1' successfully.\e[0m"   
+    fi
+
+else 
+    ciel shell "oma mirror"
+fi
 ciel factory-reset
 ciel commit
 ciel del "$CIEL_INST"
