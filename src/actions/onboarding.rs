@@ -26,10 +26,22 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
 
     let theme = ColorfulTheme::default();
     info!("Welcome to ciel!");
+    // make configuration reusable
+    let mut reuse_config = false;
     if Path::new(".ciel").exists() {
-        error!("Seems like you've already created a ciel workspace here.");
-        info!("Please run `ciel farewell` to nuke it before running this command.");
-        return Err(anyhow!("Unable to create a ciel workspace."));
+        info!("Seems like you've already created a ciel workspace here.");
+        if Path::new(".ciel/data/config.toml").exists() {
+            reuse_config = Confirm::with_theme(&theme)
+                .with_prompt("Would you like to reuse configuration?")
+                .interact()?;
+        }
+        if reuse_config {
+            info!("Reusing existing configuration.");
+            // return Ok(());
+        } else {
+            info!("Please run `ciel farewell` to nuke it before running this command.");
+            return Err(anyhow!("Unable to create a ciel workspace."));
+        }
     }
     info!("Before continuing, I need to ask you a few questions:");
     let real_arch = if let Some(arch) = arch {
@@ -39,7 +51,11 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     } else {
         ask_for_target_arch()?
     };
-    let config = config::ask_for_config(None)?;
+    let config = if reuse_config {
+        config::read_config()?
+    } else {
+        config::ask_for_config(None)?
+    };
     let mut init_instance: Option<String> = None;
     if user_attended()
         && Confirm::with_theme(&theme)
@@ -60,6 +76,14 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
 
     info!("Initializing workspace...");
     ciel_init()?;
+    // apply config in an earlier stage of initialization
+    config::apply_config(CIEL_DIST_DIR, &config)?;
+    info!("Applying configurations...");
+    fs::write(
+        Path::new(CIEL_DATA_DIR).join("config.toml"),
+        config.save_config()?,
+    )?;
+    info!("Configurations applied.");
     info!("Initializing container OS...");
     let (rootfs_url, rootfs_sha256, use_tarball) = match custom_tarball {
         Some(rootfs) => {
@@ -78,20 +102,16 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     };
     load_os(&rootfs_url, rootfs_sha256, use_tarball)?;
     info!("Initializing ABBS tree...");
-    if Path::new("TREE").is_dir() {
+    // use README.md to detect if TREE is actually initialized
+    if Path::new("TREE/README.md").exists() {
         warn!("TREE already exists, skipping this step...");
     } else {
         // if TREE is a file, then remove it
         fs::remove_file("TREE").ok();
+        // if TREE is a directory, then also remove it
+        fs::remove_dir_all("TREE").ok();
         download_git(GIT_TREE_URL, Path::new("TREE"))?;
     }
-    config::apply_config(CIEL_DIST_DIR, &config)?;
-    info!("Applying configurations...");
-    fs::write(
-        Path::new(CIEL_DATA_DIR).join("config.toml"),
-        config.save_config()?,
-    )?;
-    info!("Configurations applied.");
     let cwd = std::env::current_dir()?;
     let mut output_dir_name = "OUTPUT".to_string();
 
