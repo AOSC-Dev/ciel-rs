@@ -36,6 +36,8 @@ pub struct CielConfig {
     pub volatile_mount: bool,
     #[serde(default = "CielConfig::default_force_use_apt")]
     pub force_use_apt: bool,
+    #[serde(default)]
+    pub foreign_arch: Option<String>,
 }
 
 impl CielConfig {
@@ -65,6 +67,7 @@ impl Default for CielConfig {
             sep_mount: true,
             volatile_mount: false,
             force_use_apt: false,
+            foreign_arch: None,
         }
     }
 }
@@ -231,6 +234,9 @@ pub fn apply_config<P: AsRef<Path>>(root: P, config: &CielConfig) -> Result<()> 
         )
         .as_bytes(),
     )?;
+    if let Some(foreign_arch) = &config.foreign_arch {
+        f.write_all(format!("\nARCH={}", foreign_arch).as_bytes())?;
+    }
     config_path.set_file_name(DEFAULT_AB4_CONFIG_FILE);
     // write sources.list
     if !config.apt_sources.is_empty() {

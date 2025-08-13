@@ -39,7 +39,11 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     } else {
         ask_for_target_arch()?
     };
-    let config = config::ask_for_config(None)?;
+    let mut config = config::ask_for_config(None)?;
+    // check if this is a "foreign architecture"
+    if real_arch.contains("_") {
+        config.foreign_arch = Some(real_arch.to_string());
+    }
     let mut init_instance: Option<String> = None;
     if user_attended()
         && Confirm::with_theme(&theme)
