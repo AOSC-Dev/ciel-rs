@@ -20,6 +20,7 @@ pub const CIEL_MAINLINE_ARCHS: &[&str] = &[
     "ppc64el",
     "riscv64",
     "loongarch64",
+    "loongarch64_nosimd",
     "loongson3",
 ];
 pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
@@ -65,7 +66,7 @@ pub fn check_arch_name(arch: &str) -> bool {
 /// AOSC OS specific architecture mapping table
 #[inline]
 pub fn get_host_arch_name() -> Option<&'static str> {
-    #[cfg(not(target_arch = "powerpc64"))]
+    #[cfg(not(any(target_arch = "powerpc64", target_arch = "loongarch64")))]
     match ARCH {
         "x86_64" => Some("amd64"),
         "x86" => Some("i486"),
@@ -73,7 +74,6 @@ pub fn get_host_arch_name() -> Option<&'static str> {
         "aarch64" => Some("arm64"),
         "mips64" => Some("loongson3"),
         "riscv64" => Some("riscv64"),
-        "loongarch64" => Some("loongarch64"),
         _ => None,
     }
 
@@ -88,6 +88,31 @@ pub fn get_host_arch_name() -> Option<&'static str> {
             libc::PR_ENDIAN_LITTLE | libc::PR_ENDIAN_PPC_LITTLE => Some("ppc64el"),
             libc::PR_ENDIAN_BIG => Some("ppc64"),
             _ => None,
+        }
+    }
+
+    #[cfg(target_arch = "loongarch64")]
+    {
+        use core::arch::asm;
+
+        fn loongarch_has_simd() -> bool {
+            let mask: u64;
+            const CONFIG_PAGE: u64 = 2;
+            unsafe {
+                asm! {
+                    "cpucfg {mask}, {page}",
+                    options(pure, nomem, nostack, preserves_flags),
+                    page = in(reg) CONFIG_PAGE,
+                    mask = lateout(reg) mask,
+                }
+                (mask >> 6) & 0x1 > 0
+            }
+        }
+
+        if loongarch_has_simd() {
+            Some("loongarch64")
+        } else {
+            Some("loongarch64_nosimd")
         }
     }
 }
