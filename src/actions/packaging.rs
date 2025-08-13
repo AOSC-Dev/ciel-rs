@@ -19,6 +19,12 @@ use super::{
     APT_UPDATE_SCRIPT,
 };
 
+const BINCODE_CONFIG: bincode::config::Configuration<
+    bincode::config::LittleEndian,
+    bincode::config::Fixint,
+    bincode::config::NoLimit,
+> = bincode::config::legacy();
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BuildCheckPoint {
     packages: Vec<String>,
@@ -35,13 +41,16 @@ pub struct BuildSettings {
 }
 
 pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
-    let f = File::open(path)?;
+    let mut f = File::open(path)?;
 
-    Ok(bincode::deserialize_from(f)?)
+    Ok(bincode::serde::decode_from_std_read(
+        &mut f,
+        BINCODE_CONFIG,
+    )?)
 }
 
 fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
-    let save_state = bincode::serialize(checkpoint)?;
+    let save_state = bincode::serde::encode_to_vec(checkpoint, BINCODE_CONFIG)?;
     let last_package = checkpoint
         .packages
         .get(checkpoint.progress)
