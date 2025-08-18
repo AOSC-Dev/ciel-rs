@@ -1,0 +1,75 @@
+#!/bin/bash -e
+
+_usage(){
+	cat << EOF
+
+A simple script to pull topic repositories for use as Ciel local repositories.
+
+Usage:
+
+	$0 [TOPIC_NAME_A] [TOPIC_NAME_B] ... [TOPIC_NAME_Z]
+EOF
+}
+
+_check_arch() {
+	local arch
+	arch="$(ciel run -- dpkg-architecture -qDEB_BUILD_ARCH)"
+	if [ "$?" -eq 0 ]; then
+		echo "$arch"
+		return 0
+	fi
+	# fallback to uname if dpkg-architecture fails
+	arch="$(uname -m)"
+	case $arch in
+		aarch64) arch="arm64" ;;
+		x86_64) arch="amd64" ;;
+		mips64) arch="loongson3" ;;
+		ppc64le) arch="ppc64el" ;;
+		loongarch64) arch="loongarch64" ;;
+		riscv64) arch="riscv64" ;;
+		*) echo "Unsupported architecture: $arch"; exit 1 ;;
+	esac
+}
+
+# $1: topic name
+# $2: architecture name
+_fetch_one_topic() {
+	local output_dir="OUTPUT-$1"
+	if [ -e "${output_dir}" ]; then
+		while true; do
+			read -rp "Detected an existing local repository for $1, overwrite? " yn
+			case $yn in
+				[Yy]* )
+					rm -r "${output_dir}"; break ;;
+				[Nn]* )
+					echo "Aborting, please move your local repository directory OUTPUT-$1 aside."; exit 1 ;;
+			        * )
+					echo "Please input Y[y] or N[n]." ;;
+			esac
+		done
+	fi
+
+	echo "Pulling topic repository: $1 ..."
+	rsync \
+		-avSHPR \
+		--include='*/' \
+		"rsync://mirror.anthonos.org/anthon/debs/pool/$1/main/**/*"_{"$2",noarch}.deb \
+		"${output_dir}"
+
+	echo "Adjusting topic repository for Ciel: $i ..."
+	mv -v "${output_dir}"/*/*/*/main \
+		"${output_dir}"/
+	rm -rv "${output_dir}"/debs
+	mv -v "${output_dir}"/main \
+		"${output_dir}"/debs
+}
+
+if [ -z "$1" ]; then
+	_usage
+	exit 1
+fi
+
+arch="$(_check_arch)"
+for i in "$@"; do
+	_fetch_one_topic "$i" "$arch"
+done
