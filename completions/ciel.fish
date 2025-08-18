@@ -84,6 +84,7 @@ complete -c ciel -n "__fish_seen_subcommand_from config" -s h -l help -d 'Print 
 complete -c ciel -n "__fish_seen_subcommand_from commit" -s h -l help -d 'Print help information'
 complete -c ciel -n "__fish_seen_subcommand_from doctor" -s h -l help -d 'Print help information'
 complete -c ciel -n "__fish_seen_subcommand_from build" -s c -l resume -d 'Continue from a Ciel checkpoint' -r
+complete -c ciel -n "__fish_seen_subcommand_from build" -l with-topics -d 'Try to add topics before building, delimited by space' -r
 complete -c ciel -n "__fish_seen_subcommand_from build" -l stage-select -d 'Select the starting point for a build' -r
 complete -c ciel -n "__fish_seen_subcommand_from build" -s g -d 'Fetch source packages only'
 complete -c ciel -n "__fish_seen_subcommand_from build" -s x -l offline -d 'Disable network in the container during the build'

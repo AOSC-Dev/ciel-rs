@@ -34,10 +34,11 @@ pub struct BuildCheckPoint {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct BuildSettings {
+pub struct BuildSettings<'a> {
     pub offline: bool,
     pub stage2: bool,
     pub force_use_apt: bool,
+    pub with_topics: &'a [&'a str],
 }
 
 pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
@@ -332,6 +333,15 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     if settings.stage2 {
         std::env::set_var("CIEL_STAGE2", "ON");
         info!("Running in stage 2 mode. ACBS and autobuild3 may behave differently.");
+    }
+
+    if !settings.with_topics.is_empty() {
+        let mut cmd = vec!["/bin/oma", "topics", "--yes"];
+        for topic in settings.with_topics {
+            cmd.push("--opt-in");
+            cmd.push(topic);
+        }
+        let _ = run_in_container(instance, &cmd);
     }
 
     mount_fs(instance)?;

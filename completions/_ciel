@@ -142,6 +142,7 @@ _arguments "${_arguments_options[@]}" \
 '-i+[Instance to build in]: : ' \
 '(--stage-select)-c+[Continue from a Ciel checkpoint]: : ' \
 '(--stage-select)--resume=[Continue from a Ciel checkpoint]: : ' \
+'*--with-topics=[Try to add topics before building, delimited by space]: : ' \
 '--stage-select=[Select the starting point for a build]' \
 '-g[Fetch source packages only]' \
 '-x[Disable network in the container during the build]' \

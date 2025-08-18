@@ -265,7 +265,7 @@ _ciel() {
             return 0
             ;;
         ciel__build)
-            opts="-g -x -i -2 -c -h --offline --stage2 --resume --stage-select --help"
+            opts="-g -x -i -2 -c -h --offline --stage2 --with-topics --resume --stage-select --help"
             _ciel_source_env 2>/dev/null || true
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 && -z "${CIEL_INST}" ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -274,6 +274,10 @@ _ciel() {
             case "${prev}" in
                 -i)
                     COMPREPLY=($(compgen -W "$(_ciel_list_instances)" -- "$cur"))
+                    return 0
+                    ;;
+                --with-topics)
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --resume)
