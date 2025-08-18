@@ -319,11 +319,18 @@ fn main() -> Result<()> {
         }
         ("build", args) => {
             let instance = get_instance_option(args)?;
+            let topics = args
+                .get_many::<String>("TOPICS")
+                .unwrap_or_default()
+                .into_iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>();
             let settings = BuildSettings {
                 offline: args.get_flag("OFFLINE"),
                 stage2: args.get_flag("STAGE2"),
                 force_use_apt: args.get_flag("force_use_apt")
                     || read_config().is_ok_and(|config| config.force_use_apt),
+                with_topics: &topics,
             };
             let mut state = None;
             if let Some(cont) = args.get_one::<String>("CONTINUE") {
