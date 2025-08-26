@@ -322,7 +322,6 @@ fn main() -> Result<()> {
             let topics = args
                 .get_many::<String>("TOPICS")
                 .unwrap_or_default()
-                .into_iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>();
             let settings = BuildSettings {
