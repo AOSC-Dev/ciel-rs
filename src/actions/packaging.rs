@@ -335,6 +335,9 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
         info!("Running in stage 2 mode. ACBS and autobuild3 may behave differently.");
     }
 
+    mount_fs(instance)?;
+    rollback_container(instance)?;
+
     if !settings.with_topics.is_empty() {
         let mut cmd = vec!["/bin/oma", "topics", "--yes"];
         for topic in settings.with_topics {
@@ -343,9 +346,6 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
         }
         let _ = run_in_container(instance, &cmd);
     }
-
-    mount_fs(instance)?;
-    rollback_container(instance)?;
 
     if !conf.local_repo {
         let mut cmd = vec!["/bin/acbs-build".to_string()];
