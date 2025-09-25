@@ -344,7 +344,10 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
             cmd.push("--opt-in");
             cmd.push(topic);
         }
-        let _ = run_in_container(instance, &cmd);
+        let status = run_in_container(instance, &cmd)?;
+        if status != 0 {
+            return Err(anyhow!("Failed to add specific topics"));
+        }
     }
 
     if !conf.local_repo {
