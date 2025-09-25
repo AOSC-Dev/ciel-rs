@@ -162,7 +162,7 @@ fn package_build_inner<P: AsRef<Path>>(
     packages: &[String],
     instance: &str,
     root: P,
-    apt: bool,
+    settings: BuildSettings,
 ) -> Result<(i32, usize)> {
     let total = packages.len();
     let hostname = gethostname().map_or_else(
@@ -186,12 +186,15 @@ fn package_build_inner<P: AsRef<Path>>(
         // hopefully the sequence gets flushed together with the `info!` below
         info!("[{}/{}] Building {}...", index + 1, total, package);
         mount_fs(instance)?;
+
+        add_topics(instance, &settings)?;
+
         info!("Refreshing local repository...");
         repo::init_repo(root.as_ref(), Path::new(instance))?;
         let mut status = -1;
         let mut oma = true;
         for i in 1..=5 {
-            status = if oma && !apt {
+            status = if oma && !settings.force_use_apt {
                 run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT]).unwrap_or(-1)
             } else {
                 run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT]).unwrap_or(-1)
@@ -215,7 +218,7 @@ fn package_build_inner<P: AsRef<Path>>(
 
         let mut acbs = vec!["/bin/acbs-build"];
 
-        if apt {
+        if settings.force_use_apt {
             acbs.push("--force-use-apt");
         }
 
@@ -297,6 +300,22 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
     Ok(status)
 }
 
+/// Add topics
+pub fn add_topics(instance: &str, settings: &BuildSettings) -> Result<i32> {
+    if !settings.with_topics.is_empty() {
+        let mut cmd = vec!["/bin/oma", "topics", "--yes"];
+        for topic in settings.with_topics {
+            cmd.push("--opt-in");
+            cmd.push(topic);
+        }
+        let status = run_in_container(instance, &cmd)?;
+        if status != 0 {
+            return Err(anyhow!("Failed to add specific topics"));
+        }
+    }
+    Ok(0)
+}
+
 /// Build packages in the container
 pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     instance: &str,
@@ -338,19 +357,9 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     mount_fs(instance)?;
     rollback_container(instance)?;
 
-    if !settings.with_topics.is_empty() {
-        let mut cmd = vec!["/bin/oma", "topics", "--yes"];
-        for topic in settings.with_topics {
-            cmd.push("--opt-in");
-            cmd.push(topic);
-        }
-        let status = run_in_container(instance, &cmd)?;
-        if status != 0 {
-            return Err(anyhow!("Failed to add specific topics"));
-        }
-    }
-
     if !conf.local_repo {
+        add_topics(instance, &settings)?;
+
         let mut cmd = vec!["/bin/acbs-build".to_string()];
 
         if settings.force_use_apt {
@@ -368,8 +377,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
     let root = std::env::current_dir()?.join(output_dir);
     let total = packages.len();
     let start = Instant::now();
-    let (exit_status, progress) =
-        package_build_inner(&packages, instance, root, settings.force_use_apt)?;
+    let (exit_status, progress) = package_build_inner(&packages, instance, root, settings)?;
     if exit_status != 0 {
         let checkpoint = BuildCheckPoint {
             packages,
