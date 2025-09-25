@@ -344,7 +344,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
             cmd.push("--opt-in");
             cmd.push(topic);
         }
-        let _ = run_in_container(instance, &cmd);
+        run_in_container(instance, &cmd)?;
     }
 
     if !conf.local_repo {
