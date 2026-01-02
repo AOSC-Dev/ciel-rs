@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Select};
 use nix::unistd::gethostname;
-use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
@@ -11,6 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 use walkdir::WalkDir;
+use wincode::{SchemaRead, SchemaWrite};
 
 use crate::{actions::OMA_UPDATE_SCRIPT, common::create_spinner, config, error, info, repo, warn};
 
@@ -19,13 +19,7 @@ use super::{
     APT_UPDATE_SCRIPT,
 };
 
-const BINCODE_CONFIG: bincode::config::Configuration<
-    bincode::config::LittleEndian,
-    bincode::config::Fixint,
-    bincode::config::NoLimit,
-> = bincode::config::legacy();
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, SchemaRead, SchemaWrite)]
 pub struct BuildCheckPoint {
     packages: Vec<String>,
     progress: usize,
@@ -42,16 +36,13 @@ pub struct BuildSettings<'a> {
 }
 
 pub fn load_build_checkpoint<P: AsRef<Path>>(path: P) -> Result<BuildCheckPoint> {
-    let mut f = File::open(path)?;
+    let f = fs::read(path)?;
 
-    Ok(bincode::serde::decode_from_std_read(
-        &mut f,
-        BINCODE_CONFIG,
-    )?)
+    Ok(wincode::deserialize(&f)?)
 }
 
 fn dump_build_checkpoint(checkpoint: &BuildCheckPoint) -> Result<()> {
-    let save_state = bincode::serde::encode_to_vec(checkpoint, BINCODE_CONFIG)?;
+    let save_state = wincode::serialize(checkpoint)?;
     let last_package = checkpoint
         .packages
         .get(checkpoint.progress)

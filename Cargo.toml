@@ -15,7 +15,7 @@ dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 indicatif = "0.18"
 nix = { version = "0.30", features = ["fs", "hostname", "mount", "user"] }
 toml = "0.9"
-bincode = { version = "^2", features = ["serde"] }
+wincode = { version = "0.2", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 git2 = "0.20"
