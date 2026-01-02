@@ -1,7 +1,6 @@
 use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
 use fs3::FileExt;
-use reqwest::blocking::{Client, Response};
 use serde::Deserialize;
 use std::path::Path;
 use std::sync::LazyLock;
@@ -13,6 +12,7 @@ use std::{
     thread::{self, sleep},
     time::Duration,
 };
+use ureq::{http::Response, Agent};
 
 const MANIFEST_URL: &str = "https://releases.aosc.io/manifest/recipe.json";
 
@@ -44,18 +44,17 @@ static GIT_PROGRESS: LazyLock<indicatif::ProgressStyle> = LazyLock::new(|| {
 });
 
 /// Download a file from the web
-pub fn download_file(url: &str) -> Result<Response> {
-    let client = Client::new().get(url).send()?;
-
-    Ok(client)
+pub fn download_file(url: &str) -> Result<Response<ureq::Body>> {
+    Ok(Agent::new_with_defaults().get(url).call()?)
 }
 
 /// Download a file with progress indicator
 pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
     let mut output = std::fs::File::create(file)?;
     let resp = download_file(url)?;
+    let (parts, body) = resp.into_parts();
     let mut total: u64 = 0;
-    if let Some(length) = resp.headers().get("content-length") {
+    if let Some(length) = parts.headers.get("content-length") {
         total = length.to_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
     }
     if total > 0 {
@@ -70,7 +69,7 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
             .unwrap(),
     );
     progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stderr_with_hz(5));
-    let mut reader = progress_bar.wrap_read(resp);
+    let mut reader = progress_bar.wrap_read(body.into_reader());
     std::io::copy(&mut reader, &mut output)?;
     progress_bar.finish_and_clear();
 
@@ -79,8 +78,8 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
 
 /// Pick the latest buildkit rootfs according to the recipe
 pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
-    let resp = Client::new().get(MANIFEST_URL).send()?;
-    let recipe: Recipe = resp.json()?;
+    let mut resp = Agent::new_with_defaults().get(MANIFEST_URL).call()?;
+    let recipe: Recipe = resp.body_mut().read_json()?;
     let buildkit = recipe
         .variants
         .into_iter()
