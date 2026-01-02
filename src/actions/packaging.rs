@@ -303,7 +303,7 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
 /// Add topics
 pub fn add_topics(instance: &str, settings: &BuildSettings) -> Result<i32> {
     if !settings.with_topics.is_empty() {
-        let mut cmd = vec!["/bin/oma", "topics", "--yes"];
+        let mut cmd = vec!["/bin/oma", "topics", "--yes", "--no-check-dbus"];
         for topic in settings.with_topics {
             cmd.push("--opt-in");
             cmd.push(topic);
