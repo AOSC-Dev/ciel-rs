@@ -278,6 +278,9 @@ fn main() -> Result<()> {
         }
         ("run", args) => {
             let instance = get_instance_option(args)?;
+            if !args.get_flag("NO_LOCAL_REPO") {
+                actions::prepare_local_repo(&instance)?;
+            }
             let args = args.get_many::<String>("COMMANDS").unwrap();
             let status =
                 actions::run_in_container(&instance, &args.into_iter().collect::<Vec<_>>())?;
@@ -285,6 +288,9 @@ fn main() -> Result<()> {
         }
         ("shell", args) => {
             let instance = get_instance_option(args)?;
+            if !args.get_flag("NO_LOCAL_REPO") {
+                actions::prepare_local_repo(&instance)?;
+            }
             if let Some(cmd) = args.get_many::<String>("COMMANDS") {
                 let command = cmd
                     .into_iter()

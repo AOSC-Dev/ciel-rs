@@ -91,6 +91,12 @@ pub fn build_cli() -> Command {
             Command::new("shell")
                 .alias("sh")
                 .arg(instance_arg.clone().help("Instance to be used"))
+                .arg(
+                    Arg::new("NO_LOCAL_REPO")
+                        .long("no-local-repo")
+                        .action(clap::ArgAction::SetTrue)
+                        .help("Avoid preparing the local repository for the interactive environment"),
+                )
                 .arg(Arg::new("COMMANDS").required(false).num_args(1..))
                 .about("Start an interactive shell"),
         )
@@ -98,6 +104,12 @@ pub fn build_cli() -> Command {
             Command::new("run")
                 .alias("exec")
                 .arg(instance_arg.clone().help("Instance to run command in"))
+                .arg(
+                    Arg::new("NO_LOCAL_REPO")
+                        .long("no-local-repo")
+                        .action(clap::ArgAction::SetTrue)
+                        .help("Avoid preparing the local repository for the bare environment"),
+                )
                 .arg(Arg::new("COMMANDS").required(true).num_args(1..))
                 .about("Lower-level version of 'shell', without login environment, without sourcing ~/.bash_profile"),
         )
