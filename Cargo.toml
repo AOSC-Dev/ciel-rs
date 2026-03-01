@@ -1,6 +1,6 @@
 [package]
 name = "ciel-rs"
-version = "3.9.11"
+version = "3.10.0"
 description = "An nspawn container manager for distro packaging"
 license = "MIT"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
