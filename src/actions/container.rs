@@ -305,18 +305,17 @@ pub fn prepare_local_repo(instance: &str) -> Result<()> {
         return Err(anyhow!("Please configure this workspace first!"));
     }
     let conf = conf.unwrap();
-    if !conf.local_repo {
-        return Err(anyhow!("Please enable local packages repository first!"));
+    if conf.local_repo {
+        let ns_name = get_instance_ns_name(instance)?;
+        let inst = inspect_instance(instance, &ns_name)?;
+        let output_dir = get_output_directory(conf.sep_mount);
+        let root = std::env::current_dir()?.join(output_dir);
+        if !inst.mounted {
+            mount_fs(instance)?;
+        }
+        info!("Refreshing local repository...");
+        repo::init_repo(root.as_ref(), Path::new(&instance))?;
     }
-    let ns_name = get_instance_ns_name(instance)?;
-    let inst = inspect_instance(instance, &ns_name)?;
-    let output_dir = get_output_directory(conf.sep_mount);
-    let root = std::env::current_dir()?.join(output_dir);
-    if !inst.mounted {
-        mount_fs(instance)?;
-    }
-    info!("Refreshing local repository...");
-    repo::init_repo(root.as_ref(), Path::new(&instance))?;
     Ok(())
 }
 
