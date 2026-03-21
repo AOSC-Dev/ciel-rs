@@ -120,7 +120,7 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
 }
 
 /// Setting up cross-namespace bind-mounts for the container using systemd
-fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
+fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str, bool)]) -> Result<()> {
     let conn = Connection::system()?;
     let proxy = ManagerProxyBlocking::new(&conn)?;
     for mount in mounts {
@@ -130,7 +130,7 @@ fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str)]) -> Result<()> {
             ns_name,
             &source_path.to_string_lossy(),
             mount.1,
-            false,
+            !mount.2,
             true,
         )?;
     }
@@ -156,7 +156,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     ns_name: &str,
     path: P,
     extra_options: &[String],
-    mounts: &[(String, &str)],
+    mounts: &[(String, &str, bool)],
 ) -> Result<()> {
     let path = path
         .as_ref()

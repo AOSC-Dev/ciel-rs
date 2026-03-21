@@ -12,24 +12,24 @@ pub use self::container::*;
 pub use self::onboarding::onboarding;
 pub use self::packaging::*;
 
-const DEFAULT_MOUNTS: &[(&str, &str)] = &[
-    ("OUTPUT/debs/", "/debs/"),
-    ("TREE", "/tree"),
-    ("SRCS", "/var/cache/acbs/tarballs"),
-    ("CACHE", "/var/cache/apt/archives"),
+const DEFAULT_MOUNTS: &[(&str, &str, bool)] = &[
+    ("OUTPUT/debs/", "/debs/", true),
+    ("TREE", "/tree", false),
+    ("SRCS", "/var/cache/acbs/tarballs", true),
+    ("CACHE", "/var/cache/apt/archives", true),
 ];
 const APT_UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge"#;
 const OMA_UPDATE_SCRIPT: &str = r#"export OMA_NO_BELL=1 OMA_NO_PROGRESS=1;oma upgrade -y --force-confnew --force-unsafe-io --no-check-dbus && oma autoremove -y --remove-config --no-check-dbus"#;
 
-type MountOptions = (Vec<String>, Vec<(String, &'static str)>);
+type MountOptions = (Vec<String>, Vec<(String, &'static str, bool)>);
 /// Ensure that the directories exist and mounted
 pub fn ensure_host_sanity() -> Result<MountOptions, std::io::Error> {
     use crate::warn;
 
     let mut extra_options = Vec::new();
-    let mut mounts: Vec<(String, &str)> = DEFAULT_MOUNTS
+    let mut mounts: Vec<(String, &str, bool)> = DEFAULT_MOUNTS
         .iter()
-        .map(|x| (x.0.to_string(), x.1))
+        .map(|x| (x.0.to_string(), x.1, x.2))
         .collect();
     if let Ok(c) = crate::config::read_config() {
         extra_options = c.extra_options;
@@ -38,7 +38,11 @@ pub fn ensure_host_sanity() -> Result<MountOptions, std::io::Error> {
             mounts.swap_remove(2);
         }
         if c.sep_mount {
-            mounts.push((format!("{}/debs", get_output_directory(true)), "/debs/"));
+            mounts.push((
+                format!("{}/debs", get_output_directory(true)),
+                "/debs/",
+                true,
+            ));
             mounts.swap_remove(0);
         }
     } else {
