@@ -134,7 +134,7 @@ fn setup_bind_mounts(
             ns_name,
             &source_path.to_string_lossy(),
             mount.1,
-            if read_write_permitted { true } else { !mount.2 },
+            if read_write_permitted { false } else { !mount.2 },
             true,
         )?;
     }
