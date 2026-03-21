@@ -283,7 +283,7 @@ fn main() -> Result<()> {
             }
             let args = args.get_many::<String>("COMMANDS").unwrap();
             let status =
-                actions::run_in_container(&instance, &args.into_iter().collect::<Vec<_>>())?;
+                actions::run_in_container(&instance, &args.into_iter().collect::<Vec<_>>(), true)?;
             process::exit(status);
         }
         ("shell", args) => {
@@ -295,10 +295,10 @@ fn main() -> Result<()> {
                 let command = cmd
                     .into_iter()
                     .fold(String::with_capacity(1024), |acc, x| acc + " " + x);
-                let status = actions::run_in_container(&instance, &["/bin/bash", "-ec", &command])?;
+                let status = actions::run_in_container(&instance, &["/bin/bash", "-ec", &command], true)?;
                 process::exit(status);
             }
-            let status = actions::run_in_container(&instance, &["/bin/bash"])?;
+            let status = actions::run_in_container(&instance, &["/bin/bash"], true)?;
             process::exit(status);
         }
         ("stop", args) => {

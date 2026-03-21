@@ -120,7 +120,11 @@ fn wait_for_container(child: &mut Child, ns_name: &str, retry: usize) -> Result<
 }
 
 /// Setting up cross-namespace bind-mounts for the container using systemd
-fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str, bool)]) -> Result<()> {
+fn setup_bind_mounts(
+    ns_name: &str,
+    mounts: &[(String, &str, bool)],
+    read_write_permitted: bool,
+) -> Result<()> {
     let conn = Connection::system()?;
     let proxy = ManagerProxyBlocking::new(&conn)?;
     for mount in mounts {
@@ -130,7 +134,7 @@ fn setup_bind_mounts(ns_name: &str, mounts: &[(String, &str, bool)]) -> Result<(
             ns_name,
             &source_path.to_string_lossy(),
             mount.1,
-            !mount.2,
+            if read_write_permitted { true } else { !mount.2 },
             true,
         )?;
     }
@@ -157,6 +161,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     path: P,
     extra_options: &[String],
     mounts: &[(String, &str, bool)],
+    read_write_permitted: bool,
 ) -> Result<()> {
     let path = path
         .as_ref()
@@ -174,7 +179,7 @@ pub fn spawn_container<P: AsRef<Path>>(
     info!("{}: waiting for container to start...", ns_name);
     wait_for_container(&mut child, ns_name, 10)?;
     info!("{}: setting up mounts...", ns_name);
-    if let Err(e) = setup_bind_mounts(ns_name, mounts) {
+    if let Err(e) = setup_bind_mounts(ns_name, mounts, read_write_permitted) {
         warn!("Failed to setup bind mounts: {:?}", e);
     }
 

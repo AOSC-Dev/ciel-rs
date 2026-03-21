@@ -186,9 +186,9 @@ fn package_build_inner<P: AsRef<Path>>(
         let mut oma = true;
         for i in 1..=5 {
             status = if oma && !settings.force_use_apt {
-                run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT]).unwrap_or(-1)
+                run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT], false).unwrap_or(-1)
             } else {
-                run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT]).unwrap_or(-1)
+                run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT], false).unwrap_or(-1)
             };
             if status == 0 {
                 break;
@@ -216,7 +216,7 @@ fn package_build_inner<P: AsRef<Path>>(
         acbs.push("--");
         acbs.push(package);
 
-        let status = run_in_container(instance, &acbs)?;
+        let status = run_in_container(instance, &acbs, false)?;
 
         if status != 0 {
             error!("Build failed with status: {}", status);
@@ -286,7 +286,7 @@ pub fn package_fetch<S: AsRef<str>>(instance: &str, packages: &[S]) -> Result<i3
 
     let mut cmd = vec!["/bin/acbs-build", "-g", "--"];
     cmd.extend(packages.iter().map(|p| p.as_ref()));
-    let status = run_in_container(instance, &cmd)?;
+    let status = run_in_container(instance, &cmd, false)?;
 
     Ok(status)
 }
@@ -299,7 +299,7 @@ pub fn add_topics(instance: &str, settings: &BuildSettings) -> Result<i32> {
             cmd.push("--opt-in");
             cmd.push(topic);
         }
-        let status = run_in_container(instance, &cmd)?;
+        let status = run_in_container(instance, &cmd, false)?;
         if status != 0 {
             return Err(anyhow!("Failed to add specific topics"));
         }
@@ -359,7 +359,7 @@ pub fn package_build<S: AsRef<str>, K: Clone + ExactSizeIterator<Item = S>>(
 
         cmd.push("--".to_string());
         cmd.extend(packages);
-        let status = run_in_container(instance, &cmd)?;
+        let status = run_in_container(instance, &cmd, false)?;
 
         return Ok(status);
     }

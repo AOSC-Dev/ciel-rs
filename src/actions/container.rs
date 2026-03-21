@@ -14,7 +14,9 @@ use crate::{
     actions::{ensure_host_sanity, OMA_UPDATE_SCRIPT},
     common::*,
     config, error, info,
-    machine::{self, get_container_ns_name, inspect_instance, spawn_container},
+    machine::{
+        self, get_container_ns_name, inspect_instance, spawn_container, terminate_container_by_name,
+    },
     network::download_file_progress,
     overlayfs, repo, warn,
 };
@@ -278,7 +280,7 @@ fn get_instance_ns_name(instance: &str) -> Result<String> {
 }
 
 /// Start the container/instance, also mounting the container filesystem prior to the action
-pub fn start_container(instance: &str) -> Result<String> {
+pub fn start_container(instance: &str, read_write_permitted: bool) -> Result<String> {
     let ns_name = get_instance_ns_name(instance)?;
     let inst = inspect_instance(instance, &ns_name)?;
     let (mut extra_options, mounts) = ensure_host_sanity()?;
@@ -291,9 +293,17 @@ pub fn start_container(instance: &str) -> Result<String> {
     if !inst.mounted {
         mount_fs(instance)?;
     }
-    if !inst.started {
-        spawn_container(&ns_name, instance, &extra_options, &mounts)?;
+    if inst.started {
+        // restart the container to apply the new options
+        terminate_container_by_name(&ns_name)?;
     }
+    spawn_container(
+        &ns_name,
+        instance,
+        &extra_options,
+        &mounts,
+        read_write_permitted,
+    )?;
 
     Ok(ns_name)
 }
@@ -320,8 +330,12 @@ pub fn prepare_local_repo(instance: &str) -> Result<()> {
 }
 
 /// Execute the specified command in the container
-pub fn run_in_container<S: AsRef<OsStr>>(instance: &str, args: &[S]) -> Result<i32> {
-    let ns_name = start_container(instance)?;
+pub fn run_in_container<S: AsRef<OsStr>>(
+    instance: &str,
+    args: &[S],
+    read_write_permitted: bool,
+) -> Result<i32> {
+    let ns_name = start_container(instance, read_write_permitted)?;
     let status = machine::execute_container_command(&ns_name, args)?;
 
     Ok(status)
@@ -402,7 +416,7 @@ pub fn update_os(force_use_apt: bool) -> Result<()> {
         return apt_update_os(&instance);
     }
 
-    let status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT])?;
+    let status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT], false)?;
     if status != 0 {
         return apt_update_os(&instance);
     }
@@ -414,7 +428,7 @@ pub fn update_os(force_use_apt: bool) -> Result<()> {
 }
 
 fn apt_update_os(instance: &str) -> Result<()> {
-    let status = run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT])?;
+    let status = run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT], false)?;
 
     if status != 0 {
         return Err(anyhow!("Failed to update OS: {}", status));
