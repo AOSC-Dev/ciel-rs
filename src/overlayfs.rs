@@ -13,11 +13,6 @@ use std::{
 };
 
 pub trait LayerManager {
-    /// Return the name of the layer manager, e.g. "overlay".
-    /// This name should be the same as the fs_type listed in the /proc/<>/mountinfo file
-    fn name() -> String
-    where
-        Self: Sized;
     /// Create a new layer manager from the given distribution directory
     /// dist: distribution directory, inst: instance name (not directory)
     fn from_inst_dir<P: AsRef<Path>>(
@@ -40,8 +35,6 @@ pub trait LayerManager {
     /// Return the directory where the configuration layer is located
     /// You may temporary mount this directory if your backend does not expose this directory directly
     fn get_config_layer(&mut self) -> Result<PathBuf>;
-    /// Return the directory where the base layer is located
-    fn get_base_layer(&mut self) -> Result<PathBuf>;
     /// Set the volatile state of the instance filesystem
     fn set_volatile(&mut self, volatile: bool) -> Result<()>;
     /// Destroy the filesystem of the current instance
@@ -153,12 +146,6 @@ impl OverlayFS {
 }
 
 impl LayerManager for OverlayFS {
-    fn name() -> String
-    where
-        Self: Sized,
-    {
-        "overlay".to_owned()
-    }
     // The overlayfs structure inherited from older CIEL looks like this:
     // |- work: .ciel/container/instances/<inst_name>/diff.tmp/
     // |- upper: .ciel/container/instances/<inst_name>/diff/
@@ -263,10 +250,6 @@ impl LayerManager for OverlayFS {
 
     fn get_config_layer(&mut self) -> Result<PathBuf> {
         Ok(self.lower.clone())
-    }
-
-    fn get_base_layer(&mut self) -> Result<PathBuf> {
-        Ok(self.base.clone())
     }
 
     fn destroy(&mut self) -> Result<()> {
