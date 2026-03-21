@@ -80,6 +80,12 @@ pub fn download_file_progress(url: &str, file: &str) -> Result<u64> {
 pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
     let mut resp = Agent::new_with_defaults().get(MANIFEST_URL).call()?;
     let recipe: Recipe = resp.body_mut().read_json()?;
+    if recipe.version != 1 {
+        return Err(anyhow!(
+            "Unsupported recipe version {}, expected 1",
+            recipe.version
+        ));
+    }
     let buildkit = recipe
         .variants
         .into_iter()
