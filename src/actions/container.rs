@@ -296,6 +296,16 @@ pub fn start_container(instance: &str, read_write_permitted: bool) -> Result<Str
     if inst.started {
         // restart the container to apply the new options
         terminate_container_by_name(&ns_name)?;
+
+        // FIXME: Mission-driven hack, was RISC-V so slow such that it
+        // triggered a race condition? Or does systemd-nspawn/cgroup not
+        // work correctly on riscv64?
+        #[cfg(target_arch = "riscv64")]
+        {
+            use std::{thread, time};
+            let delay = time::Duration::from_secs(3);
+            thread::sleep(delay);
+        }
     }
     spawn_container(
         &ns_name,
