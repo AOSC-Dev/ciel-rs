@@ -295,7 +295,8 @@ fn main() -> Result<()> {
                 let command = cmd
                     .into_iter()
                     .fold(String::with_capacity(1024), |acc, x| acc + " " + x);
-                let status = actions::run_in_container(&instance, &["/bin/bash", "-ec", &command], true)?;
+                let status =
+                    actions::run_in_container(&instance, &["/bin/bash", "-ec", &command], true)?;
                 process::exit(status);
             }
             let status = actions::run_in_container(&instance, &["/bin/bash"], true)?;

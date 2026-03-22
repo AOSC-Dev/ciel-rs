@@ -186,9 +186,11 @@ fn package_build_inner<P: AsRef<Path>>(
         let mut oma = true;
         for i in 1..=5 {
             status = if oma && !settings.force_use_apt {
-                run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT], false).unwrap_or(-1)
+                run_in_container(instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT], false)
+                    .unwrap_or(-1)
             } else {
-                run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT], false).unwrap_or(-1)
+                run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT], false)
+                    .unwrap_or(-1)
             };
             if status == 0 {
                 break;
