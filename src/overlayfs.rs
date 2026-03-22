@@ -195,7 +195,7 @@ impl LayerManager for OverlayFS {
             ));
         }
         // let's mount them
-        overlay.mount().map_err(|e| anyhow!("{}", e.to_string()))?;
+        overlay.mount().map_err(|e| anyhow!("{}", e))?;
 
         Ok(())
     }
