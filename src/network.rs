@@ -101,6 +101,7 @@ pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
     if rootfs.is_empty() {
         return Err(anyhow!("No suitable squashfs was found"));
     }
+
     rootfs.sort_unstable_by_key(|x| x.date.clone());
 
     Ok(rootfs.last().unwrap().to_owned())
