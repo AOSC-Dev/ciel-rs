@@ -128,28 +128,35 @@ fn auto_pick_rootfs(
     theme: &dyn dialoguer::theme::Theme,
     arch: &str,
 ) -> Result<(String, Option<String>, bool)> {
-    let root = pick_latest_rootfs(arch);
+    match pick_latest_rootfs(arch) {
+        Ok(rootfs) => {
+            info!(
+                "Ciel has picked buildkit for {}, released on {}",
+                rootfs.arch, rootfs.date
+            );
+            Ok((
+                format!("https://releases.aosc.io/{}", rootfs.path),
+                Some(rootfs.sha256sum),
+                false,
+            ))
+        }
+        Err(e) => {
+            if let Some(e) = e.downcast_ref::<ureq::Error>() {
+                error!("Failed to fetch manifest: {}", e);
+                std::process::exit(1);
+            }
 
-    if let Ok(rootfs) = root {
-        info!(
-            "Ciel has picked buildkit for {}, released on {}",
-            rootfs.arch, rootfs.date
-        );
-        Ok((
-            format!("https://releases.aosc.io/{}", rootfs.path),
-            Some(rootfs.sha256sum),
-            false,
-        ))
-    } else {
-        warn!(
-            "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
-        );
-        let rootfs_url = Input::<String>::with_theme(theme)
-            .with_prompt("Rootfs URL")
-            .interact_text()?;
+            warn!(
+                "Ciel was unable to find a suitable buildkit release. Please specify the URL manually."
+            );
 
-        let use_tarball = !rootfs_url.ends_with(".squashfs");
+            let rootfs_url = Input::<String>::with_theme(theme)
+                .with_prompt("Rootfs URL")
+                .interact_text()?;
 
-        Ok((rootfs_url, None, use_tarball))
+            let use_tarball = !rootfs_url.ends_with(".squashfs");
+
+            Ok((rootfs_url, None, use_tarball))
+        }
     }
 }
