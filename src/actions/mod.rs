@@ -19,7 +19,7 @@ const DEFAULT_MOUNTS: &[(&str, &str, bool)] = &[
     ("CACHE", "/var/cache/apt/archives", true),
 ];
 const APT_UPDATE_SCRIPT: &str = r#"export DEBIAN_FRONTEND=noninteractive;apt-get update -y --allow-releaseinfo-change && apt-get -y -o Dpkg::Options::="--force-confnew" full-upgrade --autoremove --purge"#;
-const OMA_UPDATE_SCRIPT: &str = r#"export OMA_NO_BELL=1 OMA_NO_PROGRESS=1;oma upgrade -y --force-confnew --force-unsafe-io --no-check-dbus && oma autoremove -y --remove-config --no-check-dbus"#;
+const OMA_UPDATE_SCRIPT: &str = r#"export OMA_NO_BELL=1 OMA_NO_PROGRESS=1 OMA_NO_CLEAN=1;oma upgrade -y --force-confnew --force-unsafe-io --no-check-dbus && oma autoremove -y --remove-config --no-check-dbus"#;
 
 type MountOptions = (Vec<String>, Vec<(String, &'static str, bool)>);
 /// Ensure that the directories exist and mounted
