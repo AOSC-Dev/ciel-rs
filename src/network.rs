@@ -1,16 +1,12 @@
 use crate::make_progress_bar;
 use anyhow::{anyhow, Result};
 use fs3::FileExt;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
-use std::sync::LazyLock;
 use std::{
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-    thread::{self, sleep},
-    time::Duration,
+    sync::{atomic::Ordering, Arc},
 };
 use ureq::{http::Response, Agent};
 
@@ -36,12 +32,6 @@ pub struct Recipe {
     pub version: usize,
     variants: Vec<Variant>,
 }
-
-static GIT_PROGRESS: LazyLock<indicatif::ProgressStyle> = LazyLock::new(|| {
-    indicatif::ProgressStyle::default_bar()
-        .template("[{bar:25.cyan/blue}] {pos}/{len} {msg} ({eta})")
-        .unwrap()
-});
 
 /// Download a file from the web
 pub fn download_file(url: &str) -> Result<Response<ureq::Body>> {
@@ -108,76 +98,111 @@ pub fn pick_latest_rootfs(arch: &str) -> Result<RootFs> {
 }
 
 /// Clone the Git repository to `root`
-pub fn download_git(uri: &str, root: &Path) -> Result<()> {
-    let mut callbacks = git2::RemoteCallbacks::new();
-    let mut co_callback = git2::build::CheckoutBuilder::new();
-    let current: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
-    let total: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
-    let stage: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
-    let cur_bytes: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0usize));
+pub fn download_git(uri: &str, root_path: &std::path::Path) -> Result<()> {
+    let progress_root: Arc<gix::progress::tree::Root> = gix::progress::tree::root::Options {
+        initial_capacity: 20,
+        message_buffer_capacity: 20,
+    }
+    .into();
 
-    let current_tx = current.clone();
-    let total_tx = total.clone();
-    let stage_tx = stage.clone();
-    let cur_bytes_tx = cur_bytes.clone();
+    let root_weak = Arc::downgrade(&progress_root);
+    let is_interrupted = &gix::interrupt::IS_INTERRUPTED;
 
-    callbacks.transfer_progress(move |p: git2::Progress| {
-        if p.received_objects() == p.total_objects() {
-            current_tx.store(p.indexed_deltas(), Ordering::SeqCst);
-            total_tx.store(p.total_deltas(), Ordering::SeqCst);
-            stage_tx.store(1, Ordering::SeqCst);
-        } else {
-            current_tx.store(p.received_objects(), Ordering::SeqCst);
-            total_tx.store(p.total_objects(), Ordering::SeqCst);
-            cur_bytes_tx.store(p.received_bytes(), Ordering::SeqCst);
-        }
+    let render_thread = std::thread::spawn(move || {
+        let multi = MultiProgress::new();
+        let mut bars: HashMap<gix::progress::Id, ProgressBar> = HashMap::new();
+        let mut tasks = Vec::new();
 
-        true
-    });
+        let read_pack_bytes_id: gix::progress::Id = gix::odb::pack::bundle::write::ProgressId::ReadPackBytes.into();
+        let index_objects_id: gix::progress::Id = gix::odb::pack::index::write::ProgressId::IndexObjects.into();
+        let resolve_objects_id: gix::progress::Id = gix::odb::pack::index::write::ProgressId::ResolveObjects.into();
 
-    let current_co = current.clone();
-    let total_co = total.clone();
-    let stage_co = stage.clone();
-    let stage_bar = stage.clone();
+        while let Some(root) = root_weak.upgrade() {
+            root.sorted_snapshot(&mut tasks);
 
-    co_callback.progress(move |_, cur, ttl| {
-        current_co.store(cur, Ordering::SeqCst);
-        total_co.store(ttl, Ordering::SeqCst);
-        stage_co.store(2, Ordering::SeqCst);
-    });
-    let mut options = git2::FetchOptions::new();
-    options.remote_callbacks(callbacks);
-    // drawing progress bar in a separate thread
-    let bar = thread::spawn(move || {
-        let progress = indicatif::ProgressBar::new(1);
-        progress.set_style(GIT_PROGRESS.clone());
-        loop {
-            let current = current.load(Ordering::SeqCst);
-            let total = total.load(Ordering::SeqCst);
-            progress.set_length(total as u64);
-            progress.set_position(current as u64);
+            for (_key, task) in &tasks {
+                let task_id = task.id;
+                let progress = match &task.progress {
+                    Some(p) => p,
+                    None => continue,
+                };
 
-            match stage_bar.load(Ordering::SeqCst) {
-                0 => {
-                    let human_bytes =
-                        indicatif::HumanBytes(cur_bytes.load(Ordering::SeqCst) as u64);
-                    progress.set_message(human_bytes.to_string());
+                let pb = bars.entry(task_id).or_insert_with(|| {
+                    let new_pb = multi.add(ProgressBar::new(0));
+                    
+                    if task_id == read_pack_bytes_id {
+                        new_pb.set_style(ProgressStyle::with_template(
+                            "{prefix:>18.yellow.bold} {binary_bytes:>10} ({binary_bytes_per_sec}) {msg}"
+                        ).unwrap());
+                        new_pb.set_prefix("Downloading");
+                    } else if task_id == index_objects_id {
+                        new_pb.set_style(ProgressStyle::with_template(
+                            "{prefix:>18.green.bold} [{bar:40.green/white}] {pos}/{len} {msg}"
+                        ).unwrap());
+                        new_pb.set_prefix("Indexing");
+                    } else if task_id == resolve_objects_id {
+                        new_pb.set_style(ProgressStyle::with_template(
+                            "{prefix:>18.magenta.bold} [{bar:40.magenta/white}] {pos}/{len} {msg}"
+                        ).unwrap());
+                        new_pb.set_prefix("Resolving");
+                    } else {
+                        new_pb.set_style(ProgressStyle::with_template(
+                            "{prefix:>18.cyan.bold} [{bar:40.cyan/white}] {pos}/{len}"
+                        ).unwrap());
+                        new_pb.set_prefix(task.name.to_string());
+                    }
+                    new_pb
+                });
+
+                let current = progress.step.load(Ordering::Relaxed);
+                if let Some(total) = progress.done_at {
+                    pb.set_length(total as u64);
+                } else {
+                    pb.set_style(ProgressStyle::with_template(
+                        "{prefix:>18.cyan.bold} {pos}"
+                    ).unwrap());
                 }
-                1 => progress.set_message("Resolving deltas..."),
-                2 => progress.set_message("Checking out files..."),
-                _ => break,
+
+                pb.set_position(current as u64);
+
+                match progress.done_at {
+                    Some(t) if current >= t && t > 0 => pb.finish_and_clear(),
+                    None if current == 0 => pb.finish_and_clear(),
+                    _ => {}
+                }
+
+                bars.retain(|id, pb| {
+                    let task_in_snapshot = tasks.iter().find(|(_, t)| t.id == *id);
+                    
+                    match task_in_snapshot {
+                        Some((_, t)) => {
+                            if t.progress.is_none() {
+                                pb.finish_and_clear();
+                                return false;
+                            }
+                            true
+                        }
+                        None => {
+                            pb.finish_and_clear();
+                            false
+                        }
+                    }
+                });
             }
-            sleep(Duration::from_millis(100));
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
-        progress.finish_and_clear();
     });
 
-    git2::build::RepoBuilder::new()
-        .fetch_options(options)
-        .with_checkout(co_callback)
-        .clone(uri, root)?;
-    stage.store(4, Ordering::SeqCst);
-    bar.join().unwrap();
+    let url = gix::url::parse(uri.into())?;
+    let mut prepare = gix::prepare_clone(url, root_path)?;
+
+    let mut progress_item = progress_root.add_child("clone");
+
+    let (mut checkout, _) = prepare.fetch_then_checkout(&mut progress_item, &is_interrupted)?;
+    checkout.main_worktree(&mut progress_item, &is_interrupted)?;
+
+    drop(progress_root);
+    let _ = render_thread.join();
 
     Ok(())
 }

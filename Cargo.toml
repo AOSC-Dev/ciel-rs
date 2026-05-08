@@ -18,6 +18,11 @@ toml = "0.9"
 wincode = { version = "0.2", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 git2 = "0.20"
+gix = { version = "0.83", features = [
+    "blocking-http-transport-reqwest-native-tls",
+    "progress-tree",
+    "parallel",
+] }
 tar = "0.4"
 xz2 = "0.1"
 libmount = { git = "https://github.com/liushuyu/libmount", rev = "6fe8dba03a6404dfe1013995dd17af1c4e21c97b" }
@@ -33,7 +38,11 @@ rand = "0.9"
 dotenvy = "0.15"
 which = "8.0"
 sha2 = "0.10"
-time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
+time = { version = "0.3", default-features = false, features = [
+    "serde-human-readable",
+    "macros",
+] }
+ureq = { version = "^3.3.0", features = ["json"] }
 fs3 = "0.5"
 clap = { version = "^4", features = ["wrap_help", "string", "env"] }
 ctrlc = "^3"
@@ -42,10 +51,9 @@ ar = "0.9"
 faster-hex = "0.10"
 flate2 = "1.1"
 tabwriter = { version = "^1", features = ["ansi_formatting"] }
-unsquashfs-wrapper =  "0.3"
+unsquashfs-wrapper = "0.3"
 inotify = "0.11"
 zstd = "0.13"
-ureq = { version = "^3", features = ["json"] }
 
 [build-dependencies]
 clap = { version = "^4", features = ["string", "env"] }
