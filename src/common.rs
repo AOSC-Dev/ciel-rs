@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 use indicatif::ProgressBar;
+use faster_hex::hex_string;
+use digest_io::IoWrapper;
 use sha2::{Digest, Sha256};
 use std::env::consts::ARCH;
 use std::fs::{self, File};
@@ -119,10 +121,10 @@ pub fn get_host_arch_name() -> Option<&'static str> {
 
 /// Calculate the Sha256 checksum of the given stream
 pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
-    let mut hasher = Sha256::new();
+    let mut hasher = IoWrapper(Sha256::new());
     std::io::copy(&mut reader, &mut hasher)?;
 
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(hex_string(&hasher.0.finalize()))
 }
 
 /// Extract the given .tar.xz stream and preserve all the file attributes

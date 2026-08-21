@@ -2,6 +2,7 @@ use crate::error;
 use anyhow::{anyhow, Result};
 use ar::Archive as ArArchive;
 use console::style;
+use digest_io::IoWrapper;
 use faster_hex::hex_string;
 use flate2::read::GzDecoder;
 use rayon::prelude::*;
@@ -96,10 +97,10 @@ fn scan_single_deb_simple<P: AsRef<Path>>(path: P, root: P) -> Result<Vec<u8>> {
 
 /// Calculate the Sha256 checksum of the given stream
 pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
-    let mut hasher = Sha256::new();
+    let mut hasher = IoWrapper(Sha256::new());
     std::io::copy(&mut reader, &mut hasher)?;
 
-    Ok(hex_string(&hasher.finalize()))
+    Ok(hex_string(&hasher.0.finalize()))
 }
 
 #[inline]

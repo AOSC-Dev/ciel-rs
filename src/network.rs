@@ -202,7 +202,7 @@ pub fn fetch_repo<P: AsRef<Path>>(path: P) -> Result<git2::Repository> {
     let repo = git2::Repository::open(path.as_ref())?;
     let mut remote = repo.find_remote("origin")?;
     let refs = remote.fetch_refspecs()?;
-    let refspecs = refs.into_iter().flatten().collect::<Vec<_>>();
+    let refspecs = refs.into_iter().flatten().flatten().collect::<Vec<_>>();
     let mut opts = git2::FetchOptions::new();
     opts.prune(git2::FetchPrune::On);
     remote.fetch(&refspecs, Some(&mut opts), None)?;

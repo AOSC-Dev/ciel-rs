@@ -31,7 +31,7 @@ pub fn get_branch_name() -> Result<String> {
 
     Ok(head
         .shorthand()
-        .ok_or_else(|| anyhow!("Unable to resolve Git ref"))?
+        .or_else(|_| Err(anyhow!("Unable to resolve Git ref")))?
         .to_owned())
 }
 

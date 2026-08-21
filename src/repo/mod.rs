@@ -3,6 +3,8 @@
 use crate::info;
 use anyhow::Result;
 use console::style;
+use digest_io::IoWrapper;
+use faster_hex::hex_string;
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::{fs, io, path::Path};
@@ -18,16 +20,16 @@ const DEB822_DATE: &[FormatItem] = format_description!("[weekday repr:short], [d
 
 fn generate_release(path: &Path) -> Result<String> {
     let mut f = fs::File::open(path.join("Packages"))?;
-    let mut hasher = Sha256::new();
+    let mut hasher = IoWrapper(Sha256::new());
     io::copy(&mut f, &mut hasher)?;
-    let result = hasher.finalize();
+    let result = hasher.0.finalize();
     let meta = f.metadata()?;
     let timestamp = OffsetDateTime::now_utc().format(&DEB822_DATE)?;
 
     Ok(format!(
-        "Date: {}\nSHA256:\n {:x} {} Packages\n",
+        "Date: {}\nSHA256:\n {} {} Packages\n",
         timestamp,
-        result,
+        hex_string(&result),
         meta.len()
     ))
 }
