@@ -1,6 +1,6 @@
 //! This module contains configuration files related APIs
 
-use crate::common::CURRENT_CIEL_VERSION;
+use crate::common::{CURRENT_CIEL_VERSION, is_in_ci};
 use crate::{get_host_arch_name, info};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};
@@ -150,7 +150,7 @@ fn get_default_editor() -> OsString {
 /// Shows a series of prompts to let the user select the configurations
 pub fn ask_for_config(config: Option<CielConfig>) -> Result<CielConfig> {
     let mut config = config.unwrap_or_default();
-    if !user_attended() {
+    if !user_attended() || is_in_ci() {
         info!("Not controlled by an user. Default values are used.");
         return Ok(config);
     }

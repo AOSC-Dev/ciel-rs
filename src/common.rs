@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use console::user_attended;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
-use indicatif::ProgressBar;
-use faster_hex::hex_string;
 use digest_io::IoWrapper;
+use faster_hex::hex_string;
+use indicatif::ProgressBar;
 use sha2::{Digest, Sha256};
 use std::env::consts::ARCH;
 use std::fs::{self, File};
@@ -125,6 +125,17 @@ pub fn sha256sum<R: Read>(mut reader: R) -> Result<String> {
     std::io::copy(&mut reader, &mut hasher)?;
 
     Ok(hex_string(&hasher.0.finalize()))
+}
+
+/// Check if the current process is running in a container
+pub fn is_in_ci() -> bool {
+    match std::env::var("CI") {
+        Ok(v) => match v.as_str() {
+            "y" | "yes" | "1" | "t" | "true" | "on" => true,
+            _ => false,
+        },
+        Err(_) => false,
+    }
 }
 
 /// Extract the given .tar.xz stream and preserve all the file attributes

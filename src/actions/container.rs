@@ -422,30 +422,27 @@ pub fn update_os(force_use_apt: bool) -> Result<()> {
     let instance = format!("update-{:x}", random::<u32>());
     add_instance(&instance)?;
 
-    if force_use_apt {
-        return apt_update_os(&instance);
+    for script in &[OMA_UPDATE_SCRIPT, APT_UPDATE_SCRIPT] {
+        if force_use_apt && *script == OMA_UPDATE_SCRIPT {
+            continue;
+        }
+
+        let status = run_in_container(&instance, &["/bin/bash", "-ec", script], false)
+            .unwrap_or_else(|e| {
+                error!("Failed to update OS: {}", e);
+                -1
+            });
+        if status == 0 {
+            commit_container(&instance)?;
+            remove_instance(&instance)?;
+
+            return Ok(());
+        }
     }
 
-    let status = run_in_container(&instance, &["/bin/bash", "-ec", OMA_UPDATE_SCRIPT], false)?;
-    if status != 0 {
-        return apt_update_os(&instance);
+    if is_in_ci() {
+        remove_instance(&instance)?;
+        return Err(anyhow!("Failed to update OS in CI environment."));
     }
-
-    commit_container(&instance)?;
-    remove_instance(&instance)?;
-
-    Ok(())
-}
-
-fn apt_update_os(instance: &str) -> Result<()> {
-    let status = run_in_container(instance, &["/bin/bash", "-ec", APT_UPDATE_SCRIPT], false)?;
-
-    if status != 0 {
-        return Err(anyhow!("Failed to update OS: {}", status));
-    }
-
-    commit_container(instance)?;
-    remove_instance(instance)?;
-
-    Ok(())
+    Err(anyhow!("Failed to update OS."))
 }
