@@ -35,7 +35,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     let real_arch = if let Some(arch) = arch {
         arch
     } else if custom_tarball.is_some() {
-        "custom"
+        ask_for_target_arch_optional()?.unwrap_or("custom")
     } else {
         ask_for_target_arch()?
     };

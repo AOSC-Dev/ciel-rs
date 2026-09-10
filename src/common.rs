@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use console::user_attended;
-use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect};
 use digest_io::IoWrapper;
 use faster_hex::hex_string;
 use indicatif::ProgressBar;
@@ -244,6 +244,19 @@ pub fn is_legacy_workspace() -> Result<bool> {
     f.read_exact(&mut buf)?;
 
     Ok(buf[0] < CURRENT_CIEL_VERSION_STR.as_bytes()[0])
+}
+
+pub fn ask_for_target_arch_optional() -> Result<Option<&'static str>> {
+    if !user_attended()
+        || !Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Do you want to specify the target architecture for this tarball?")
+            .default(false)
+            .interact()?
+    {
+        return Ok(None);
+    }
+
+    ask_for_target_arch().map(Some)
 }
 
 pub fn ask_for_target_arch() -> Result<&'static str> {
