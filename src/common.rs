@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use console::user_attended;
-use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect};
 use digest_io::IoWrapper;
 use faster_hex::hex_string;
 use indicatif::ProgressBar;
@@ -244,6 +244,29 @@ pub fn is_legacy_workspace() -> Result<bool> {
     f.read_exact(&mut buf)?;
 
     Ok(buf[0] < CURRENT_CIEL_VERSION_STR.as_bytes()[0])
+}
+
+/// Asks the user whether they want to declare a target architecture.
+///
+/// This is useful when importing a custom tarball, which does not carry any
+/// architecture information: the user may either declare the architecture of
+/// the imported tarball or skip the question altogether. `None` is returned
+/// if the user is not being attended or if they chose to skip the question.
+pub fn ask_for_target_arch_optional() -> Result<Option<&'static str>> {
+    if !user_attended() {
+        return Ok(None);
+    }
+    let theme = ColorfulTheme::default();
+    let specify_arch = Confirm::with_theme(&theme)
+        .with_prompt("Do you want to specify the target architecture for this tarball?")
+        .default(false)
+        .interact()?;
+
+    if !specify_arch {
+        return Ok(None);
+    }
+
+    Ok(Some(ask_for_target_arch()?))
 }
 
 pub fn ask_for_target_arch() -> Result<&'static str> {

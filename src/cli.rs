@@ -68,7 +68,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("new")
             .arg(Arg::new("tarball").num_args(1).long("from-tarball").help("Create a new workspace from the specified tarball"))
-            .arg(Arg::new("arch").num_args(1).short('a').long("arch").help("Create a new workspace for specified architecture"))
+            .arg(Arg::new("arch").num_args(1).short('a').long("arch").help("Create a new workspace for specified architecture (when used with `--from-tarball`, this is written as `ARCH` into the container's AB4 configuration)"))
             .about("Create a new CIEL workspace")
         )
         .subcommand(

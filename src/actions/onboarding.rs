@@ -32,16 +32,19 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
         return Err(anyhow!("Unable to create a ciel workspace."));
     }
     info!("Before continuing, I need to ask you a few questions:");
+    // A custom tarball carries no architecture information, so let the user
+    // declare the architecture of the tarball being imported; this ends up as
+    // the `ARCH` line in the imported container's AB4 configuration file.
     let real_arch = if let Some(arch) = arch {
-        arch
+        Some(arch.to_string())
     } else if custom_tarball.is_some() {
-        "custom"
+        ask_for_target_arch_optional()?.map(str::to_string)
     } else {
-        ask_for_target_arch()?
+        Some(ask_for_target_arch()?.to_string())
     };
     let mut config = config::ask_for_config(None)?;
     // check if this is a "foreign architecture"
-    if real_arch.contains("_") {
+    if let Some(real_arch) = real_arch.as_deref().filter(|arch| arch.contains("_")) {
         config.foreign_arch = Some(real_arch.to_string());
     }
     let mut init_instance: Option<String> = None;
@@ -77,7 +80,10 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
         }
         None => {
             info!("Searching for latest AOSC OS buildkit release...");
-            auto_pick_rootfs(&theme, real_arch)?
+            let arch = real_arch
+                .as_deref()
+                .ok_or_else(|| anyhow!("Unable to determine the target architecture"))?;
+            auto_pick_rootfs(&theme, arch)?
         }
     };
     load_os(&rootfs_url, rootfs_sha256, use_tarball)?;
