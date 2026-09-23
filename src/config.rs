@@ -1,6 +1,6 @@
 //! This module contains configuration files related APIs
 
-use crate::common::{CURRENT_CIEL_VERSION, is_in_ci};
+use crate::common::{is_in_ci, CURRENT_CIEL_VERSION};
 use crate::{get_host_arch_name, info};
 use anyhow::{anyhow, Result};
 use console::{style, user_attended};

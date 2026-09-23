@@ -25,7 +25,21 @@ pub const CIEL_MAINLINE_ARCHS: &[&str] = &[
     "loongarch64_nosimd",
     "loongson3",
 ];
-pub const CIEL_RETRO_ARCHS: &[&str] = &["armv4", "armv6hf", "armv7hf", "i486", "m68k", "powerpc"];
+pub const CIEL_RETRO_ARCHS: &[&str] = &[
+    "alpha",
+    "armv4",
+    "armv5te",
+    "armv6hf",
+    "armv7hf",
+    "ia64",
+    "i486",
+    "loongson2f",
+    "m68k",
+    "powerpc",
+    "ppc64",
+    "sh3",
+    "sparc64",
+];
 pub const CURRENT_CIEL_VERSION: usize = 3;
 const CURRENT_CIEL_VERSION_STR: &str = "3";
 pub const CIEL_DIST_DIR: &str = ".ciel/container/dist";
