@@ -52,6 +52,7 @@ pub fn onboarding(custom_tarball: Option<&String>, arch: Option<&str>) -> Result
     {
         let name: String = Input::with_theme(&theme)
             .with_prompt("Name of the instance")
+            .validate_with(validate_instance_name)
             .interact_text()?;
         init_instance = Some(name.clone());
         info!(

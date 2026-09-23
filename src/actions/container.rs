@@ -397,6 +397,7 @@ pub fn rollback_container(instance: &str) -> Result<()> {
 /// Create a new instance
 #[inline]
 pub fn add_instance(instance: &str) -> Result<()> {
+    validate_instance_name(&instance.to_owned()).map_err(|e| anyhow!(e))?;
     overlayfs::create_new_instance_fs(CIEL_INST_DIR, instance)?;
     info!("{}: instance created.", instance);
 

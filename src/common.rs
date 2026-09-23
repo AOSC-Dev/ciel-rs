@@ -251,6 +251,34 @@ pub fn is_instance_exists(instance: &str) -> bool {
     Path::new(CIEL_INST_DIR).join(instance).is_dir()
 }
 
+/// Check whether `name` is usable as a `systemd-nspawn` container/machine
+/// name.
+///
+/// `systemd-nspawn` silently strips characters it doesn't accept (e.g. `_`)
+/// from the machine name it actually registers, while ciel keeps tracking
+/// the instance by the original, unstripped name -- so ciel then can no
+/// longer find/control the container it just created. Reject such names
+/// up-front instead. See #47.
+#[allow(clippy::ptr_arg)]
+pub fn validate_instance_name(name: &String) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("Instance name must not be empty.".to_owned());
+    }
+    if name.len() > 64 {
+        return Err("Instance name must be 64 characters or fewer.".to_owned());
+    }
+    if !name.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-') {
+        return Err(
+            "Instance name may only contain ASCII letters, digits, and hyphens ('-').".to_owned(),
+        );
+    }
+    if name.starts_with('-') || name.ends_with('-') {
+        return Err("Instance name must not start or end with a hyphen ('-').".to_owned());
+    }
+
+    Ok(())
+}
+
 pub fn is_legacy_workspace() -> Result<bool> {
     let mut f = fs::File::open(".ciel/version")?;
     // TODO: use a more robust check
@@ -289,4 +317,32 @@ pub fn ask_for_target_arch() -> Result<&'static str> {
         .interact()?;
 
     Ok(all_archs[chosen_index])
+}
+
+#[test]
+fn test_validate_instance_name_accepts_valid_names() {
+    assert!(validate_instance_name(&"main".to_owned()).is_ok());
+    assert!(validate_instance_name(&"BuildCat".to_owned()).is_ok());
+    assert!(validate_instance_name(&"amd64-stable".to_owned()).is_ok());
+    assert!(validate_instance_name(&"update-662d42f2".to_owned()).is_ok());
+}
+
+#[test]
+fn test_validate_instance_name_rejects_characters_nspawn_would_strip() {
+    // https://github.com/AOSC-Dev/ciel-rs/issues/47: systemd-nspawn silently
+    // strips characters like '_' from the machine name, so ciel must refuse
+    // them up-front rather than tracking a name nspawn will never register.
+    assert!(validate_instance_name(&"BuildCat_la64".to_owned()).is_err());
+    assert!(validate_instance_name(&"has space".to_owned()).is_err());
+    assert!(validate_instance_name(&"has.dot".to_owned()).is_err());
+    assert!(validate_instance_name(&"has/slash".to_owned()).is_err());
+}
+
+#[test]
+fn test_validate_instance_name_rejects_edge_cases() {
+    assert!(validate_instance_name(&"".to_owned()).is_err());
+    assert!(validate_instance_name(&"-leading-hyphen".to_owned()).is_err());
+    assert!(validate_instance_name(&"trailing-hyphen-".to_owned()).is_err());
+    assert!(validate_instance_name(&"a".repeat(65)).is_err());
+    assert!(validate_instance_name(&"a".repeat(64)).is_ok());
 }
