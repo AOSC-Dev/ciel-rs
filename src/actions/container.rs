@@ -76,15 +76,40 @@ fn rollback(instance: &str) -> Result<()> {
     Ok(())
 }
 
+/// Remove a directory tree, treating "already gone" as success.
+///
+/// `farewell`'s whole point is to guarantee a clean slate even when the
+/// workspace is already in a partially-removed or inconsistent state, so a
+/// missing path here is not an error worth reporting.
+fn remove_dir_all_best_effort(path: &Path) -> Result<()> {
+    match fs::remove_dir_all(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+/// Tear down the workspace: un-mount/stop all instances on a best-effort
+/// basis, then remove the `.ciel` directory.
+///
+/// A single instance left in a broken or partially-initialized state (e.g.
+/// from an interrupted `ciel new`/`ciel update-os`) must not prevent the
+/// rest of the workspace from being nuked, otherwise the user is left with
+/// a workspace `ciel farewell` can never clean up. See #58.
+fn nuke_workspace(path: &Path) -> Result<()> {
+    if let Err(e) = for_each_instance(&container_down) {
+        warn!("Failed to cleanly tear down all instances: {:?}", e);
+        warn!("Continuing with workspace removal anyway...");
+    }
+    remove_dir_all_best_effort(&path.join(".ciel"))
+}
+
 /// Remove everything in the current workspace
 pub fn farewell(path: &Path) -> Result<()> {
     if !user_attended() {
         eprintln!("DELETE THIS CIEL WORKSPACE?");
         info!("Not controlled by an user. Automatically confirmed.");
-        // Un-mount all the instances
-        for_each_instance(&container_down)?;
-        fs::remove_dir_all(path.join(".ciel"))?;
-        return Ok(());
+        return nuke_workspace(path);
     }
     let theme = ColorfulTheme::default();
     let delete = Confirm::with_theme(&theme)
@@ -110,9 +135,7 @@ pub fn farewell(path: &Path) -> Result<()> {
 
     info!("... as you wish. Commencing destruction ...");
     info!("Un-mounting all the instances...");
-    // Un-mount all the instances
-    for_each_instance(&container_down)?;
-    fs::remove_dir_all(path.join(".ciel"))?;
+    nuke_workspace(path)?;
 
     Ok(())
 }
@@ -445,4 +468,39 @@ pub fn update_os(force_use_apt: bool) -> Result<()> {
         return Err(anyhow!("Failed to update OS in CI environment."));
     }
     Err(anyhow!("Failed to update OS."))
+}
+
+#[test]
+fn test_remove_dir_all_best_effort_missing_path_is_ok() {
+    let tmp = tempfile::tempdir().unwrap();
+    let missing = tmp.path().join("does-not-exist");
+    assert!(!missing.exists());
+
+    assert!(remove_dir_all_best_effort(&missing).is_ok());
+}
+
+#[test]
+fn test_remove_dir_all_best_effort_removes_existing_path() {
+    let tmp = tempfile::tempdir().unwrap();
+    let target = tmp.path().join(".ciel");
+    fs::create_dir_all(target.join("nested")).unwrap();
+    fs::write(target.join("nested").join("file"), b"data").unwrap();
+    assert!(target.exists());
+
+    assert!(remove_dir_all_best_effort(&target).is_ok());
+    assert!(!target.exists());
+}
+
+#[test]
+fn test_remove_dir_all_best_effort_propagates_other_errors() {
+    // A file (not a directory) as the target makes `remove_dir_all` fail
+    // with `ErrorKind::NotADirectory`/`Other`, which must NOT be silently
+    // swallowed the way `NotFound` is.
+    let tmp = tempfile::tempdir().unwrap();
+    let file_path = tmp.path().join("not-a-directory");
+    fs::write(&file_path, b"data").unwrap();
+
+    let result = remove_dir_all_best_effort(&file_path);
+    assert!(result.is_err());
+    assert!(file_path.exists());
 }
