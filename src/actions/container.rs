@@ -297,10 +297,10 @@ pub fn start_container(instance: &str, read_write_permitted: bool) -> Result<Str
         // restart the container to apply the new options
         terminate_container_by_name(&ns_name)?;
 
-        // FIXME: Mission-driven hack, was RISC-V so slow such that it
+        // FIXME: Mission-driven hack, was RISC-V/PPC64 so slow such that it
         // triggered a race condition? Or does systemd-nspawn/cgroup not
-        // work correctly on riscv64?
-        #[cfg(target_arch = "riscv64")]
+        // work correctly on riscv64/ppc64?
+        #[cfg(any(target_arch = "riscv64", target_arch = "powerpc64"))]
         {
             use std::{thread, time};
             let delay = time::Duration::from_secs(3);
