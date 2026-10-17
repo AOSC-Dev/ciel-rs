@@ -299,7 +299,11 @@ pub fn start_container(instance: &str, read_write_permitted: bool) -> Result<Str
 
         // FIXME: Mission-driven hack, these architectures needed a delay
         // between nspawn shutdown and respawning.
-        #[cfg(any(target_arch = "riscv64", target_arch = "powerpc64", target_arch = "mips64"))]
+        #[cfg(any(
+            target_arch = "riscv64",
+            target_arch = "powerpc64",
+            target_arch = "mips64"
+        ))]
         {
             use std::{thread, time};
             let delay = time::Duration::from_secs(3);
